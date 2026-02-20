@@ -45,7 +45,6 @@ android/android/gradle
 android/android/gradle.project.sync
 android/android/gutter
 android/android/imports
-android/android/instantapp
 android/android/integration
 android/android/jetbrains
 android/android/lang
