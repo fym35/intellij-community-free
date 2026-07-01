@@ -55,11 +55,12 @@ interface HttpApiHelper {
 }
 
 @ApiStatus.Experimental
-fun HttpApiHelper(logger: Logger = Logger.getInstance(HttpApiHelper::class.java),
-                  clientFactory: HttpClientFactory = HttpClientFactoryBase(),
-                  requestConfigurer: HttpRequestConfigurer = defaultRequestConfigurer,
-                  errorCollector: suspend (Throwable) -> Unit = {}): HttpApiHelper =
-  HttpApiHelperImpl(logger, clientFactory, requestConfigurer, errorCollector)
+fun HttpApiHelper(
+  logger: Logger = Logger.getInstance(HttpApiHelper::class.java),
+  clientFactory: HttpClientFactory = HttpClientFactoryBase(),
+  requestConfigurer: HttpRequestConfigurer = defaultRequestConfigurer,
+): HttpApiHelper =
+  HttpApiHelperImpl(logger, clientFactory, requestConfigurer)
 
 private val defaultRequestConfigurer = CompoundRequestConfigurer(listOf(
   RequestTimeoutConfigurer(),
@@ -70,7 +71,6 @@ private class HttpApiHelperImpl(
   private val logger: Logger,
   private val clientFactory: HttpClientFactory,
   private val requestConfigurer: HttpRequestConfigurer,
-  private val errorCollector: suspend (Throwable) -> Unit
 ) : HttpApiHelper {
 
   val client: HttpClient
@@ -91,10 +91,6 @@ private class HttpApiHelperImpl(
     catch (ce: CancellationException) {
       cancellableBodyHandler.cancel()
       throw ce
-    }
-    catch (e: Throwable) {
-      errorCollector(e)
-      throw e
     }
   }
 
