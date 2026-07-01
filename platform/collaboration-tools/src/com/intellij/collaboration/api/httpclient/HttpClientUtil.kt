@@ -25,16 +25,16 @@ import java.util.zip.GZIPInputStream
 
 object HttpClientUtil {
 
-  const val ACCEPT_ENCODING_HEADER = "Accept-Encoding"
-  const val CONTENT_ENCODING_HEADER = "Content-Encoding"
-  const val CONTENT_ENCODING_GZIP = "gzip"
+  const val ACCEPT_ENCODING_HEADER: String = "Accept-Encoding"
+  const val CONTENT_ENCODING_HEADER: String = "Content-Encoding"
+  const val CONTENT_ENCODING_GZIP: String = "gzip"
 
   const val ACCEPT_HEADER: String = "Accept"
-  const val CONTENT_TYPE_HEADER = "Content-Type"
-  const val CONTENT_TYPE_JSON = "application/json"
+  const val CONTENT_TYPE_HEADER: String = "Content-Type"
+  const val CONTENT_TYPE_JSON: String = "application/json"
   const val CONTENT_TYPE_ENCODED_FORM: String = "application/x-www-form-urlencoded"
 
-  const val USER_AGENT_HEADER = "User-Agent"
+  const val USER_AGENT_HEADER: String = "User-Agent"
 
   /**
    * Checks the status code of the response and throws [HttpStatusErrorException] if status code is not a successful one
@@ -155,11 +155,11 @@ private class UnclosableInputStream(private val original: InputStream) : InputSt
   }
 
   override fun read(): Int = original.read()
-  override fun read(b: ByteArray?): Int = original.read(b)
-  override fun read(b: ByteArray?, off: Int, len: Int): Int = original.read(b, off, len)
-  override fun readAllBytes(): ByteArray? = original.readAllBytes()
-  override fun readNBytes(len: Int): ByteArray? = original.readNBytes(len)
-  override fun readNBytes(b: ByteArray?, off: Int, len: Int): Int = original.readNBytes(b, off, len)
+  override fun read(b: ByteArray): Int = original.read(b)
+  override fun read(b: ByteArray, off: Int, len: Int): Int = original.read(b, off, len)
+  override fun readAllBytes(): ByteArray = original.readAllBytes()
+  override fun readNBytes(len: Int): ByteArray = original.readNBytes(len)
+  override fun readNBytes(b: ByteArray, off: Int, len: Int): Int = original.readNBytes(b, off, len)
   override fun skip(n: Long): Long = original.skip(n)
   override fun skipNBytes(n: Long) = original.skipNBytes(n)
   override fun available(): Int = original.available()
