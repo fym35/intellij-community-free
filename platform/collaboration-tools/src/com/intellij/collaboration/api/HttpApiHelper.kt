@@ -10,10 +10,8 @@ import com.intellij.collaboration.api.httpclient.HttpClientUtil.inflateAndReadWi
 import com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 import com.intellij.collaboration.api.httpclient.InflatedStreamReadingBodyHandler
 import com.intellij.collaboration.api.httpclient.RequestTimeoutConfigurer
-import com.intellij.collaboration.api.httpclient.response.CancellableWrappingBodyHandler
+import com.intellij.collaboration.async.awaitInterrupting
 import com.intellij.openapi.diagnostic.Logger
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.future.await
 import org.jetbrains.annotations.ApiStatus
 import java.awt.Image
 import java.net.URI
@@ -83,15 +81,8 @@ private class HttpApiHelperImpl(
   }
 
   override suspend fun <T> sendAndAwaitCancellable(request: HttpRequest, bodyHandler: HttpResponse.BodyHandler<T>): HttpResponse<out T> {
-    val cancellableBodyHandler = CancellableWrappingBodyHandler(bodyHandler)
-    return try {
-      logger.debug(request.logName())
-      client.sendAsync(request, cancellableBodyHandler).await()
-    }
-    catch (ce: CancellationException) {
-      cancellableBodyHandler.cancel()
-      throw ce
-    }
+    logger.debug(request.logName())
+    return client.sendAsync(request, bodyHandler).awaitInterrupting()
   }
 
   override suspend fun sendAndAwaitCancellable(request: HttpRequest): HttpResponse<out Unit> =
