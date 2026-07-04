@@ -177,27 +177,21 @@ class GitLabMergeRequestDiscussionsContainerImpl(
         api.rest.loadUpdatableJsonList<GitLabMergeRequestDraftNoteRestDTO>(
           GitLabApiRequestName.REST_GET_DRAFT_NOTES, uri, eTag
         )
-      }.resultOrErrorFlow.mapCatching { draftNotes ->
-        if (draftNotes.isEmpty()) return@mapCatching emptyList()
-
-        draftNotes.map { it }
-      }.modelFlow(cs, LOG)
+      }.resultOrErrorFlow.modelFlow(cs, LOG)
     }
   }
 
   override val draftNotes: Flow<Result<Collection<GitLabMergeRequestDraftNote>>> by lazy {
-    flow {
-      draftNotesData
-        .transformConsecutiveSuccesses {
-          mapDataToModel(
-            GitLabMergeRequestDraftNoteRestDTO::id,
-            {
-              GitLabMergeRequestDraftNoteImpl(this, api, glMetadata, projectId, mr, { draftNotesEvents.emit(it) }, it, currentUser, canAddMultilinePositionalNotes)
-            },
-            { update(it) }
-          )
-        }.collect(this)
-    }.modelFlow(cs, LOG)
+    draftNotesData
+      .transformConsecutiveSuccesses {
+        mapDataToModel(
+          GitLabMergeRequestDraftNoteRestDTO::id,
+          {
+            GitLabMergeRequestDraftNoteImpl(this, api, glMetadata, projectId, mr, { draftNotesEvents.emit(it) }, it, currentUser, canAddMultilinePositionalNotes)
+          },
+          { update(it) }
+        )
+      }.modelFlow(cs, LOG)
   }
 
   private fun getDiscussionDraftNotes(discussionId: GitLabId): Flow<Result<List<GitLabMergeRequestDraftNote>>> {
