@@ -565,13 +565,6 @@ private class ContinuationHandler<T>(
 fun <T, R> Flow<Result<T>>.mapCatching(mapper: suspend (T) -> R): Flow<Result<R>> =
   map { it.mapCatching { value -> mapper(value) } }
 
-/**
- * Maps a flow or results to a flow of values from successful results. Failure results are re-thrown as exceptions.
- */
-@Deprecated("This doesn't work as we expected it to. The flow will actually stop emitting on error")
-fun <T> Flow<Result<T>>.throwFailure(): Flow<T> =
-  map { it.getOrThrow() }
-
 @Deprecated("Same as cancelAndJoin", ReplaceWith("cancelAndJoin()"))
 suspend fun CoroutineScope.cancelAndJoinSilently(): Unit = cancelAndJoin()
 

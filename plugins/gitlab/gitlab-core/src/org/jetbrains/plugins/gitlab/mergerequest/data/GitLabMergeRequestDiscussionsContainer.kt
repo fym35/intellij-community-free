@@ -10,7 +10,6 @@ import com.intellij.collaboration.async.mapDataToModel
 import com.intellij.collaboration.async.mapFiltered
 import com.intellij.collaboration.async.modelFlow
 import com.intellij.collaboration.async.resultOrErrorFlow
-import com.intellij.collaboration.async.throwFailure
 import com.intellij.collaboration.async.transformConsecutiveSuccesses
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -133,7 +132,8 @@ class GitLabMergeRequestDiscussionsContainerImpl(
               LoadedGitLabDiscussion(this,
                                      api, glMetadata, projectId, currentUser,
                                      { discussionEvents.emit(it) }, { draftNotesEvents.emit(it) },
-                                     mr, disc, getDiscussionDraftNotes(disc.id).throwFailure())
+                                     mr, disc,
+                                     getDiscussionDraftNotes(disc.id))
             },
             LoadedGitLabDiscussion::update
           )

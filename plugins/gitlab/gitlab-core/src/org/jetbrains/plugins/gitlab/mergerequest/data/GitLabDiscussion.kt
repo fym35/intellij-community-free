@@ -9,6 +9,7 @@ import com.intellij.collaboration.async.mapDataToModel
 import com.intellij.collaboration.async.mapState
 import com.intellij.collaboration.async.stateInNow
 import com.intellij.collaboration.util.CodeReviewDomainEntity
+import com.intellij.util.containers.nullize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +83,7 @@ class LoadedGitLabDiscussion(
   private val draftNotesEventSink: suspend (Change<GitLabMergeRequestDraftNoteRestDTO>) -> Unit,
   private val mr: GitLabMergeRequest,
   discussionData: GitLabDiscussionRestDTO,
-  draftNotes: Flow<List<GitLabMergeRequestDraftNote>>,
+  draftNotes: Flow<Result<List<GitLabMergeRequestDraftNote>>>,
 ) : GitLabMergeRequestDiscussion {
   init {
     require(discussionData.notes.isNotEmpty()) { "Discussion with empty notes" }
@@ -134,11 +135,11 @@ class LoadedGitLabDiscussion(
         },
         MutableGitLabMergeRequestNote::update
       ).combine(draftNotes) { notes, draftNotes ->
-        notes + draftNotes
+        notes + draftNotes.getOrNull().orEmpty()
       }.stateInNow(cs, emptyList())
 
   override val canAddNotes: StateFlow<Boolean> = draftNotes
-    .map { it.isEmpty() && mr.details.value.userPermissions.createNote }
+    .map { (it.getOrNull()?.isEmpty() ?: false) && mr.details.value.userPermissions.createNote }
     .stateIn(cs, SharingStarted.Lazily, false)
   override val canAddDraftNotes: Boolean =
     mr.details.value.userPermissions.createNote &&
