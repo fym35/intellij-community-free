@@ -1,7 +1,7 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.collaboration.ui.codereview.editor
 
-import com.intellij.collaboration.async.cancelAndJoinSilently
+import com.intellij.collaboration.async.cancelAndJoin
 import com.intellij.collaboration.async.collectScoped
 import com.intellij.collaboration.async.combineStateIn
 import com.intellij.collaboration.async.launchNow
@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -112,7 +113,7 @@ private suspend fun <VM : EditorMapped> EditorEx.doRenderInlays(
         val (key, job) = iter.next()
         if (!set.contains(key)) {
           iter.remove()
-          job.cancelAndJoinSilently()
+          job.cancelAndJoin()
         }
       }
 
@@ -162,7 +163,7 @@ private suspend fun <VM : EditorMapped> controlInlay(vm: VM, editor: EditorEx, r
         }
       }
       else {
-        scopeAndRenderer?.first?.cancelAndJoinSilently()
+        scopeAndRenderer?.first?.cancelAndJoin()
         scopeAndRenderer = null
       }
     }

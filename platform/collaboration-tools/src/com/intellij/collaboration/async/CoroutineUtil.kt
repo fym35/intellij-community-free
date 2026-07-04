@@ -306,7 +306,7 @@ private fun <T, R> Flow<T>.mapScoped2(supervisor: Boolean, mapper: suspend Corou
       launchNow {
         try {
           collect { state ->
-            lastScope?.cancelAndJoinSilently()
+            lastScope?.cancelAndJoin()
             lastScope = launchNow {
               val scopeBody: suspend CoroutineScope.() -> Unit = {
                 val result = mapper(state)
@@ -572,24 +572,15 @@ fun <T, R> Flow<Result<T>>.mapCatching(mapper: suspend (T) -> R): Flow<Result<R>
 fun <T> Flow<Result<T>>.throwFailure(): Flow<T> =
   map { it.getOrThrow() }
 
-/**
- * Cancel the scope, await its completion but ignore the completion exception if any to void cancelling the caller
- */
-suspend fun CoroutineScope.cancelAndJoinSilently() {
-  val cs = this
-  cs.coroutineContext[Job]?.cancelAndJoinSilently() ?: error("Missing Job in $this")
-}
+@Deprecated("Same as cancelAndJoin", ReplaceWith("cancelAndJoin()"))
+suspend fun CoroutineScope.cancelAndJoinSilently(): Unit = cancelAndJoin()
 
 /**
- * Cancel the job, await its completion but ignore the completion exception if any to void cancelling the caller
+ * @see [Job.cancelAndJoin]
  */
-suspend fun Job.cancelAndJoinSilently() {
-  val job = this
-  try {
-    job.cancelAndJoin()
-  }
-  catch (ignored: Exception) {
-  }
+suspend fun CoroutineScope.cancelAndJoin() {
+  val cs = this
+  cs.coroutineContext[Job]?.cancelAndJoin() ?: error("Missing Job in $this")
 }
 
 /**
