@@ -7,6 +7,7 @@ import com.intellij.collaboration.api.data.orDefault
 import com.intellij.collaboration.api.dto.GraphQLConnectionDTO
 import com.intellij.collaboration.api.dto.GraphQLCursorPageInfoDTO
 import com.intellij.collaboration.api.graphql.loadResponse
+import com.intellij.collaboration.api.json.loadJsonList
 import com.intellij.collaboration.api.json.loadJsonValue
 import com.intellij.collaboration.util.resolveRelative
 import org.jetbrains.plugins.gitlab.api.GitLabApi
@@ -17,7 +18,6 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabCommitDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabDiscussionRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.gitLabQuery
-import org.jetbrains.plugins.gitlab.api.loadList
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.withErrorStats
 import org.jetbrains.plugins.gitlab.api.withQuery
@@ -35,7 +35,10 @@ suspend fun GitLabApi.Rest.loadMergeRequestDiscussions(
   mrIid: String,
 ): HttpResponse<out List<GitLabDiscussionRestDTO>> {
   val uri = getMergeRequestDiscussionsUri(projectId, mrIid)
-  return loadList(GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, uri.toString())
+  val request = request(uri.toString()).GET().build()
+  return withErrorStats(GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS) {
+    loadJsonList(request)
+  }
 }
 
 

@@ -99,14 +99,6 @@ suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject
   return query(server.gqlApiUri, { queryLoader.loadQuery(query.filePath) }, variablesObject)
 }
 
-suspend inline fun <reified T> GitLabApi.Rest.loadList(requestName: GitLabApiRequestName, uri: String)
-  : HttpResponse<out List<T>> {
-  val request = request(uri).GET().build()
-  return withErrorStats(requestName) {
-    loadJsonList(request)
-  }
-}
-
 suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(requestName: GitLabApiRequestName, uri: URI,
                                                                     eTag: String? = null)
   : HttpResponse<out List<T>?> {
