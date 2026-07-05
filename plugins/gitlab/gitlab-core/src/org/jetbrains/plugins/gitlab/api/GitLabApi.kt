@@ -60,7 +60,7 @@ internal class GitLabApiImpl(
     serversManager.getMetadata(this)
 
   override val graphQL: GitLabApi.GraphQL =
-    GraphQLImpl(GraphQLApiHelper(logger<GitLabApi>(),
+    GraphQLImpl(GraphQLApiHelper(LOG,
                                  this,
                                  GitLabGQLDataDeSerializer,
                                  GitLabGQLDataDeSerializer))
@@ -71,7 +71,7 @@ internal class GitLabApiImpl(
     GraphQLApiHelper by helper
 
   override val rest: GitLabApi.Rest =
-    RestImpl(JsonHttpApiHelper(logger<GitLabApi>(),
+    RestImpl(JsonHttpApiHelper(LOG,
                                this,
                                GitLabRestJsonDataDeSerializer,
                                GitLabRestJsonDataDeSerializer))
@@ -142,7 +142,7 @@ private fun httpHelper(server: GitLabServerPath, tokenSupplier: suspend () -> St
     }
   }
   val requestConfigurer = CompoundRequestConfigurer(RequestTimeoutConfigurer(), GitLabHeadersConfigurer(), authConfigurer)
-  return HttpApiHelper(logger = logger<GitLabApi>(),
+  return HttpApiHelper(logger = LOG,
                        requestConfigurer = requestConfigurer)
 }
 
@@ -169,7 +169,7 @@ private fun GitLabServerPath.isAuthorizedUrl(targetUri: URI): Boolean {
 
 private fun httpHelper(): HttpApiHelper {
   val requestConfigurer = CompoundRequestConfigurer(RequestTimeoutConfigurer(), GitLabHeadersConfigurer())
-  return HttpApiHelper(logger = logger<GitLabApi>(),
+  return HttpApiHelper(logger = LOG,
                        requestConfigurer = requestConfigurer)
 }
 
