@@ -25,11 +25,17 @@ import java.net.http.HttpResponse
 private val LOG: Logger = logger<GitLabApi>()
 
 @ApiStatus.Experimental
-sealed interface GitLabApi : HttpApiHelper {
-  val server: GitLabServerPath
-
+sealed interface GitLabApi : GitLabApiHelper, HttpApiHelper {
   val graphQL: GraphQL
   val rest: Rest
+
+  interface GraphQL : GraphQLApiHelper, GitLabApiHelper
+  interface Rest : JsonHttpApiHelper, GitLabApiHelper
+}
+
+@ApiStatus.Experimental
+interface GitLabApiHelper : HttpApiHelper {
+  val server: GitLabServerPath
 
   /**
    * Gets metadata from server or from cache.
@@ -39,9 +45,6 @@ sealed interface GitLabApi : HttpApiHelper {
    * in a non-successful status code.
    */
   suspend fun getMetadata(): GitLabServerMetadata
-
-  interface GraphQL : GraphQLApiHelper, GitLabApi
-  interface Rest : JsonHttpApiHelper, GitLabApi
 }
 
 // this dark inheritance magic is required to make extensions work properly
@@ -66,7 +69,7 @@ internal class GitLabApiImpl(
                                  GitLabGQLDataDeSerializer))
 
   private inner class GraphQLImpl(helper: GraphQLApiHelper) :
-    GitLabApi by this,
+    GitLabApiHelper by this,
     GitLabApi.GraphQL,
     GraphQLApiHelper by helper
 
@@ -77,12 +80,12 @@ internal class GitLabApiImpl(
                                GitLabRestJsonDataDeSerializer))
 
   private inner class RestImpl(helper: JsonHttpApiHelper) :
-    GitLabApi by this,
+    GitLabApiHelper by this,
     GitLabApi.Rest,
     JsonHttpApiHelper by helper
 }
 
-suspend fun GitLabApi.getMetadataOrNull(): GitLabServerMetadata? =
+suspend fun GitLabApiHelper.getMetadataOrNull(): GitLabServerMetadata? =
   runCatchingUser { getMetadata() }.getOrNull()
 
 suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject: Any? = null): HttpRequest {

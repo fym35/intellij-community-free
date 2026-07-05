@@ -21,7 +21,7 @@ object GitLabApiUtil {
   }
 }
 
-fun GitLabApi.projectApiUrl(projectId: String): URI = server.projectApiUri(URLEncoder.encode(projectId, Charsets.UTF_8))
+fun GitLabApi.Rest.projectApiUrl(projectId: String): URI = server.projectApiUri(URLEncoder.encode(projectId, Charsets.UTF_8))
 
 fun GitLabServerPath.projectApiUri(projectId: String): URI = restApiUri
   .resolveRelative("projects/")
