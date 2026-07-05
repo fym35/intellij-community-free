@@ -1,4 +1,5 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:ApiStatus.Experimental
 package org.jetbrains.plugins.gitlab.api
 
 import com.intellij.collaboration.api.HttpApiHelper
@@ -9,6 +10,7 @@ import com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 import com.intellij.collaboration.api.httpclient.RequestTimeoutConfigurer
 import com.intellij.collaboration.api.json.JsonHttpApiHelper
 import com.intellij.collaboration.api.json.loadJsonList
+import com.intellij.collaboration.api.json.loadJsonValue
 import com.intellij.collaboration.api.json.loadOptionalJsonList
 import com.intellij.collaboration.util.ResultUtil.runCatchingUser
 import com.intellij.openapi.diagnostic.Logger
@@ -24,7 +26,6 @@ import java.net.http.HttpResponse
 
 private val LOG: Logger = logger<GitLabApi>()
 
-@ApiStatus.Experimental
 sealed interface GitLabApi : GitLabApiHelper, HttpApiHelper {
   val graphQL: GraphQL
   val rest: Rest
@@ -33,7 +34,6 @@ sealed interface GitLabApi : GitLabApiHelper, HttpApiHelper {
   interface Rest : JsonHttpApiHelper, GitLabApiHelper
 }
 
-@ApiStatus.Experimental
 interface GitLabApiHelper : HttpApiHelper {
   val server: GitLabServerPath
 
@@ -88,6 +88,18 @@ internal class GitLabApiImpl(
 suspend fun GitLabApiHelper.getMetadataOrNull(): GitLabServerMetadata? =
   runCatchingUser { getMetadata() }.getOrNull()
 
+context(api: GitLabApi.Rest)
+suspend inline fun <reified T> HttpRequest.loadValue(requestName: GitLabApiRequestName): T =
+  api.withErrorStats(requestName) {
+    loadJsonValue<T>().body()
+  }
+
+context(api: GitLabApi.Rest)
+suspend inline fun <reified T> HttpRequest.loadList(requestName: GitLabApiRequestName): List<T> =
+  api.withErrorStats(requestName) {
+    loadJsonList<T>().body()
+  }
+
 suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject: Any? = null): HttpRequest {
   if (query == GitLabGQLQuery.GET_METADATA) {
     return query(server.gqlApiUri, { GitLabGQLQueryLoaders.default.loadQuery(query.filePath) }, variablesObject)
@@ -99,6 +111,25 @@ suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject
   return query(server.gqlApiUri, { queryLoader.loadQuery(query.filePath) }, variablesObject)
 }
 
+context(api: GitLabApi.GraphQL)
+suspend inline fun <reified T> HttpRequest.loadResponse(query: GitLabGQLQuery, vararg pathFromData: String): T? {
+  val request = this
+  return api.withErrorStats(query) {
+    api.loadResponseByClass(request, T::class.java, *pathFromData).body()
+  }
+}
+
+suspend inline fun <reified T> GitLabApi.GraphQL.runQuery(
+  query: GitLabGQLQuery,
+  vararg pathFromData: String,
+): T? = gitLabQuery(query).loadResponse(query, *pathFromData)
+
+suspend inline fun <reified T> GitLabApi.GraphQL.runQuery(
+  query: GitLabGQLQuery,
+  variablesMap: Map<String, Any?>,
+  vararg pathFromData: String,
+): T? = gitLabQuery(query, variablesMap).loadResponse(query, *pathFromData)
+
 suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(requestName: GitLabApiRequestName, uri: URI,
                                                                     eTag: String? = null)
   : HttpResponse<out List<T>?> {
@@ -108,13 +139,13 @@ suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(requestName:
     }
   }.build()
   return withErrorStats(requestName) {
-    loadOptionalJsonList(request)
+    request.loadOptionalJsonList()
   }
 }
 
 @Throws(GitLabGraphQLMutationException::class)
-fun <R : Any, MR : GitLabGraphQLMutationResultDTO<R>> HttpResponse<out MR?>.getResultOrThrow(): R {
-  val result = body()
+fun <R : Any, MR : GitLabGraphQLMutationResultDTO<R>> MR?.getResultOrThrow(): R {
+  val result = this
   if (result == null) throw GitLabGraphQLMutationEmptyResultException()
   val errors = result.errors
   if (!errors.isNullOrEmpty()) throw GitLabGraphQLMutationErrorException(errors)

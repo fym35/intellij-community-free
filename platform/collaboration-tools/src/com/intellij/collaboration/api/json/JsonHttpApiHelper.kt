@@ -29,20 +29,23 @@ interface JsonHttpApiHelper {
 }
 
 @ApiStatus.Experimental
-suspend inline fun <reified T> JsonHttpApiHelper.loadJsonValue(request: HttpRequest): HttpResponse<out T> =
-  loadJsonValueByClass(request, T::class.java)
+context(api: JsonHttpApiHelper)
+suspend inline fun <reified T> HttpRequest.loadJsonValue(): HttpResponse<out T> = api.loadJsonValueByClass(this, T::class.java)
 
 @ApiStatus.Experimental
-suspend inline fun <reified T> JsonHttpApiHelper.loadOptionalJsonValue(request: HttpRequest): HttpResponse<out T?> =
-  loadOptionalJsonValueByClass(request, T::class.java)
+context(api: JsonHttpApiHelper)
+suspend inline fun <reified T> HttpRequest.loadOptionalJsonValue(): HttpResponse<out T?> =
+  api.loadOptionalJsonValueByClass(this, T::class.java)
 
 @ApiStatus.Experimental
-suspend inline fun <reified T> JsonHttpApiHelper.loadJsonList(request: HttpRequest): HttpResponse<out List<T>> =
-  loadJsonListByClass(request, T::class.java)
+context(api: JsonHttpApiHelper)
+suspend inline fun <reified T> HttpRequest.loadJsonList(): HttpResponse<out List<T>> =
+  api.loadJsonListByClass(this, T::class.java)
 
 @ApiStatus.Experimental
-suspend inline fun <reified T> JsonHttpApiHelper.loadOptionalJsonList(request: HttpRequest): HttpResponse<out List<T>?> =
-  loadOptionalJsonListByClass(request, T::class.java)
+context(api: JsonHttpApiHelper)
+suspend inline fun <reified T> HttpRequest.loadOptionalJsonList(): HttpResponse<out List<T>?> =
+  api.loadOptionalJsonListByClass(this, T::class.java)
 
 
 @ApiStatus.Experimental

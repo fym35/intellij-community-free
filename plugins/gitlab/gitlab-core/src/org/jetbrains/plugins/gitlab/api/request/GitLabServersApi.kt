@@ -19,7 +19,6 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabServerMetadataDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabServerVersionDTO
 import org.jetbrains.plugins.gitlab.api.gitLabQuery
 import org.jsoup.Jsoup
-import java.net.http.HttpResponse
 
 private val LOG = logger<GitLabApi>()
 
@@ -69,15 +68,15 @@ suspend fun GitLabApi.Rest.guessServerEdition(): GitLabEdition? {
 // Authenticated
 // should not have statistics to avoid recursion
 @SinceGitLab("15.6")
-suspend fun GitLabApi.GraphQL.getServerMetadata(): HttpResponse<out GitLabServerMetadataDTO?> {
-  val request = gitLabQuery(GitLabGQLQuery.GET_METADATA)
-  return loadResponse(request, "metadata")
-}
+suspend fun GitLabApi.GraphQL.getServerMetadata(): GitLabServerMetadataDTO? =
+  gitLabQuery(GitLabGQLQuery.GET_METADATA)
+    .loadResponse<GitLabServerMetadataDTO>("metadata")
+    .body()
 
 // Authenticated
 @SinceGitLab("8.13", deprecatedIn = "15.5")
-suspend fun GitLabApi.Rest.getServerVersion(): HttpResponse<out GitLabServerVersionDTO> {
+suspend fun GitLabApi.Rest.getServerVersion(): GitLabServerVersionDTO {
   val uri = server.restApiUri.resolveRelative("version")
-  val request = request(uri).GET().build()
-  return loadJsonValue(request)
+  return request(uri).GET().build()
+    .loadJsonValue<GitLabServerVersionDTO>().body()
 }

@@ -1,7 +1,6 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gitlab.mergerequest.data
 
-import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.async.BatchesLoader
 import com.intellij.collaboration.async.childScope
 import com.intellij.collaboration.async.computationStateFlow
@@ -57,7 +56,6 @@ import org.jetbrains.plugins.gitlab.mergerequest.api.request.GitLabMergeRequestN
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestLabelEventsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestMilestoneEventsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestParticipants
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestParticipantsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestStateEventsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadMergeRequest
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.mergeRequestAccept
@@ -236,9 +234,7 @@ internal class LoadedGitLabMergeRequest(
   }
 
   private val participantLoader =
-    BatchesLoader(cs, ApiPageUtil.createPagesFlowByLinkHeader(api.rest.getMergeRequestParticipantsUri(projectId, iid)) {
-      api.rest.getMergeRequestParticipants(it)
-    }.map { response -> response.body().map(GitLabUserDTO::fromRestDTO) })
+    BatchesLoader(cs, api.rest.getMergeRequestParticipants(projectId, iid).map { users -> users.map(GitLabUserDTO::fromRestDTO) })
 
   private val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
   override val isLoading: SharedFlow<Boolean> = _isLoading.asSharedFlow()
@@ -277,7 +273,7 @@ internal class LoadedGitLabMergeRequest(
       detailsLoadingGuard.lock()
       _isLoading.value = true
       val updatedMergeRequest = withContext(Dispatchers.IO) {
-        api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid).body()!!
+        api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid)!!
       }
       return updateMergeRequestData(updatedMergeRequest)
     }
@@ -380,8 +376,9 @@ internal class LoadedGitLabMergeRequest(
 
   override suspend fun close() {
     withContext(cs.coroutineContext + Dispatchers.IO) {
-      val updatedMergeRequest = api.graphQL.mergeRequestUpdate(projectCoordinates.projectPath, iid, GitLabMergeRequestNewState.CLOSED)
-        .getResultOrThrow()
+      val updatedMergeRequest =
+        api.graphQL.mergeRequestUpdate(projectCoordinates.projectPath, iid, GitLabMergeRequestNewState.CLOSED)
+          .getResultOrThrow()
       updateMergeRequestData(updatedMergeRequest)
       stateEventsRefreshRequest.emit(Unit)
     }
@@ -390,8 +387,9 @@ internal class LoadedGitLabMergeRequest(
 
   override suspend fun reopen() {
     withContext(cs.coroutineContext + Dispatchers.IO) {
-      val updatedMergeRequest = api.graphQL.mergeRequestUpdate(projectCoordinates.projectPath, iid, GitLabMergeRequestNewState.OPEN)
-        .getResultOrThrow()
+      val updatedMergeRequest =
+        api.graphQL.mergeRequestUpdate(projectCoordinates.projectPath, iid, GitLabMergeRequestNewState.OPEN)
+          .getResultOrThrow()
       updateMergeRequestData(updatedMergeRequest)
       stateEventsRefreshRequest.emit(Unit)
     }
@@ -400,8 +398,9 @@ internal class LoadedGitLabMergeRequest(
 
   override suspend fun postReview() {
     withContext(cs.coroutineContext + Dispatchers.IO) {
-      val updatedMergeRequest = api.graphQL.mergeRequestSetDraft(projectCoordinates.projectPath, iid, isDraft = false)
-        .getResultOrThrow()
+      val updatedMergeRequest =
+        api.graphQL.mergeRequestSetDraft(projectCoordinates.projectPath, iid, isDraft = false)
+          .getResultOrThrow()
       updateMergeRequestData(updatedMergeRequest)
     }
     discussionsContainer.requestDiscussionsRefresh()
@@ -414,8 +413,8 @@ internal class LoadedGitLabMergeRequest(
         api.graphQL.mergeRequestSetReviewers(projectCoordinates.projectPath, iid, reviewers).getResultOrThrow()
       }
       else {
-        api.rest.mergeRequestSetReviewers(projectId, iid, reviewers).body()
-        api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid).body() ?: error("Merge request could not be loaded")
+        api.rest.mergeRequestSetReviewers(projectId, iid, reviewers)
+        api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid) ?: error("Merge request could not be loaded")
       }
 
       updateMergeRequestData(updatedMergeRequest)
@@ -427,8 +426,9 @@ internal class LoadedGitLabMergeRequest(
   override suspend fun reviewerRereview(reviewers: Collection<GitLabReviewerDTO>) {
     withContext(cs.coroutineContext + Dispatchers.IO) {
       reviewers.forEach { reviewer ->
-        val updatedMergeRequest = api.graphQL.mergeRequestReviewerRereview(projectCoordinates.projectPath, iid, reviewer)
-          .getResultOrThrow()
+        val updatedMergeRequest =
+          api.graphQL.mergeRequestReviewerRereview(projectCoordinates.projectPath, iid, reviewer)
+            .getResultOrThrow()
         updateMergeRequestData(updatedMergeRequest)
       }
     }
@@ -471,7 +471,7 @@ internal class LoadedGitLabMergeRequest(
   private suspend fun awaitMerged() {
     var attempts = 0
     do {
-      val updatedMergeRequest = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid).body()!!
+      val updatedMergeRequest = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid)!!
       updateMergeRequestData(updatedMergeRequest)
       delay(GitLabRegistry.getRequestPollingIntervalMillis().toLong())
       attempts++
@@ -483,7 +483,7 @@ internal class LoadedGitLabMergeRequest(
     var attempts = 0
     api.rest.mergeRequestRebase(projectId, iid)
     do {
-      val updatedMergeRequest = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid).body()!!
+      val updatedMergeRequest = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid)!!
       updateMergeRequestData(updatedMergeRequest)
       delay(GitLabRegistry.getRequestPollingIntervalMillis().toLong())
       attempts++

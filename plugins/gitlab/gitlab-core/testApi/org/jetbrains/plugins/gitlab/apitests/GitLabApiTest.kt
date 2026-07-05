@@ -24,7 +24,6 @@ import org.jetbrains.plugins.gitlab.api.request.checkIsGitLabServer
 import org.jetbrains.plugins.gitlab.api.request.createAllProjectLabelsFlow
 import org.jetbrains.plugins.gitlab.api.request.getCurrentUser
 import org.jetbrains.plugins.gitlab.api.request.getProjectUsers
-import org.jetbrains.plugins.gitlab.api.request.getProjectUsersURI
 import org.jetbrains.plugins.gitlab.api.request.getServerMetadata
 import org.jetbrains.plugins.gitlab.api.request.getServerVersion
 import org.jetbrains.plugins.gitlab.api.request.guessServerEdition
@@ -38,10 +37,6 @@ import org.jetbrains.plugins.gitlab.mergerequest.api.request.changeMergeRequestD
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.createReplyNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.deleteNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.findMergeRequestsByBranch
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getCommitDiffsURI
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestChangesURI
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestCommitsURI
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiffsURI
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestLabelEventsUri
@@ -83,7 +78,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(9, 0)))
 
     requiresAuthentication { api ->
-      val commits = api.rest.loadMergeRequestCommits(api.rest.getMergeRequestCommitsURI(glTest1ProjectId, "2")).body()
+      val commits = api.rest.loadMergeRequestCommits(glTest1ProjectId, "2")
 
       assertIterableEquals(glTest1Mr2CommitShortShas, commits.map { it.shortId })
     }
@@ -94,9 +89,9 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(inRange(v(9, 0), v(15, 7)))
 
     requiresAuthentication { api ->
-      val changes = api.rest.loadMergeRequestChanges(api.rest.getMergeRequestChangesURI(glTest1ProjectId, "2")).body()
+      val changes = api.rest.loadMergeRequestChanges(glTest1ProjectId, "2")
 
-      assertIterableEquals(glTest1Mr2ChangedFiles, changes.changes.map { it.newPath })
+      assertIterableEquals(glTest1Mr2ChangedFiles, changes.map { it.newPath })
     }
   }
 
@@ -105,7 +100,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(15, 7)))
 
     requiresAuthentication { api ->
-      val diffs = api.rest.loadMergeRequestDiffs(api.rest.getMergeRequestDiffsURI(glTest1ProjectId, "2", 1)).body()
+      val diffs = api.rest.loadMergeRequestDiffs(glTest1ProjectId, "2")
 
       assertIterableEquals(glTest1Mr2ChangedFiles, diffs.map { it.newPath })
     }
@@ -116,7 +111,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(7, 0)))
 
     requiresAuthentication { api ->
-      val diffs = api.rest.loadCommitDiffs(api.rest.getCommitDiffsURI(glTest1ProjectId, glTest1Mr2CommitShortShas[0])).body()
+      val diffs = api.rest.loadCommitDiffs(glTest1ProjectId, glTest1Mr2CommitShortShas[0])
 
       assertIterableEquals(glTest1Mr2ChangedFiles, diffs.map { it.newPath })
     }
@@ -127,7 +122,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(7, 0)))
 
     requiresAuthentication { api ->
-      val commit = api.rest.loadCommit(glTest1ProjectId, glTest1Mr2CommitShortShas[0]).body()
+      val commit = api.rest.loadCommit(glTest1ProjectId, glTest1Mr2CommitShortShas[0])
 
       assertEquals(glTest1Mr2CommitShas[0], commit.id)
     }
@@ -164,7 +159,7 @@ class GitLabApiTest : GitLabApiTestCase() {
       val initialBody = "This is a new comment! ID=$randomId"
       val addNoteResult = api.rest.addNote(volatileProjectId, volatileProjectMr1Iid, initialBody)
       assertNotNull(addNoteResult)
-      val addNoteResultValue = addNoteResult.body()
+      val addNoteResultValue = addNoteResult
       assertNotNull(addNoteResultValue)
 
       val nextBody = "Changed comment! ID=$randomId"
@@ -178,7 +173,7 @@ class GitLabApiTest : GitLabApiTestCase() {
 
       // Check body changed
       // NOTE: WILL NOT WORK ON A CONSTANTLY RUNNING SERVER BECAUSE OF PAGINATION
-      val discussions = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid).body()
+      val discussions = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid)
       val updatedNote = discussions.find { it.id.toString() == addNoteResultValue.id.toString() }
       assertNotNull(updatedNote)
 
@@ -187,10 +182,10 @@ class GitLabApiTest : GitLabApiTestCase() {
       val deleteNoteResult = api.rest.deleteNote(volatileProjectId,
                                                  volatileProjectMr1Iid,
                                                  updatedNote.id.toString(),
-                                                 updatedNote.notes.first().id.toString()).body()
+                                                 updatedNote.notes.first().id.toString())
       assertNotNull(deleteNoteResult)
       // Check is deleted
-      val deletedNote = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid).body()
+      val deletedNote = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid)
         .find { it.id.toString() == addNoteResultValue.id.toString() }
 
       assertNull(deletedNote)
@@ -211,12 +206,12 @@ class GitLabApiTest : GitLabApiTestCase() {
                                 DiffPathsInputDTO("README.md", null)),
         false,
         initialBody
-      ).body()
+      )
       assertNotNull(addNoteResult)
       val deleteNoteResult = api.rest.deleteNote(volatileProjectId,
                                                  volatileProjectMr1Iid,
                                                  addNoteResult.id.toString(),
-                                                 addNoteResult.notes[0].id.toString()).body()
+                                                 addNoteResult.notes[0].id.toString())
       assertNotNull(deleteNoteResult)
     }
   }
@@ -232,7 +227,7 @@ class GitLabApiTest : GitLabApiTestCase() {
         volatileProjectId,
         volatileProjectMr1Iid,
         initialBody
-      ).body()
+      )
       assertNotNull(addNoteResult)
 
       val replyBody = "This is a reply! ID=$randomId"
@@ -241,11 +236,11 @@ class GitLabApiTest : GitLabApiTestCase() {
         volatileProjectMr1Iid,
         addNoteResult.id.toString(),
         replyBody
-      ).body()
+      )
       assertNotNull(addNoteResult2)
 
       // NOTE: WILL NOT WORK ON A CONSTANTLY RUNNING SERVER BECAUSE OF PAGINATION
-      val result = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid).body()
+      val result = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid)
       assertNotNull(result)
 
       val discussion = result.find { addNoteResult.notes[0].body.contains(randomId.toString()) }
@@ -253,11 +248,9 @@ class GitLabApiTest : GitLabApiTestCase() {
 
       val deleteNoteResult1 =
         api.rest.deleteNote(volatileProjectId, volatileProjectMr1Iid, discussion.id.toString(), discussion.notes[0].id.toString())
-          .body()
       assertNotNull(deleteNoteResult1)
       val deleteNoteResult2 =
         api.rest.deleteNote(volatileProjectId, volatileProjectMr1Iid, discussion.id.toString(), discussion.notes[1].id.toString())
-          .body()
       assertNotNull(deleteNoteResult2)
     }
   }
@@ -276,7 +269,7 @@ class GitLabApiTest : GitLabApiTestCase() {
                                 DiffPathsInputDTO("README.md", null)),
         false,
         initialBody
-      ).body()
+      )
       assertNotNull(addNoteResult)
 
       val replyBody = "This is a reply! ID=$randomId"
@@ -285,11 +278,11 @@ class GitLabApiTest : GitLabApiTestCase() {
         volatileProjectMr1Iid,
         addNoteResult.id.toString(),
         replyBody
-      ).body()
+      )
       assertNotNull(addNoteResult2)
 
       // NOTE: WILL NOT WORK ON A CONSTANTLY RUNNING SERVER BECAUSE OF PAGINATION
-      val result1 = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid).body()
+      val result1 = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid)
       assertNotNull(result1)
 
       val discussion1 = result1.find { addNoteResult.notes[0].body.contains(randomId.toString()) }
@@ -298,11 +291,10 @@ class GitLabApiTest : GitLabApiTestCase() {
 
       val resolveNoteResult =
         api.rest.changeMergeRequestDiscussionResolve(volatileProjectId, volatileProjectMr1Iid, discussion1.id.toString(), true)
-          .body()
       assertNotNull(resolveNoteResult)
 
       // Confirm is now resolved
-      val result2 = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid).body()
+      val result2 = api.rest.loadMergeRequestDiscussions(volatileProjectId, volatileProjectMr1Iid)
       assertNotNull(result2)
 
       val discussion2 = result2.find { addNoteResult.notes[0].body.contains(randomId.toString()) }
@@ -312,12 +304,12 @@ class GitLabApiTest : GitLabApiTestCase() {
       val deleteNoteResult1 = api.rest.deleteNote(volatileProjectId,
                                                   volatileProjectMr1Iid,
                                                   discussion2.id.toString(),
-                                                  discussion2.notes[0].id.toString()).body()
+                                                  discussion2.notes[0].id.toString())
       assertNotNull(deleteNoteResult1)
       val deleteNoteResult2 = api.rest.deleteNote(volatileProjectId,
                                                   volatileProjectMr1Iid,
                                                   discussion2.id.toString(),
-                                                  discussion2.notes[1].id.toString()).body()
+                                                  discussion2.notes[1].id.toString())
       assertNotNull(deleteNoteResult2)
     }
   }
@@ -360,7 +352,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(14, 0)))
 
     requiresAuthentication { api ->
-      val groups = api.rest.searchGroups().body()
+      val groups = api.rest.searchGroups()
 
       assertNotNull(groups)
       assertEquals("GitLab Instance,tests,volatile", groups.joinToString(",") { it.name })
@@ -372,7 +364,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(14, 0)))
 
     requiresAuthentication { api ->
-      val groups = api.rest.searchGroups("Git").body()
+      val groups = api.rest.searchGroups("Git")
 
       assertNotNull(groups)
       assertEquals("GitLab Instance", groups.joinToString(",") { it.name })
@@ -385,7 +377,7 @@ class GitLabApiTest : GitLabApiTestCase() {
 
     requiresAuthentication { api ->
       val testProject1 = glTest1Coordinates
-      val mr = api.graphQL.loadMergeRequest(testProject1.projectPath, "2").body()
+      val mr = api.graphQL.loadMergeRequest(testProject1.projectPath, "2")
 
       assertNotNull(mr)
       assertEquals("2", mr.iid)
@@ -398,7 +390,7 @@ class GitLabApiTest : GitLabApiTestCase() {
 
     requiresAuthentication { api ->
       val testProject1 = glTest1Coordinates
-      val mrs = api.graphQL.findMergeRequestsByBranch(testProject1.projectPath, GitLabMergeRequestState.ALL, "changes-on-b").body()
+      val mrs = api.graphQL.findMergeRequestsByBranch(testProject1.projectPath, GitLabMergeRequestState.ALL, "changes-on-b")
 
       assertNotNull(mrs)
       assertEquals(listOf("3"), mrs.nodes.map { it.iid })
@@ -479,8 +471,8 @@ class GitLabApiTest : GitLabApiTestCase() {
     }
 
     requiresAuthentication { api ->
-      api.rest.mergeRequestApprove(volatileProjectId, volatileProjectMr2Iid).body()
-      api.rest.mergeRequestUnApprove(volatileProjectId, volatileProjectMr2Iid).body()
+      api.rest.mergeRequestApprove(volatileProjectId, volatileProjectMr2Iid)
+      api.rest.mergeRequestUnApprove(volatileProjectId, volatileProjectMr2Iid)
     }
   }
 
@@ -502,7 +494,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(9, 0)))
 
     requiresAuthentication { api ->
-      val users = api.rest.getProjectUsers(api.rest.getProjectUsersURI(glTests2ProjectId)).body()
+      val users = api.rest.getProjectUsers(glTests2ProjectId).foldToList()
 
       assertTrue(users.map { it.username }.contains(rootUsername))
     }
@@ -513,7 +505,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(7, 0)))
 
     requiresAuthentication { api ->
-      val user = api.rest.getCurrentUser().body()
+      val user = api.rest.getCurrentUser()
 
       assertEquals(rootUsername, user.username)
     }
@@ -563,7 +555,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(15, 6)))
 
     requiresAuthentication { api ->
-      val metadata = api.graphQL.getServerMetadata().body()
+      val metadata = api.graphQL.getServerMetadata()
       assertNotNull(metadata)
       assertEquals(version.toString(), metadata.version)
       val isEnterprise = metadata.enterprise
@@ -577,7 +569,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(inRange(v(8, 13), v(15, 7)))
 
     requiresAuthentication { api ->
-      val actualVersion = api.rest.getServerVersion().body()
+      val actualVersion = api.rest.getServerVersion()
       assertEquals(version.toString(), actualVersion.version)
     }
   }
@@ -592,7 +584,7 @@ class GitLabApiTest : GitLabApiTestCase() {
         val name = "test-image"
         val filename = "$name.png"
         
-        val uploadResult = api.rest.markdownUploadFile(glTest1ProjectId, filename, "image/png", it).body()
+        val uploadResult = api.rest.markdownUploadFile(glTest1ProjectId, filename, "image/png", it)
         assertNotNull(uploadResult)
         val markdown = uploadResult.markdown
         assertTrue(markdown.startsWith("![$name](/uploads/"),

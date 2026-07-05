@@ -3,11 +3,12 @@ package org.jetbrains.plugins.gitlab.mergerequest.api.request
 
 import com.intellij.collaboration.api.dto.GraphQLConnectionDTO
 import com.intellij.collaboration.api.dto.GraphQLCursorPageInfoDTO
-import com.intellij.collaboration.api.graphql.loadResponse
 import com.intellij.collaboration.api.json.loadJsonList
-import com.intellij.collaboration.api.json.loadJsonValue
+import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.util.resolveRelative
 import com.intellij.collaboration.util.withQuery
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.gitlab.api.GitLabApi
 import org.jetbrains.plugins.gitlab.api.GitLabEdition
@@ -18,8 +19,9 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabGraphQLMutationResultDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabReviewerDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserRestDTO
-import org.jetbrains.plugins.gitlab.api.gitLabQuery
+import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
+import org.jetbrains.plugins.gitlab.api.runQuery
 import org.jetbrains.plugins.gitlab.api.withErrorStats
 import org.jetbrains.plugins.gitlab.api.withQuery
 import org.jetbrains.plugins.gitlab.mergerequest.api.dto.GitLabMergeRequestByBranchDTO
@@ -33,7 +35,6 @@ import org.jetbrains.plugins.gitlab.util.GitLabApiRequestName
 import org.jetbrains.plugins.gitlab.util.GitLabProjectPath
 import java.net.URI
 import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 
 /**
  * Creates a merge request
@@ -54,7 +55,7 @@ suspend fun GitLabApi.Rest.createMergeRequest(
   labels: List<String>? = null,
   squashBeforeMerge: Boolean? = null,
   removeSourceBranch: Boolean? = null,
-): HttpResponse<out GitLabMergeRequestShortRestDTO> {
+): GitLabMergeRequestShortRestDTO {
   val uri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .withQuery {
@@ -68,10 +69,8 @@ suspend fun GitLabApi.Rest.createMergeRequest(
       "squash" eq squashBeforeMerge
       "remove_source_branch" eq removeSourceBranch
     }
-  val request = request(uri).POST(HttpRequest.BodyPublishers.noBody()).build()
-  return withErrorStats(GitLabApiRequestName.REST_CREATE_MERGE_REQUEST) {
-    loadJsonValue(request)
-  }
+  return request(uri).POST(HttpRequest.BodyPublishers.noBody()).build()
+    .loadValue(GitLabApiRequestName.REST_CREATE_MERGE_REQUEST)
 }
 
 @SinceGitLab("7.0", note = "?search available since 10.4, ?scope since 9.5")
@@ -85,15 +84,12 @@ fun GitLabApi.Rest.getMergeRequestListURI(
 suspend fun GitLabApi.GraphQL.loadMergeRequest(
   projectPath: GitLabProjectPath,
   mrIid: String
-): HttpResponse<out GitLabMergeRequestDTO?> {
+): GitLabMergeRequestDTO? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid
   )
-  val request = gitLabQuery(GitLabGQLQuery.GET_MERGE_REQUEST, parameters)
-  return withErrorStats(GitLabGQLQuery.GET_MERGE_REQUEST) {
-    loadResponse(request, "project", "mergeRequest")
-  }
+  return runQuery(GitLabGQLQuery.GET_MERGE_REQUEST, parameters, "project", "mergeRequest")
 }
 
 @ApiStatus.Internal
@@ -101,15 +97,12 @@ suspend fun GitLabApi.GraphQL.loadMergeRequest(
 suspend fun GitLabApi.GraphQL.getMergeRequestMetrics(
   projectPath: GitLabProjectPath,
   username: String,
-): HttpResponse<out GitLabMergeRequestMetricsDTO?> {
+): GitLabMergeRequestMetricsDTO? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "username" to username
   )
-  val request = gitLabQuery(GitLabGQLQuery.GET_MERGE_REQUEST_METRICS, parameters)
-  return withErrorStats(GitLabGQLQuery.GET_MERGE_REQUEST_METRICS) {
-    loadResponse(request, "project")
-  }
+  return runQuery(GitLabGQLQuery.GET_MERGE_REQUEST_METRICS, parameters, "project")
 }
 
 @SinceGitLab("13.1")
@@ -118,17 +111,14 @@ suspend fun GitLabApi.GraphQL.findMergeRequestsByBranch(
   state: GitLabMergeRequestState,
   sourceBranch: String,
   targetBranch: String? = null
-): HttpResponse<out GraphQLConnectionDTO<GitLabMergeRequestByBranchDTO>?> {
+): GraphQLConnectionDTO<GitLabMergeRequestByBranchDTO>? {
   val parameters = mutableMapOf(
     "projectId" to projectPath.fullPath(),
     "state" to state.asApiParameter(),
     "sourceBranches" to listOf(sourceBranch),
     "targetBranches" to targetBranch?.let { listOf(it) }
   )
-  val request = gitLabQuery(GitLabGQLQuery.FIND_MERGE_REQUESTS, parameters)
-  return withErrorStats(GitLabGQLQuery.FIND_MERGE_REQUESTS) {
-    loadResponse<MergeRequestsByBranchConnection>(request, "project", "mergeRequests")
-  }
+  return runQuery<MergeRequestsByBranchConnection>(GitLabGQLQuery.FIND_MERGE_REQUESTS, parameters, "project", "mergeRequests")
 }
 
 private class MergeRequestsByBranchConnection(pageInfo: GraphQLCursorPageInfoDTO, nodes: List<GitLabMergeRequestByBranchDTO>)
@@ -160,13 +150,13 @@ fun GitLabApi.Rest.getMergeRequestMilestoneEventsUri(projectId: String, mrIid: S
 suspend fun GitLabApi.Rest.mergeRequestApprove(
   projectId: String,
   mrIid: String
-): HttpResponse<out Unit> {
+) {
   val uri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("approve")
   val request = request(uri).POST(HttpRequest.BodyPublishers.noBody()).build()
-  return withErrorStats(GitLabApiRequestName.REST_APPROVE_MERGE_REQUEST) {
+  withErrorStats(GitLabApiRequestName.REST_APPROVE_MERGE_REQUEST) {
     sendAndAwaitCancellable(request)
   }
 }
@@ -176,13 +166,13 @@ suspend fun GitLabApi.Rest.mergeRequestApprove(
 suspend fun GitLabApi.Rest.mergeRequestUnApprove(
   projectId: String,
   mrIid: String
-): HttpResponse<out Unit> {
+) {
   val uri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("unapprove")
   val request = request(uri).POST(HttpRequest.BodyPublishers.noBody()).build()
-  return withErrorStats(GitLabApiRequestName.REST_UNAPPROVE_MERGE_REQUEST) {
+  withErrorStats(GitLabApiRequestName.REST_UNAPPROVE_MERGE_REQUEST) {
     sendAndAwaitCancellable(request)
   }
 }
@@ -191,47 +181,41 @@ suspend fun GitLabApi.Rest.mergeRequestUnApprove(
 suspend fun GitLabApi.Rest.mergeRequestRebase(
   projectId: String,
   mrIid: String
-): HttpResponse<out GitLabMergeRequestRebaseDTO> {
+): GitLabMergeRequestRebaseDTO {
   val uri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("rebase")
-  val request = request(uri).PUT(HttpRequest.BodyPublishers.noBody()).build()
-  return withErrorStats(GitLabApiRequestName.REST_REBASE_MERGE_REQUEST) {
-    loadJsonValue<GitLabMergeRequestRebaseDTO>(request)
-  }
+  return request(uri).PUT(HttpRequest.BodyPublishers.noBody()).build()
+    .loadValue(GitLabApiRequestName.REST_REBASE_MERGE_REQUEST)
 }
 
 @SinceGitLab("14.0", note = "No exact version, but definitely exists in minimal")
-fun GitLabApi.Rest.getMergeRequestParticipantsUri(projectId: String, mrIid: String): URI =
-  projectApiUrl(projectId)
-    .resolveRelative("merge_requests")
-    .resolveRelative(mrIid)
-    .resolveRelative("participants")
-
-@SinceGitLab("14.0", note = "No exact version, but definitely exists in minimal")
-suspend fun GitLabApi.Rest.getMergeRequestParticipants(uri: URI): HttpResponse<out List<GitLabUserRestDTO>> {
-  val request = request(uri).GET().build()
-  return withErrorStats(GitLabApiRequestName.REST_GET_MERGE_REQUEST_PARTICIPANTS) {
-    loadJsonList(request)
-  }
-}
+fun GitLabApi.Rest.getMergeRequestParticipants(projectId: String, mrIid: String): Flow<List<GitLabUserRestDTO>> =
+  ApiPageUtil.createPagesFlowByLinkHeader(
+    projectApiUrl(projectId)
+      .resolveRelative("merge_requests")
+      .resolveRelative(mrIid)
+      .resolveRelative("participants")
+  ) { uri ->
+    withErrorStats(GitLabApiRequestName.REST_GET_MERGE_REQUEST_PARTICIPANTS) {
+      request(uri).GET().build()
+        .loadJsonList<GitLabUserRestDTO>()
+    }
+  }.map { it.body() }
 
 @SinceGitLab("13.9")
 suspend fun GitLabApi.GraphQL.mergeRequestUpdate(
   projectPath: GitLabProjectPath,
   mrIid: String,
   state: GitLabMergeRequestNewState,
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
     "state" to state
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_UPDATE, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_UPDATE) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestUpdate")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_UPDATE, parameters, "mergeRequestUpdate")
 }
 
 /**
@@ -246,7 +230,7 @@ suspend fun GitLabApi.Rest.mergeRequestSetReviewers(
   projectId: String,
   mrIid: String,
   reviewers: List<GitLabUserDTO>
-): HttpResponse<out Unit> {
+) {
   val reviewerIds = reviewers.map { GitLabGidData(it.id).guessRestId() }
   val uri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
@@ -256,7 +240,7 @@ suspend fun GitLabApi.Rest.mergeRequestSetReviewers(
     }
   val request = request(uri)
     .PUT(HttpRequest.BodyPublishers.noBody()).build()
-  return withErrorStats(GitLabApiRequestName.REST_PUT_MERGE_REQUEST_REVIEWERS) {
+  withErrorStats(GitLabApiRequestName.REST_PUT_MERGE_REQUEST_REVIEWERS) {
     sendAndAwaitCancellable(request)
   }
 }
@@ -273,16 +257,13 @@ suspend fun GitLabApi.GraphQL.mergeRequestSetReviewers(
   projectPath: GitLabProjectPath,
   mrIid: String,
   reviewers: List<GitLabUserDTO>
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
     "reviewerUsernames" to reviewers.map { it.username }
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_SET_REVIEWERS, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_SET_REVIEWERS) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestSetReviewers")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_SET_REVIEWERS, parameters, "mergeRequestSetReviewers")
 }
 
 @SinceGitLab("13.10")
@@ -292,7 +273,7 @@ suspend fun GitLabApi.GraphQL.mergeRequestAccept(
   commitMessage: String?,
   sha: String,
   shouldRemoveSourceBranch: Boolean,
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
@@ -301,10 +282,7 @@ suspend fun GitLabApi.GraphQL.mergeRequestAccept(
     "withSquash" to false,
     "shouldRemoveSourceBranch" to shouldRemoveSourceBranch
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_ACCEPT, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_ACCEPT) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestAccept")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_ACCEPT, parameters, "mergeRequestAccept")
 }
 
 @SinceGitLab("13.10")
@@ -315,7 +293,7 @@ suspend fun GitLabApi.GraphQL.mergeRequestAcceptSquash(
   squashCommitMessage: String?,
   sha: String,
   shouldRemoveSourceBranch: Boolean,
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
@@ -325,10 +303,7 @@ suspend fun GitLabApi.GraphQL.mergeRequestAcceptSquash(
     "withSquash" to true,
     "shouldRemoveSourceBranch" to shouldRemoveSourceBranch
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_ACCEPT, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_ACCEPT) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestAccept")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_ACCEPT, parameters, "mergeRequestAccept")
 }
 
 @SinceGitLab("13.12")
@@ -336,16 +311,13 @@ suspend fun GitLabApi.GraphQL.mergeRequestSetDraft(
   projectPath: GitLabProjectPath,
   mrIid: String,
   isDraft: Boolean
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
     "isDraft" to isDraft
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_SET_DRAFT, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_SET_DRAFT) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestSetDraft")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_SET_DRAFT, parameters, "mergeRequestSetDraft")
 }
 
 @SinceGitLab("13.9")
@@ -353,16 +325,13 @@ suspend fun GitLabApi.GraphQL.mergeRequestReviewerRereview(
   projectPath: GitLabProjectPath,
   mrIid: String,
   reviewer: GitLabReviewerDTO
-): HttpResponse<out GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>?> {
+): GitLabGraphQLMutationResultDTO<GitLabMergeRequestDTO>? {
   val parameters = mapOf(
     "projectId" to projectPath.fullPath(),
     "mergeRequestId" to mrIid,
     "userId" to reviewer.id
   )
-  val request = gitLabQuery(GitLabGQLQuery.MERGE_REQUEST_REVIEWER_REREVIEW, parameters)
-  return withErrorStats(GitLabGQLQuery.MERGE_REQUEST_REVIEWER_REREVIEW) {
-    loadResponse<GitLabMergeRequestResult>(request, "mergeRequestReviewerRereview")
-  }
+  return runQuery<GitLabMergeRequestResult>(GitLabGQLQuery.MERGE_REQUEST_REVIEWER_REREVIEW, parameters, "mergeRequestReviewerRereview")
 }
 
 private class GitLabMergeRequestResult(mergeRequest: GitLabMergeRequestDTO, errors: List<String>?)

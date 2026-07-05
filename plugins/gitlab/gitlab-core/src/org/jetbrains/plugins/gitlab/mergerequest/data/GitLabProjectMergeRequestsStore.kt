@@ -153,8 +153,7 @@ class CachingGitLabProjectMergeRequestsStore(
                                       sourceBranchName: String,
                                       targetBranchName: String?): List<GitLabMergeRequestByBranchDTO> =
     withContext(Dispatchers.IO) {
-      val body = api.graphQL.findMergeRequestsByBranch(projectCoordinates.projectPath, state, sourceBranchName, targetBranchName).body()
-      body!!.nodes
+      api.graphQL.findMergeRequestsByBranch(projectCoordinates.projectPath, state, sourceBranchName, targetBranchName)!!.nodes
     }
 
   override fun findCachedDetails(iid: String): GitLabMergeRequestDetails? = detailsCache.getIfPresent(iid)
@@ -166,7 +165,7 @@ class CachingGitLabProjectMergeRequestsStore(
   @Throws(HttpStatusErrorException::class, IllegalStateException::class)
   private suspend fun loadMergeRequest(iid: String): GitLabMergeRequestDTO {
     return withContext(Dispatchers.IO) {
-      val body = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid).body()
+      val body = api.graphQL.loadMergeRequest(projectCoordinates.projectPath, iid)
       if (body == null) {
         api.rest.getCurrentUser() // Exception is generated automatically if status code >= 400
         error(CollaborationToolsBundle.message("graphql.errors", "empty response"))

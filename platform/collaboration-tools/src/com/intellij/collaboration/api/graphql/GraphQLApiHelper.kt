@@ -12,7 +12,6 @@ import com.intellij.collaboration.api.json.JsonDataSerializer
 import com.intellij.collaboration.api.logName
 import com.intellij.openapi.diagnostic.Logger
 import org.jetbrains.annotations.ApiStatus
-import java.io.Reader
 import java.net.URI
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -25,8 +24,9 @@ interface GraphQLApiHelper {
 }
 
 @ApiStatus.Experimental
-suspend inline fun <reified T> GraphQLApiHelper.loadResponse(request: HttpRequest, vararg pathFromData: String): HttpResponse<out T?> =
-  loadResponseByClass(request, T::class.java, *pathFromData)
+context(api: GraphQLApiHelper)
+suspend inline fun <reified T> HttpRequest.loadResponse(vararg pathFromData: String): HttpResponse<out T?> =
+  api.loadResponseByClass(this, T::class.java, *pathFromData)
 
 
 @ApiStatus.Experimental

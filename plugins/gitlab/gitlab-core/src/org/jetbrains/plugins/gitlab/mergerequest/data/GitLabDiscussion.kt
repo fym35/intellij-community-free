@@ -160,7 +160,7 @@ class LoadedGitLabDiscussion(
       operationsGuard.withLock {
         val resolved = resolved.first()
         val result = withContext(Dispatchers.IO) {
-          api.rest.changeMergeRequestDiscussionResolve(projectId, mr.iid, id.restId, !resolved).body()
+          api.rest.changeMergeRequestDiscussionResolve(projectId, mr.iid, id.restId, !resolved)
         }
         noteEvents.emit(GitLabNoteEvent.Changed(result.notes))
         if (mr.details.value.onlyAllowMergeIfAllDiscussionsAreResolved) {
@@ -173,7 +173,7 @@ class LoadedGitLabDiscussion(
   override suspend fun addNote(body: String) {
     withContext(cs.coroutineContext) {
       val note = withContext(Dispatchers.IO) {
-        api.rest.createReplyNote(projectId, mr.iid, id.restId, body).body()
+        api.rest.createReplyNote(projectId, mr.iid, id.restId, body)
       }
 
       withContext(NonCancellable) {
@@ -185,7 +185,7 @@ class LoadedGitLabDiscussion(
   override suspend fun addDraftNote(body: String) {
     withContext(cs.coroutineContext) {
       withContext(Dispatchers.IO) {
-        api.rest.addDraftReplyNote(projectId, mr.iid, id.restId, body).body()
+        api.rest.addDraftReplyNote(projectId, mr.iid, id.restId, body)
       }?.also {
         withContext(NonCancellable) {
           draftNotesEventSink(AddedLast(it))

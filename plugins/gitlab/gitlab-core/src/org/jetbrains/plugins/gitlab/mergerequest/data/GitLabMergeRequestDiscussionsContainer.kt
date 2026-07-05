@@ -208,7 +208,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   override suspend fun addNote(body: String) {
     withContext(cs.coroutineContext) {
       val newDiscussion = withContext(Dispatchers.IO) {
-        api.rest.addNote(projectId, mr.iid, body).body()
+        api.rest.addNote(projectId, mr.iid, body)
       }
 
       withContext(NonCancellable) {
@@ -220,7 +220,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   override suspend fun addNote(position: GitLabMergeRequestNewDiscussionPosition, body: String) {
     withContext(cs.coroutineContext) {
       val newDiscussion = withContext(Dispatchers.IO) {
-        api.rest.addDiffNote(projectId, mr.iid, GitLabDiffPositionInput.from(position), canAddMultilinePositionalNotes, body).body()
+        api.rest.addDiffNote(projectId, mr.iid, GitLabDiffPositionInput.from(position), canAddMultilinePositionalNotes, body)
       }
 
       withContext(NonCancellable) {
@@ -232,7 +232,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   override suspend fun addDraftNote(body: String) {
     withContext(cs.coroutineContext) {
       val newNote = withContext(Dispatchers.IO) {
-        api.rest.addDraftNote(projectId, mr.iid, null, canAddMultilinePositionalNotes, body).body()
+        api.rest.addDraftNote(projectId, mr.iid, null, canAddMultilinePositionalNotes, body)
       }
 
       withContext(NonCancellable) {
@@ -244,7 +244,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   override suspend fun addDraftNote(position: GitLabMergeRequestNewDiscussionPosition, body: String) {
     withContext(cs.coroutineContext) {
       val newNote = withContext(Dispatchers.IO) {
-        api.rest.addDraftNote(projectId, mr.iid, GitLabDiffPositionInput.from(position), canAddMultilinePositionalNotes, body).body()
+        api.rest.addDraftNote(projectId, mr.iid, GitLabDiffPositionInput.from(position), canAddMultilinePositionalNotes, body)
       }
 
       withContext(NonCancellable) {
