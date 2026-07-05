@@ -12,6 +12,7 @@ import com.intellij.collaboration.api.json.JsonDataSerializer
 import com.intellij.collaboration.api.logName
 import com.intellij.openapi.diagnostic.Logger
 import org.jetbrains.annotations.ApiStatus
+import java.io.Reader
 import java.net.URI
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -60,16 +61,21 @@ private class GraphQLApiHelperImpl(private val logger: Logger,
   }
 
   override suspend fun <T> loadResponseByClass(request: HttpRequest, clazz: Class<T>, vararg pathFromData: String): HttpResponse<out T?> {
-    val handler = inflateAndReadWithErrorHandlingAndLogging(logger, request) { reader, _ ->
+    val jsonRequest = HttpRequest.newBuilder(request, { headerName, _ -> headerName != HttpClientUtil.ACCEPT_HEADER })
+      .header(HttpClientUtil.ACCEPT_HEADER, HttpClientUtil.CONTENT_TYPE_JSON)
+      .build()
+
+    val requestName = jsonRequest.logName()
+    val handler = inflateAndReadWithErrorHandlingAndLogging(logger, requestName) { reader, _ ->
       val result = try {
         deserializer.readAndMapGQLResponse(reader, pathFromData, clazz)
       }
       catch (e: Throwable) {
         logger.warn("API response deserialization failed", e)
-        throw HttpJsonDeserializationException(request.logName(), e)
+        throw HttpJsonDeserializationException(requestName, e)
       }
       result.getOrThrow()
     }
-    return httpHelper.sendAndAwaitCancellable(request, handler)
+    return httpHelper.sendAndAwaitCancellable(jsonRequest, handler)
   }
 }

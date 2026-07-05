@@ -4,6 +4,7 @@ package org.jetbrains.plugins.gitlab.api.request
 import com.intellij.collaboration.api.graphql.loadResponse
 import com.intellij.collaboration.api.httpclient.HttpClientUtil.inflateAndReadWithErrorHandlingAndLogging
 import com.intellij.collaboration.api.json.loadJsonValue
+import com.intellij.collaboration.api.logName
 import com.intellij.collaboration.util.resolveRelative
 import com.intellij.openapi.diagnostic.logger
 import kotlinx.coroutines.CancellationException
@@ -38,8 +39,8 @@ suspend fun GitLabApi.Rest.checkIsGitLabServer(): Boolean {
   val request = request(uri).GET().build()
   return try {
     // Skip error reporting done in JsonHttpApiHelper
-    val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(LOG, request) { reader, _ ->
-       GitLabRestJsonDataDeSerializer.fromJson(reader, List::class.java)
+    val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(LOG, request.logName()) { reader, _ ->
+      GitLabRestJsonDataDeSerializer.fromJson(reader, List::class.java)
     }
     sendAndAwaitCancellable(request, bodyHandler).body() != null
   }
@@ -56,7 +57,7 @@ suspend fun GitLabApi.Rest.checkIsGitLabServer(): Boolean {
 suspend fun GitLabApi.Rest.guessServerEdition(): GitLabEdition? {
   val uri = server.toURI().resolveRelative("help")
   val request = request(uri).GET().build()
-  val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(LOG, request) { reader, _ ->
+  val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(LOG, request.logName()) { reader, _ ->
     // Parses the /help page and attempts to find and parse the header containing edition info
     val titleText = Jsoup.parse(reader.readText()).select("h1").text()
     if (!titleText.contains("GitLab", true)) return@inflateAndReadWithErrorHandlingAndLogging null

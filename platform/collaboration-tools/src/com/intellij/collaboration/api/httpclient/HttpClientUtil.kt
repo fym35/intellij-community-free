@@ -73,17 +73,17 @@ object HttpClientUtil {
    * the result body and map it to some value.
    *
    * @param logger The logger to log non-OK status codes in.
-   * @param request The request performed, for logging purposes.
+   * @param requestName Request name for logging purposes.
    * @param mapToResult Maps a response to a result value. Exceptions thrown from this function are not logged by
    * [inflateAndReadWithErrorHandlingAndLogging].
    */
   fun <T> inflateAndReadWithErrorHandlingAndLogging(
     logger: Logger,
-    request: HttpRequest,
+    requestName: String,
     mapToResult: (Reader, ResponseInfo) -> T,
   ): BodyHandler<T> = InflatedStreamReadingBodyHandler { responseInfo, bodyStream ->
-    checkStatusCodeWithLogging(logger, request.logName(), responseInfo.statusCode(), bodyStream)
-    responseReaderWithLogging(logger, request.logName(), bodyStream).use { reader: Reader ->
+    checkStatusCodeWithLogging(logger, requestName, responseInfo.statusCode(), bodyStream)
+    responseReaderWithLogging(logger, requestName, bodyStream).use { reader: Reader ->
       mapToResult(reader, responseInfo)
     }
   }

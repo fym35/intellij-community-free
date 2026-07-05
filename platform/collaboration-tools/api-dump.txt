@@ -123,7 +123,7 @@ f:com.intellij.collaboration.api.httpclient.HttpClientUtil
 - sf:USER_AGENT_HEADER:java.lang.String
 - f:checkStatusCodeWithLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,I,java.io.InputStream):V
 - f:getUserAgentValue(java.lang.String):java.lang.String
-- f:inflateAndReadWithErrorHandlingAndLogging(com.intellij.openapi.diagnostic.Logger,java.net.http.HttpRequest,kotlin.jvm.functions.Function2):java.net.http.HttpResponse$BodyHandler
+- f:inflateAndReadWithErrorHandlingAndLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,kotlin.jvm.functions.Function2):java.net.http.HttpResponse$BodyHandler
 com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 - configure(java.net.http.HttpRequest$Builder):java.net.http.HttpRequest$Builder
 - configureSuspend(java.net.http.HttpRequest$Builder,kotlin.coroutines.Continuation):java.lang.Object

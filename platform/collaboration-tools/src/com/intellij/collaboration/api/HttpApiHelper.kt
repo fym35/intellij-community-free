@@ -86,7 +86,7 @@ private class HttpApiHelperImpl(
   }
 
   override suspend fun sendAndAwaitCancellable(request: HttpRequest): HttpResponse<out Unit> =
-    sendAndAwaitCancellable(request, inflateAndReadWithErrorHandlingAndLogging(logger, request) { _, _ -> })
+    sendAndAwaitCancellable(request, inflateAndReadWithErrorHandlingAndLogging(logger, request.logName()) { _, _ -> })
 
   override suspend fun loadImage(request: HttpRequest): HttpResponse<out Image> {
     val bodyHandler = InflatedStreamReadingBodyHandler { responseInfo, stream ->

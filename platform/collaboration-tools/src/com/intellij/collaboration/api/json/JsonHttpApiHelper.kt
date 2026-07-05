@@ -15,15 +15,17 @@ import java.net.http.HttpResponse
 
 @ApiStatus.Experimental
 interface JsonHttpApiHelper {
-  fun jsonBodyPublisher(uri: URI, body: Any): HttpRequest.BodyPublisher
+  suspend fun putJson(uri: URI, body: Any): HttpRequest.Builder
+  suspend fun postJson(uri: URI, body: Any): HttpRequest.Builder
+  suspend fun sendJson(uri: URI, httpMethod: String, body: Any): HttpRequest.Builder
+
+  suspend fun jsonBodyPublisher(uri: URI, body: Any): HttpRequest.BodyPublisher
+  fun HttpRequest.Builder.withJsonContent(): HttpRequest.Builder
+
   suspend fun <T> loadJsonValueByClass(request: HttpRequest, clazz: Class<T>): HttpResponse<out T>
   suspend fun <T> loadOptionalJsonValueByClass(request: HttpRequest, clazz: Class<T>): HttpResponse<out T?>
   suspend fun <T> loadJsonListByClass(request: HttpRequest, clazz: Class<T>): HttpResponse<out List<T>>
   suspend fun <T> loadOptionalJsonListByClass(request: HttpRequest, clazz: Class<T>): HttpResponse<out List<T>?>
-
-  fun HttpRequest.Builder.withJsonContent(): HttpRequest.Builder = apply {
-    header(HttpClientUtil.CONTENT_TYPE_HEADER, HttpClientUtil.CONTENT_TYPE_JSON)
-  }
 }
 
 @ApiStatus.Experimental
@@ -50,14 +52,30 @@ fun JsonHttpApiHelper(
   serializer: JsonDataSerializer,
   deserializer: JsonDataDeserializer
 ): JsonHttpApiHelper =
-  JsonHttpApiHelperImpl(logger, httpHelper, serializer, deserializer)
+  JsonHttpApiHelperImpl(logger, httpHelper,
+                        serializer, HttpClientUtil.CONTENT_TYPE_JSON,
+                        deserializer, HttpClientUtil.CONTENT_TYPE_JSON)
 
 private class JsonHttpApiHelperImpl(
   private val logger: Logger,
   private val httpHelper: HttpApiHelper,
   private val serializer: JsonDataSerializer,
-  private val deserializer: JsonDataDeserializer)
-  : JsonHttpApiHelper, HttpApiHelper by httpHelper {
+  private val defaultSendContentType: String,
+  private val deserializer: JsonDataDeserializer,
+  private val defaultAcceptContentType: String,
+) : JsonHttpApiHelper, HttpApiHelper by httpHelper {
+  override suspend fun putJson(uri: URI, body: Any): HttpRequest.Builder =
+    request(uri).PUT(jsonBodyPublisher(uri, body)).withJsonContent()
+
+  override suspend fun postJson(uri: URI, body: Any): HttpRequest.Builder =
+    request(uri).PUT(jsonBodyPublisher(uri, body)).withJsonContent()
+
+  override suspend fun sendJson(uri: URI, httpMethod: String, body: Any): HttpRequest.Builder =
+    request(uri).method(httpMethod, jsonBodyPublisher(uri, body)).withJsonContent()
+
+  override fun HttpRequest.Builder.withJsonContent(): HttpRequest.Builder =
+    header(HttpClientUtil.CONTENT_TYPE_HEADER, defaultSendContentType)
+
   /**
    * Performs the given HTTP request and processes the response. The response body is inflated if necessary,
    * status code is checked to be OK, the body is passed to the [load] and [map] functions, and errors are
@@ -68,21 +86,26 @@ private class JsonHttpApiHelperImpl(
     crossinline map: (T?) -> R,
     crossinline load: (Reader) -> T?
   ): HttpResponse<out R> {
-    val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(logger, request) { reader, _ ->
+    val jsonRequest = HttpRequest.newBuilder(request, { headerName, _ -> headerName != HttpClientUtil.ACCEPT_HEADER })
+      .header(HttpClientUtil.ACCEPT_HEADER, defaultAcceptContentType)
+      .build()
+
+    val requestName = jsonRequest.logName()
+    val bodyHandler = inflateAndReadWithErrorHandlingAndLogging(logger, requestName) { reader, _ ->
       val result = try {
         load(reader)
       }
       catch (e: Throwable) {
         logger.warn("API response deserialization failed", e)
-        throw HttpJsonDeserializationException(request.logName(), e)
+        throw HttpJsonDeserializationException(requestName, e)
       }
 
       map(result)
     }
-    return httpHelper.sendAndAwaitCancellable(request, bodyHandler)
+    return httpHelper.sendAndAwaitCancellable(jsonRequest, bodyHandler)
   }
 
-  override fun jsonBodyPublisher(uri: URI, body: Any): HttpRequest.BodyPublisher {
+  override suspend fun jsonBodyPublisher(uri: URI, body: Any): HttpRequest.BodyPublisher {
     return ByteArrayProducingBodyPublisher {
       val jsonBytes = serializer.toJsonBytes(body)
       if (logger.isTraceEnabled) {
