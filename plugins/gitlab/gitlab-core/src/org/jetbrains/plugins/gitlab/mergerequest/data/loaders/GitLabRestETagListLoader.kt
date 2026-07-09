@@ -2,6 +2,7 @@
 package org.jetbrains.plugins.gitlab.mergerequest.data.loaders
 
 import com.intellij.collaboration.api.HttpStatusErrorException
+import com.intellij.collaboration.api.httpclient.HttpClientUtil.ETAG_HEADER
 import com.intellij.collaboration.api.util.LinkHttpHeaderValue
 import com.intellij.collaboration.async.Change
 import com.intellij.collaboration.async.PaginatedPotentiallyInfiniteListLoader
@@ -46,10 +47,6 @@ private class GitLabRestETagListLoader<K, V>(
 
   private val performRequest: suspend (uri: URI, eTag: String?) -> HttpResponse<out List<V>?>
 ) : PaginatedPotentiallyInfiniteListLoader<PageInfo, K, V>(PageInfo(initialURI), extractKey, shouldTryToLoadAll) {
-  companion object {
-    private const val ETAG_HEADER = "ETag"
-  }
-
   data class PageInfo(
     val link: URI,
     val nextLink: URI? = null,

@@ -135,7 +135,7 @@ suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(requestName:
   : HttpResponse<out List<T>?> {
   val request = request(uri).GET().apply {
     if (eTag != null) {
-      header("If-None-Match", eTag)
+      header(HttpClientUtil.IF_NONE_MATCH_HEADER, eTag)
     }
   }.build()
   return withErrorStats(requestName) {

@@ -4,6 +4,7 @@ package org.jetbrains.plugins.gitlab.apitests
 import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.api.page.foldToList
 import com.intellij.collaboration.async.withInitial
+import com.intellij.collaboration.util.toList
 import com.intellij.openapi.components.service
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
@@ -14,7 +15,6 @@ import org.jetbrains.plugins.gitlab.api.GitLabApiManager
 import org.jetbrains.plugins.gitlab.api.GitLabEdition
 import org.jetbrains.plugins.gitlab.api.GitLabServerPath
 import org.jetbrains.plugins.gitlab.api.dto.GitLabDiscussionRestDTO
-import org.jetbrains.plugins.gitlab.api.dto.GitLabGroupRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabMergeRequestDraftNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceLabelEventDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceMilestoneEventDTO
@@ -30,7 +30,6 @@ import org.jetbrains.plugins.gitlab.api.request.guessServerEdition
 import org.jetbrains.plugins.gitlab.api.request.searchGroups
 import org.jetbrains.plugins.gitlab.mergerequest.api.dto.DiffPathsInputDTO
 import org.jetbrains.plugins.gitlab.mergerequest.api.dto.GitLabDiffPositionInput
-import org.jetbrains.plugins.gitlab.mergerequest.api.dto.GitLabMergeRequestShortRestDTO
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.addDiffNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.addNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.changeMergeRequestDiscussionResolve
@@ -40,9 +39,9 @@ import org.jetbrains.plugins.gitlab.mergerequest.api.request.findMergeRequestsBy
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestLabelEventsUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestListURI
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestMilestoneEventsUri
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestStateEventsUri
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestsSearcher
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadCommit
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadCommitDiffs
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadMergeRequest
@@ -337,10 +336,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(7, 0)))
 
     requiresAuthentication { api ->
-      val mrs = api.rest.loadUpdatableJsonList<GitLabMergeRequestShortRestDTO>(
-        GitLabApiRequestName.REST_GET_MERGE_REQUESTS,
-        api.rest.getMergeRequestListURI(glTest1ProjectId, "search=important")
-      ).body()
+      val mrs = api.rest.getMergeRequestsSearcher(glTest1ProjectId, "search=important").toList().flatMap { it.value }
 
       assertNotNull(mrs)
       assertIterableEquals(listOf("2"), mrs.map { it.iid })

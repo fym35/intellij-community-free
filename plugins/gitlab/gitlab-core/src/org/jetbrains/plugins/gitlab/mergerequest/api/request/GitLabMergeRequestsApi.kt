@@ -5,12 +5,15 @@ import com.intellij.collaboration.api.dto.GraphQLConnectionDTO
 import com.intellij.collaboration.api.dto.GraphQLCursorPageInfoDTO
 import com.intellij.collaboration.api.json.loadJsonList
 import com.intellij.collaboration.api.page.ApiPageUtil
+import com.intellij.collaboration.util.ComputableSequence
+import com.intellij.collaboration.util.ListPart
 import com.intellij.collaboration.util.resolveRelative
 import com.intellij.collaboration.util.withQuery
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.gitlab.api.GitLabApi
+import org.jetbrains.plugins.gitlab.api.GitLabApiUtil
 import org.jetbrains.plugins.gitlab.api.GitLabEdition
 import org.jetbrains.plugins.gitlab.api.GitLabGQLQuery
 import org.jetbrains.plugins.gitlab.api.GitLabGidData
@@ -19,6 +22,7 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabGraphQLMutationResultDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabReviewerDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserRestDTO
+import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
 import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.runQuery
@@ -74,11 +78,19 @@ suspend fun GitLabApi.Rest.createMergeRequest(
 }
 
 @SinceGitLab("7.0", note = "?search available since 10.4, ?scope since 9.5")
-fun GitLabApi.Rest.getMergeRequestListURI(
+fun GitLabApi.Rest.getMergeRequestsSearcher(
   projectId: String,
-  searchQuery: String
-): URI =
-  projectApiUrl(projectId).resolveRelative("merge_requests").withQuery(searchQuery)
+  searchQuery: String,
+): ComputableSequence<ListPart<GitLabMergeRequestShortRestDTO>> {
+  val initialUri = projectApiUrl(projectId)
+    .resolveRelative("merge_requests")
+    .withQuery(searchQuery)
+  return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
+    loadUpdatableJsonList<GitLabMergeRequestShortRestDTO>(
+      GitLabApiRequestName.REST_GET_MERGE_REQUESTS, uri, eTag
+    )
+  }
+}
 
 @SinceGitLab("12.0")
 suspend fun GitLabApi.GraphQL.loadMergeRequest(

@@ -119,6 +119,8 @@ f:com.intellij.collaboration.api.httpclient.HttpClientUtil
 - sf:CONTENT_TYPE_ENCODED_FORM:java.lang.String
 - sf:CONTENT_TYPE_HEADER:java.lang.String
 - sf:CONTENT_TYPE_JSON:java.lang.String
+- sf:ETAG_HEADER:java.lang.String
+- sf:IF_NONE_MATCH_HEADER:java.lang.String
 - sf:INSTANCE:com.intellij.collaboration.api.httpclient.HttpClientUtil
 - sf:USER_AGENT_HEADER:java.lang.String
 - f:checkStatusCodeWithLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,I,java.io.InputStream):V
@@ -430,6 +432,7 @@ f:com.intellij.collaboration.util.CollectionDelta
 - f:getNewItems():java.util.Collection
 - f:getRemovedItems():java.util.Collection
 - f:isEmpty():Z
+f:com.intellij.collaboration.util.ComputableSequenceKt
 f:com.intellij.collaboration.util.ComputedResult
 - sf:Companion:com.intellij.collaboration.util.ComputedResult$Companion
 - bsf:box-impl(kotlin.Result):com.intellij.collaboration.util.ComputedResult
@@ -476,11 +479,17 @@ f:com.intellij.collaboration.util.IncrementallyComputedValue
 - f:isLoading():Z
 - f:isValueAvailable():Z
 f:com.intellij.collaboration.util.IncrementallyComputedValue$Companion
+- f:appendPart(com.intellij.collaboration.util.IncrementallyComputedValue,Z,kotlin.jvm.functions.Function1):com.intellij.collaboration.util.IncrementallyComputedValue
+- f:complete(com.intellij.collaboration.util.IncrementallyComputedValue,kotlin.jvm.functions.Function0):com.intellij.collaboration.util.IncrementallyComputedValue
 - f:failure(java.lang.Exception):com.intellij.collaboration.util.IncrementallyComputedValue
+- f:initial():com.intellij.collaboration.util.IncrementallyComputedValue
 - f:loading():com.intellij.collaboration.util.IncrementallyComputedValue
 - f:partialFailure(java.lang.Object,java.lang.Exception):com.intellij.collaboration.util.IncrementallyComputedValue
-- f:partialSuccess(java.lang.Object):com.intellij.collaboration.util.IncrementallyComputedValue
+- f:partialSuccess(java.lang.Object,Z):com.intellij.collaboration.util.IncrementallyComputedValue
+- bs:partialSuccess$default(com.intellij.collaboration.util.IncrementallyComputedValue$Companion,java.lang.Object,Z,I,java.lang.Object):com.intellij.collaboration.util.IncrementallyComputedValue
 - f:success(java.lang.Object):com.intellij.collaboration.util.IncrementallyComputedValue
+- f:withException(com.intellij.collaboration.util.IncrementallyComputedValue,java.lang.Exception):com.intellij.collaboration.util.IncrementallyComputedValue
+- f:withLoading(com.intellij.collaboration.util.IncrementallyComputedValue,Z):com.intellij.collaboration.util.IncrementallyComputedValue
 f:com.intellij.collaboration.util.IncrementallyComputedValue$Value
 - bsf:box-impl(java.lang.Object):com.intellij.collaboration.util.IncrementallyComputedValue$Value
 - s:constructor-impl(java.lang.Object):java.lang.Object
@@ -506,6 +515,7 @@ f:com.intellij.collaboration.util.ResultUtil
 - sf:INSTANCE:com.intellij.collaboration.util.ResultUtil
 - f:processErrorAndGet(java.lang.Object,kotlin.jvm.functions.Function1):java.lang.Object
 - f:runCatchingUser-IoAF18A(kotlin.jvm.functions.Function0):java.lang.Object
+f:com.intellij.collaboration.util.SequenceItemKt
 f:com.intellij.collaboration.util.SingleCoroutineLauncher
 - <init>(kotlinx.coroutines.CoroutineScope):V
 - f:cancel():V

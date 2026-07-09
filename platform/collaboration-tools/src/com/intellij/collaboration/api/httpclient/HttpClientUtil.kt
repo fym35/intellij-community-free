@@ -36,6 +36,9 @@ object HttpClientUtil {
 
   const val USER_AGENT_HEADER: String = "User-Agent"
 
+  const val ETAG_HEADER: String = "ETag"
+  const val IF_NONE_MATCH_HEADER: String = "If-None-Match"
+
   /**
    * Checks the status code of the response and throws [HttpStatusErrorException] if status code is not a successful one
    *
