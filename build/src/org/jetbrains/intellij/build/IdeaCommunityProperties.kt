@@ -59,7 +59,8 @@ open class IdeaCommunityProperties(private val communityHomeDir: Path) : JetBrai
     )
 
     productLayout.bundledPluginModules = IDEA_BUNDLED_PLUGINS + sequenceOf(
-      "intellij.javaFX.community"
+      "intellij.javaFX.community",
+      "intellij.classic.ui"
     )
 
     productLayout.prepareCustomPluginRepositoryForPublishedPlugins = false

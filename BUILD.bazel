@@ -136,6 +136,7 @@ jvm_library(
         "//plugins/git4idea/backend",
         "//plugins/git4idea/shared",
         "//plugins/git4idea/frontend",
+        "//plugins/classic-ui",
         "//plugins/git-features-trainer:vcs-git-featuresTrainer",
         "//images",
         "//plugins/groovy",
