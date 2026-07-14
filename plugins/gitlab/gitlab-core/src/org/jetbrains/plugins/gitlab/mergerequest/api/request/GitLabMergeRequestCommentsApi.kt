@@ -6,15 +6,19 @@ import com.intellij.collaboration.api.data.asParameters
 import com.intellij.collaboration.api.data.orDefault
 import com.intellij.collaboration.api.dto.GraphQLConnectionDTO
 import com.intellij.collaboration.api.dto.GraphQLCursorPageInfoDTO
+import com.intellij.collaboration.util.ComputableSequence
+import com.intellij.collaboration.util.map
 import com.intellij.collaboration.util.resolveRelative
 import org.jetbrains.plugins.gitlab.api.GitLabApi
 import org.jetbrains.plugins.gitlab.api.GitLabApiUriQueryBuilder
+import org.jetbrains.plugins.gitlab.api.GitLabApiUtil
 import org.jetbrains.plugins.gitlab.api.GitLabGQLQuery
 import org.jetbrains.plugins.gitlab.api.SinceGitLab
 import org.jetbrains.plugins.gitlab.api.dto.GitLabCommitDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabDiscussionRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.loadList
+import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
 import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.runQuery
@@ -55,11 +59,17 @@ private class CommitConnection(pageInfo: GraphQLCursorPageInfoDTO, nodes: List<G
   : GraphQLConnectionDTO<GitLabCommitDTO>(pageInfo, nodes)
 
 @SinceGitLab("10.6")
-fun GitLabApi.Rest.getMergeRequestDiscussionsUri(projectId: String, mrIid: String): URI =
+private fun GitLabApi.Rest.getMergeRequestDiscussionsUri(projectId: String, mrIid: String): URI =
   projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("discussions")
+
+@SinceGitLab("10.6")
+fun GitLabApi.Rest.getMergeRequestDiscussionsSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabDiscussionRestDTO>> =
+  GitLabApiUtil.etagCachingLinkedPagesSequence(getMergeRequestDiscussionsUri(projectId, mrIid)) { uri, eTag ->
+    loadUpdatableJsonList<GitLabDiscussionRestDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, uri, eTag)
+  }.map { it.value }
 
 @SinceGitLab("10.6")
 suspend fun GitLabApi.Rest.addNote(

@@ -4,6 +4,7 @@ package org.jetbrains.plugins.gitlab.apitests
 import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.api.page.foldToList
 import com.intellij.collaboration.async.withInitial
+import com.intellij.collaboration.util.asFlow
 import com.intellij.collaboration.util.toList
 import com.intellij.openapi.components.service
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -19,7 +20,6 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabMergeRequestDraftNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceLabelEventDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceMilestoneEventDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceStateEventDTO
-import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
 import org.jetbrains.plugins.gitlab.api.request.checkIsGitLabServer
 import org.jetbrains.plugins.gitlab.api.request.createAllProjectLabelsFlow
 import org.jetbrains.plugins.gitlab.api.request.getCurrentUser
@@ -36,11 +36,11 @@ import org.jetbrains.plugins.gitlab.mergerequest.api.request.changeMergeRequestD
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.createReplyNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.deleteNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.findMergeRequestsByBranch
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestLabelEventsUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestMilestoneEventsUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestStateEventsUri
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsSequence
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesSequence
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestLabelEventsSequence
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestMilestoneEventsSequence
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestStateEventsSequence
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestsSearcher
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadCommit
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.loadCommitDiffs
@@ -53,7 +53,6 @@ import org.jetbrains.plugins.gitlab.mergerequest.api.request.mergeRequestApprove
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.mergeRequestUnApprove
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.updateNote
 import org.jetbrains.plugins.gitlab.mergerequest.data.GitLabMergeRequestState
-import org.jetbrains.plugins.gitlab.mergerequest.data.loaders.startGitLabRestETagListLoaderIn
 import org.jetbrains.plugins.gitlab.upload.markdownUploadFile
 import org.jetbrains.plugins.gitlab.util.GitLabApiRequestName
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -128,20 +127,12 @@ class GitLabApiTest : GitLabApiTestCase() {
   }
 
   @Test
-  fun `REST loadMergeRequestDiscussions works as expected`() = runTest {
+  fun `REST getting discussions works`() = runTest {
     checkVersion(after(v(10, 6)))
 
     requiresAuthentication { api ->
-      val uri = api.rest.getMergeRequestDiscussionsUri(glTest1ProjectId, "2")
-      val discussions = ApiPageUtil.createPagesFlowByLinkHeader(uri) {
-        api.rest.loadUpdatableJsonList<GitLabDiscussionRestDTO>(
-          GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, it
-        )
-      }
-        .map { it.body() }
-        .fold(listOf<GitLabDiscussionRestDTO>()) { l, r -> l + (r ?: listOf()) }
+      val discussions = api.rest.getMergeRequestDiscussionsSequence(glTest1ProjectId, "2").asFlow().foldToList()
 
-      assertNotNull(discussions)
       assertTrue(discussions.size >= 2)
       assertEquals("Finished", discussions[1].notes[0].body)
       assertEquals("I agree", discussions[1].notes[1].body)
@@ -318,14 +309,7 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(15, 9)))
 
     requiresAuthentication { api ->
-      val uri = api.rest.getMergeRequestDraftNotesUri(glTest1ProjectId, glTest1Mr2Iid)
-      val draftNotes = ApiPageUtil.createPagesFlowByLinkHeader(uri) {
-        api.rest.loadUpdatableJsonList<GitLabMergeRequestDraftNoteRestDTO>(
-          GitLabApiRequestName.REST_GET_DRAFT_NOTES, it
-        )
-      }
-        .map { it.body() }
-        .fold(listOf<GitLabMergeRequestDraftNoteRestDTO>()) { l, r -> l + (r ?: listOf()) }
+      val draftNotes = api.rest.getMergeRequestDraftNotesSequence(glTest1ProjectId, glTest1Mr2Iid).asFlow().foldToList()
 
       assertIterableEquals(listOf("this is a draft note!"), draftNotes.map { it.note })
     }
@@ -398,19 +382,8 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(13, 2)))
 
     requiresAuthentication { api ->
-      val reloadRequest = MutableSharedFlow<Unit>(1).withInitial(Unit)
-      val loader = startGitLabRestETagListLoaderIn(backgroundScope,
-                                                   api.rest.getMergeRequestStateEventsUri(glTest1ProjectId, "1"),
-                                                   { it.id },
-                                                   reloadRequest,
-                                                   shouldTryToLoadAll = false) { uri, eTag ->
-        api.rest.loadUpdatableJsonList<GitLabResourceStateEventDTO>(
-          GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag
-        )
-      }
-      val result = loader.stateFlow.first { it.list != null }.list
+      val result = api.rest.getMergeRequestStateEventsSequence(glTest1ProjectId, "1").toList().flatten()
 
-      assertNotNull(result)
       assertIterableEquals(listOf(1L), result.map { it.id })
     }
   }
@@ -420,19 +393,8 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(11, 4)))
 
     requiresAuthentication { api ->
-      val reloadRequest = MutableSharedFlow<Unit>(1).withInitial(Unit)
-      val loader = startGitLabRestETagListLoaderIn(backgroundScope,
-                                                   api.rest.getMergeRequestLabelEventsUri(glTest1ProjectId, "1"),
-                                                   { it.id },
-                                                   reloadRequest,
-                                                   shouldTryToLoadAll = false) { uri, eTag ->
-        api.rest.loadUpdatableJsonList<GitLabResourceLabelEventDTO>(
-          GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag
-        )
-      }
-      val result = loader.stateFlow.first { it.list != null }.list
+      val result = api.rest.getMergeRequestLabelEventsSequence(glTest1ProjectId, "1").toList().flatten()
 
-      assertNotNull(result)
       assertIterableEquals(listOf(3L, 4L, 5L), result.map { it.id })
     }
   }
@@ -442,19 +404,8 @@ class GitLabApiTest : GitLabApiTestCase() {
     checkVersion(after(v(13, 1)))
 
     requiresAuthentication { api ->
-      val reloadRequest = MutableSharedFlow<Unit>(1).withInitial(Unit)
-      val loader = startGitLabRestETagListLoaderIn(backgroundScope,
-                                                   api.rest.getMergeRequestMilestoneEventsUri(glTest1ProjectId, "1"),
-                                                   { it.id },
-                                                   reloadRequest,
-                                                   shouldTryToLoadAll = false) { uri, eTag ->
-        api.rest.loadUpdatableJsonList<GitLabResourceMilestoneEventDTO>(
-          GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag
-        )
-      }
-      val result = loader.stateFlow.first { it.list != null }.list
+      val result = api.rest.getMergeRequestMilestoneEventsSequence(glTest1ProjectId, "1").toList().flatten()
 
-      assertNotNull(result)
       assertIterableEquals(listOf(3L, 4L), result.map { it.id })
     }
   }

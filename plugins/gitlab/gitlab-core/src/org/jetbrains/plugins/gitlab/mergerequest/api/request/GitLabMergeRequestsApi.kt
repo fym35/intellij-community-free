@@ -7,6 +7,7 @@ import com.intellij.collaboration.api.json.loadJsonList
 import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.util.ComputableSequence
 import com.intellij.collaboration.util.ListPart
+import com.intellij.collaboration.util.map
 import com.intellij.collaboration.util.resolveRelative
 import com.intellij.collaboration.util.withQuery
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,9 @@ import org.jetbrains.plugins.gitlab.api.GitLabGQLQuery
 import org.jetbrains.plugins.gitlab.api.GitLabGidData
 import org.jetbrains.plugins.gitlab.api.SinceGitLab
 import org.jetbrains.plugins.gitlab.api.dto.GitLabGraphQLMutationResultDTO
+import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceLabelEventDTO
+import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceMilestoneEventDTO
+import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceStateEventDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabReviewerDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserRestDTO
@@ -137,25 +141,37 @@ private class MergeRequestsByBranchConnection(pageInfo: GraphQLCursorPageInfoDTO
   : GraphQLConnectionDTO<GitLabMergeRequestByBranchDTO>(pageInfo, nodes)
 
 @SinceGitLab("13.2")
-fun GitLabApi.Rest.getMergeRequestStateEventsUri(projectId: String, mrIid: String): URI =
-  projectApiUrl(projectId)
+fun GitLabApi.Rest.getMergeRequestStateEventsSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabResourceStateEventDTO>> {
+  val initialUri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("resource_state_events")
+  return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
+    loadUpdatableJsonList<GitLabResourceStateEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag)
+  }.map { it.value }
+}
 
 @SinceGitLab("11.4", note = "Maybe released in 11.3-rc5")
-fun GitLabApi.Rest.getMergeRequestLabelEventsUri(projectId: String, mrIid: String): URI =
-  projectApiUrl(projectId)
+fun GitLabApi.Rest.getMergeRequestLabelEventsSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabResourceLabelEventDTO>> {
+  val initialUri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("resource_label_events")
+  return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
+    loadUpdatableJsonList<GitLabResourceLabelEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_LABEL_EVENTS, uri, eTag)
+  }.map { it.value }
+}
 
 @SinceGitLab("13.1")
-fun GitLabApi.Rest.getMergeRequestMilestoneEventsUri(projectId: String, mrIid: String): URI =
-  projectApiUrl(projectId)
+fun GitLabApi.Rest.getMergeRequestMilestoneEventsSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabResourceMilestoneEventDTO>> {
+  val initialUri = projectApiUrl(projectId)
     .resolveRelative("merge_requests")
     .resolveRelative(mrIid)
     .resolveRelative("resource_milestone_events")
+  return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
+    loadUpdatableJsonList<GitLabResourceMilestoneEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_MILESTONE_EVENTS, uri, eTag)
+  }.map { it.value }
+}
 
 @SinceGitLab("10.6", editions = [GitLabEdition.Enterprise])
 @SinceGitLab("13.3", editions = [GitLabEdition.Community], note = "Maybe released in 13.2-rc42 or so")

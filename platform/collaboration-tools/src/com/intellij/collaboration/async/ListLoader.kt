@@ -75,6 +75,18 @@ class AllDeleted<V> : Deleted<V>({ true })
 @ApiStatus.Internal
 data class Updated<V>(val updater: (V) -> V) : Change<V>
 
+/**
+ * Applies a [Change] to a (fully loaded, non-null) list, returning the mutated list.
+ */
+@ApiStatus.Internal
+fun <V> List<V>.applyListChange(change: Change<V>): List<V> = when (change) {
+  is AddedFirst -> listOf(change.value) + this
+  is AddedLast -> this + change.value
+  is AddedAllLast -> this + change.values
+  is Deleted -> filterNot(change.isDeleted)
+  is Updated -> map(change.updater)
+}
+
 @ApiStatus.Internal
 abstract class MutableListLoader<V> : ListLoader<V> {
   /**

@@ -1,16 +1,21 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gitlab.mergerequest.data
 
+import com.intellij.collaboration.api.page.foldToList
 import com.intellij.collaboration.async.AddedLast
 import com.intellij.collaboration.async.AllDeleted
 import com.intellij.collaboration.async.Change
+import com.intellij.collaboration.async.LoaderWithMutableCache
+import com.intellij.collaboration.async.applyListChange
 import com.intellij.collaboration.async.childScope
+import com.intellij.collaboration.async.computationStateFlow
 import com.intellij.collaboration.async.mapCatching
 import com.intellij.collaboration.async.mapDataToModel
 import com.intellij.collaboration.async.mapFiltered
 import com.intellij.collaboration.async.modelFlow
-import com.intellij.collaboration.async.resultOrErrorFlow
 import com.intellij.collaboration.async.transformConsecutiveSuccesses
+import com.intellij.collaboration.async.withInitial
+import com.intellij.collaboration.util.asFlow
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.CoroutineScope
@@ -20,9 +25,12 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.plugins.gitlab.api.GitLabApi
 import org.jetbrains.plugins.gitlab.api.GitLabId
@@ -32,16 +40,13 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabDiscussionRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabMergeRequestDraftNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserDTO
-import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
 import org.jetbrains.plugins.gitlab.mergerequest.api.dto.GitLabDiffPositionInput
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.addDiffNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.addDraftNote
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.addNote
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsUri
-import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesUri
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDiscussionsSequence
+import org.jetbrains.plugins.gitlab.mergerequest.api.request.getMergeRequestDraftNotesSequence
 import org.jetbrains.plugins.gitlab.mergerequest.api.request.submitDraftNotes
-import org.jetbrains.plugins.gitlab.mergerequest.data.loaders.startGitLabRestETagListLoaderIn
-import org.jetbrains.plugins.gitlab.util.GitLabApiRequestName
 import org.jetbrains.plugins.gitlab.util.GitLabStatistics
 
 interface GitLabMergeRequestDiscussionsContainer {
@@ -95,29 +100,24 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   override val canAddMultilinePositionalNotes: Boolean =
     canAddNotes && (glMetadata != null && GitLabVersion(18, 6) <= glMetadata.version)
 
-  private val reloadRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST).apply {
-    tryEmit(Unit)
-  }
+  private val reloadRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val refreshRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
   private val discussionEvents = MutableSharedFlow<Change<GitLabDiscussionRestDTO>>()
 
+  // The sequence is created once and re-walked on reload/refresh, so its per-URI ETag cache is reused.
+  private val discussionsSequence = api.rest.getMergeRequestDiscussionsSequence(projectId, mr.iid)
+  private val discussionsLoader = LoaderWithMutableCache(cs) { discussionsSequence.asFlow().foldToList() }.apply {
+    cs.launch {
+      discussionEvents.collect { change ->
+        updateLoaded { it.applyListChange(change) }
+      }
+    }
+  }
+
   private val nonEmptyDiscussionsData: SharedFlow<Result<List<GitLabDiscussionRestDTO>>> by lazy {
-    startGitLabRestETagListLoaderIn(
-      cs,
-      api.rest.getMergeRequestDiscussionsUri(projectId, mr.iid),
-      { it.id },
-
-      requestReloadFlow = reloadRequests,
-      requestRefreshFlow = refreshRequests,
-      requestChangeFlow = discussionEvents,
-
-      shouldTryToLoadAll = true
-    ) { uri, eTag ->
-      api.rest.loadUpdatableJsonList<GitLabDiscussionRestDTO>(
-        GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, uri, eTag
-      )
-    }.resultOrErrorFlow
+    computationStateFlow(discussionsLoader.updatedSignal.withInitial(Unit)) { discussionsLoader.load() }
+      .mapNotNull { it.result }
       .mapCatching { discussions -> discussions.filter { it.notes.isNotEmpty() } }
       .modelFlow(cs, LOG)
   }
@@ -158,26 +158,38 @@ class GitLabMergeRequestDiscussionsContainerImpl(
 
   private val draftNotesEvents = MutableSharedFlow<Change<GitLabMergeRequestDraftNoteRestDTO>>()
 
-  private val draftNotesData by lazy {
-    if (glMetadata == null || glMetadata.version < GitLabVersion(15, 9)) {
+  private val draftNotesLoader: LoaderWithMutableCache<List<GitLabMergeRequestDraftNoteRestDTO>>? =
+    if (glMetadata != null && GitLabVersion(15, 9) <= glMetadata.version) {
+      val sequence = api.rest.getMergeRequestDraftNotesSequence(projectId, mr.iid)
+      LoaderWithMutableCache(cs) { sequence.asFlow().foldToList() }.apply {
+        cs.launch {
+          draftNotesEvents.collect { change ->
+            updateLoaded { it.applyListChange(change) }
+          }
+        }
+      }
+    }
+    else null
+
+  init {
+    // Reload/refresh re-walks the resource (reusing the ETag cache); optimistic changes are overwritten by the next load.
+    cs.launch {
+      merge(reloadRequests, refreshRequests).collect {
+        discussionsLoader.clearCache()
+        draftNotesLoader?.clearCache()
+      }
+    }
+  }
+
+  private val draftNotesData: Flow<Result<List<GitLabMergeRequestDraftNoteRestDTO>>> by lazy {
+    val loader = draftNotesLoader
+    if (loader == null) {
       flowOf(Result.success(emptyList()))
     }
     else {
-      startGitLabRestETagListLoaderIn(
-        cs,
-        api.rest.getMergeRequestDraftNotesUri(projectId, mr.iid),
-        { it.id },
-
-        requestReloadFlow = reloadRequests,
-        requestRefreshFlow = refreshRequests,
-        requestChangeFlow = draftNotesEvents,
-
-        shouldTryToLoadAll = true
-      ) { uri, eTag ->
-        api.rest.loadUpdatableJsonList<GitLabMergeRequestDraftNoteRestDTO>(
-          GitLabApiRequestName.REST_GET_DRAFT_NOTES, uri, eTag
-        )
-      }.resultOrErrorFlow.modelFlow(cs, LOG)
+      computationStateFlow(loader.updatedSignal.withInitial(Unit)) { loader.load() }
+        .mapNotNull { it.result }
+        .modelFlow(cs, LOG)
     }
   }
 
