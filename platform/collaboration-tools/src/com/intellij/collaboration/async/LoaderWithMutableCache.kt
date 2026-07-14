@@ -1,7 +1,6 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.plugins.github.pullrequest.data.provider
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.collaboration.async
 
-import com.intellij.collaboration.async.awaitCompleted
 import com.intellij.openapi.util.Ref
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -16,8 +15,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.jetbrains.annotations.ApiStatus
 
-internal class LoaderWithMutableCache<T>(private val cs: CoroutineScope, private val loader: suspend () -> T) {
+/**
+ * Caches the result of a suspending [loader] and lets it be invalidated ([clearCache]) or overridden in place
+ * ([updateLoaded]/[overrideResult]) for optimistic updates. [updatedSignal] fires whenever the cached value is
+ * invalidated or overridden, so consumers can re-[load].
+ */
+@ApiStatus.Internal
+class LoaderWithMutableCache<T>(private val cs: CoroutineScope, private val loader: suspend () -> T) {
   private val request = MutableStateFlow(loadAsync())
   private var lastLoaded: Ref<T>? = null
   private val dataGuard = Mutex()
