@@ -37,6 +37,10 @@ abstract class HttpApiHelperTest(private val clientVersion: HttpClient.Version) 
   private val serverFixture: TestFixture<HttpServer> = localhostHttpServer()
   private val server: HttpServer get() = serverFixture.get()
 
+  // a second server on a different port, used as a cross-origin redirect target
+  private val otherServerFixture: TestFixture<HttpServer> = localhostHttpServer()
+  private val otherServer: HttpServer get() = otherServerFixture.get()
+
   private val helper: HttpApiHelper = testHttpApiHelper(clientVersion)
 
   @Test
@@ -233,6 +237,24 @@ abstract class HttpApiHelperTest(private val clientVersion: HttpClient.Version) 
     assertThat(response.body()).isEqualTo("relocated")
     // the final response reflects the redirected URI
     assertThat(response.uri().path).isEqualTo("/moved")
+    Unit
+  }
+
+  @Test
+  fun `sendAndRead drops the Authorization header on a cross-origin redirect`() = timeoutRunBlocking {
+    val originRecorder = newRecorder()
+    val targetRecorder = newRecorder()
+    // redirect to a second server on a different port, i.e. a different origin
+    server.redirect(from = "/", to = otherServer.url + "/target", status = 302, recorder = originRecorder)
+    otherServer.respondWithText(path = "/target", text = "final", recorder = targetRecorder)
+
+    val request = helper.request(server.url).header("Authorization", "Bearer secret").build()
+    val body = helper.sendAndReadBody(request) { _, charset -> reader(charset ?: Charsets.UTF_8).readText() }
+
+    assertThat(body).isEqualTo("final")
+    // the credentials are sent to the original origin, but must not be forwarded across origins
+    assertThat(originRecorder.single().header("Authorization")).isEqualTo("Bearer secret")
+    assertThat(targetRecorder.single().header("Authorization")).isNull()
     Unit
   }
 
