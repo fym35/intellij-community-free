@@ -1,6 +1,7 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gitlab.mergerequest.api.request
 
+import com.intellij.collaboration.api.sendAndAwait
 import com.intellij.collaboration.util.ComputableSequence
 import com.intellij.collaboration.util.map
 import com.intellij.collaboration.util.resolveRelative
@@ -27,7 +28,10 @@ private fun GitLabApi.Rest.getMergeRequestDraftNotesUri(projectId: String, mrIid
     .resolveRelative("draft_notes")
 
 @SinceGitLab("15.9")
-fun GitLabApi.Rest.getMergeRequestDraftNotesSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabMergeRequestDraftNoteRestDTO>> =
+fun GitLabApi.Rest.getMergeRequestDraftNotesSequence(
+  projectId: String,
+  mrIid: String,
+): ComputableSequence<List<GitLabMergeRequestDraftNoteRestDTO>> =
   GitLabApiUtil.etagCachingLinkedPagesSequence(getMergeRequestDraftNotesUri(projectId, mrIid)) { uri, eTag ->
     loadUpdatableJsonList<GitLabMergeRequestDraftNoteRestDTO>(GitLabApiRequestName.REST_GET_DRAFT_NOTES, uri, eTag)
   }.map { it.value }
@@ -50,11 +54,12 @@ suspend fun GitLabApi.Rest.updateDraftNote(
 ) {
   val uri = getSpecificMergeRequestDraftNoteUri(projectId, mrIid, noteId).withQuery {
     "note" eq body
-    addDraftNotePositionParameters(position, isMultilinePositionSupported) // have to pass the existing position, otherwise it is reset to null
+    addDraftNotePositionParameters(position,
+                                   isMultilinePositionSupported) // have to pass the existing position, otherwise it is reset to null
   }
   val request = request(uri).PUT(BodyPublishers.noBody()).build()
   withErrorStats(GitLabApiRequestName.REST_UPDATE_DRAFT_NOTE) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }
 
@@ -67,7 +72,7 @@ suspend fun GitLabApi.Rest.deleteDraftNote(
   val uri = getSpecificMergeRequestDraftNoteUri(projectId, mrIid, noteId.toString())
   val request = request(uri).DELETE().build()
   withErrorStats(GitLabApiRequestName.REST_DELETE_DRAFT_NOTE) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }
 
@@ -79,7 +84,7 @@ suspend fun GitLabApi.Rest.submitDraftNotes(
   val uri = getMergeRequestDraftNotesUri(projectId, mrIid).resolveRelative("bulk_publish")
   val request = request(uri).POST(BodyPublishers.noBody()).build()
   withErrorStats(GitLabApiRequestName.REST_SUBMIT_DRAFT_NOTES) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }
 
@@ -92,7 +97,7 @@ suspend fun GitLabApi.Rest.submitSingleDraftNote(
   val uri = getSpecificMergeRequestDraftNoteUri(projectId, mrIid, noteId.toString()).resolveRelative("publish")
   val request = request(uri).PUT(BodyPublishers.noBody()).build()
   withErrorStats(GitLabApiRequestName.REST_SUBMIT_SINGLE_DRAFT_NOTE) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }
 
@@ -130,7 +135,7 @@ suspend fun GitLabApi.Rest.addDraftNote(
 
 private fun GitLabApiUriQueryBuilder.addDraftNotePositionParameters(
   position: GitLabMergeRequestDraftNoteRestDTO.Position,
-  canPostPositionLineRange: Boolean
+  canPostPositionLineRange: Boolean,
 ) {
   // If there's no position info (just position type), don't pass it to GitLab.
   if (position.baseSha == null && position.headSha == null && position.startSha == null &&

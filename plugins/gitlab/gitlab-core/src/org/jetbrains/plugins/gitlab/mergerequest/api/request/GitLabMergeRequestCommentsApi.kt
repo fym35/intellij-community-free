@@ -6,6 +6,8 @@ import com.intellij.collaboration.api.data.asParameters
 import com.intellij.collaboration.api.data.orDefault
 import com.intellij.collaboration.api.dto.GraphQLConnectionDTO
 import com.intellij.collaboration.api.dto.GraphQLCursorPageInfoDTO
+import com.intellij.collaboration.api.request
+import com.intellij.collaboration.api.sendAndAwait
 import com.intellij.collaboration.util.ComputableSequence
 import com.intellij.collaboration.util.map
 import com.intellij.collaboration.util.resolveRelative
@@ -46,7 +48,7 @@ suspend fun GitLabApi.Rest.loadMergeRequestDiscussions(
 suspend fun GitLabApi.GraphQL.loadMergeRequestCommits(
   projectPath: GitLabProjectPath,
   mrIid: String,
-  pagination: GraphQLRequestPagination? = null
+  pagination: GraphQLRequestPagination? = null,
 ): GraphQLConnectionDTO<GitLabCommitDTO>? {
   val parameters = pagination.orDefault().asParameters() + mapOf(
     "projectId" to projectPath.fullPath(),
@@ -55,8 +57,8 @@ suspend fun GitLabApi.GraphQL.loadMergeRequestCommits(
   return runQuery<CommitConnection>(GitLabGQLQuery.GET_MERGE_REQUEST_COMMITS, parameters, "project", "mergeRequest", "commits")
 }
 
-private class CommitConnection(pageInfo: GraphQLCursorPageInfoDTO, nodes: List<GitLabCommitDTO>)
-  : GraphQLConnectionDTO<GitLabCommitDTO>(pageInfo, nodes)
+private class CommitConnection(pageInfo: GraphQLCursorPageInfoDTO, nodes: List<GitLabCommitDTO>) :
+  GraphQLConnectionDTO<GitLabCommitDTO>(pageInfo, nodes)
 
 @SinceGitLab("10.6")
 private fun GitLabApi.Rest.getMergeRequestDiscussionsUri(projectId: String, mrIid: String): URI =
@@ -149,7 +151,7 @@ suspend fun GitLabApi.Rest.deleteNote(
     .resolveRelative(noteId)
   val request = request(uri).DELETE().build()
   withErrorStats(GitLabApiRequestName.REST_DELETE_MERGE_REQUEST_DISCUSSION_NOTE) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }
 
@@ -176,8 +178,10 @@ suspend fun GitLabApi.Rest.changeMergeRequestDiscussionResolve(
  * This function converts a [GitLabDiffPositionInput] to query parameters in the format
  * expected by GitLab REST API for creating notes and draft notes on diffs.
  */
-internal fun GitLabApiUriQueryBuilder.addDiffPositionParameters(position: GitLabDiffPositionInput,
-                                                                canPostPositionLineRange: Boolean) {
+internal fun GitLabApiUriQueryBuilder.addDiffPositionParameters(
+  position: GitLabDiffPositionInput,
+  canPostPositionLineRange: Boolean,
+) {
   "position" {
     "base_sha" eq position.baseSha
     "head_sha" eq position.headSha
@@ -193,8 +197,10 @@ internal fun GitLabApiUriQueryBuilder.addDiffPositionParameters(position: GitLab
   }
 }
 
-internal fun GitLabApiUriQueryBuilder.addLineRangeParameters(lineRange: LineRangeDTO,
-                                                             canPostPositionLineRange: Boolean) {
+internal fun GitLabApiUriQueryBuilder.addLineRangeParameters(
+  lineRange: LineRangeDTO,
+  canPostPositionLineRange: Boolean,
+) {
   // providing line_range in API call will cause GitLab to return 400 Bad Request
   // if the position is not supported by GitLab server, so we just omit it in this case
   if (!canPostPositionLineRange) return

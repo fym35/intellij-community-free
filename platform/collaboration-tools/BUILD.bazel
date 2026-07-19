@@ -292,6 +292,14 @@ jvm_library(
         "//platform/vcs-impl/shared:shared_test_lib",
         "//libraries/junit5",
         "//libraries/junit5:junit5_test_lib",
+        "//platform/testFramework/junit5",
+        "//platform/testFramework/junit5:junit5_test_lib",
+        "//libraries/jackson/jackson",
+        "//libraries/jackson/jackson:jackson_test_lib",
+        "//libraries/jackson/databind",
+        "//libraries/jackson/databind:databind_test_lib",
+        "//libraries/jackson/module-kotlin:libraries-jackson-module-kotlin",
+        "//libraries/jackson/module-kotlin:libraries-jackson-module-kotlin_test_lib",
     ],
 )
 ### auto-generated section `build intellij.platform.collaborationTools.tests` end

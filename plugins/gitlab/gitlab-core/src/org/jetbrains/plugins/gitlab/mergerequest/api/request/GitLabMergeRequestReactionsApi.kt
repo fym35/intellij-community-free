@@ -4,6 +4,7 @@ package org.jetbrains.plugins.gitlab.mergerequest.api.request
 import com.intellij.collaboration.api.json.loadJsonList
 import com.intellij.collaboration.api.page.ApiPageUtil
 import com.intellij.collaboration.api.page.foldToList
+import com.intellij.collaboration.api.sendAndAwait
 import com.intellij.collaboration.util.resolveRelative
 import kotlinx.coroutines.flow.map
 import org.jetbrains.plugins.gitlab.api.GitLabApi
@@ -60,6 +61,6 @@ suspend fun GitLabApi.Rest.deleteAwardEmoji(
     .resolveRelative(awardId)
   val request = request(uri).DELETE().build()
   withErrorStats(GitLabApiRequestName.REST_DELETE_NOTE_AWARD_EMOJI) {
-    sendAndAwaitCancellable(request)
+    sendAndAwait(request)
   }
 }

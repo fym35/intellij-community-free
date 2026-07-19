@@ -1,5 +1,10 @@
 f:com.intellij.collaboration.api.HttpApiHelperKt
 - sf:logName(java.net.http.HttpRequest):java.lang.String
+- sf:request(com.intellij.collaboration.api.HttpApiHelper,java.lang.String,kotlin.coroutines.Continuation):java.lang.Object
+- sf:sendAndAwait(com.intellij.collaboration.api.HttpApiHelper,java.net.http.HttpRequest,kotlin.coroutines.Continuation):java.lang.Object
+- sf:sendAndRead(com.intellij.collaboration.api.HttpApiHelper,java.net.http.HttpRequest,java.lang.String,kotlin.jvm.functions.Function3,kotlin.coroutines.Continuation):java.lang.Object
+- bs:sendAndRead$default(com.intellij.collaboration.api.HttpApiHelper,java.net.http.HttpRequest,java.lang.String,kotlin.jvm.functions.Function3,kotlin.coroutines.Continuation,I,java.lang.Object):java.lang.Object
+- sf:sendAndReadBody(com.intellij.collaboration.api.HttpApiHelper,java.net.http.HttpRequest,kotlin.jvm.functions.Function3,kotlin.coroutines.Continuation):java.lang.Object
 f:com.intellij.collaboration.api.HttpStatusErrorException
 - java.lang.RuntimeException
 - <init>(java.lang.String,I,java.lang.String):V
@@ -88,11 +93,6 @@ a:com.intellij.collaboration.api.httpclient.AuthorizationConfigurer
 - <init>():V
 - f:configureSuspend(java.net.http.HttpRequest$Builder,kotlin.coroutines.Continuation):java.lang.Object
 - pa:getAuthorizationHeaderValue():java.lang.String
-f:com.intellij.collaboration.api.httpclient.ByteArrayProducingBodyPublisher
-- java.net.http.HttpRequest$BodyPublisher
-- <init>(kotlin.jvm.functions.Function0):V
-- contentLength():J
-- subscribe(java.util.concurrent.Flow$Subscriber):V
 c:com.intellij.collaboration.api.httpclient.CommonHeadersConfigurer
 - com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 - <init>():V
@@ -116,23 +116,25 @@ f:com.intellij.collaboration.api.httpclient.HttpClientUtil
 - sf:ACCEPT_HEADER:java.lang.String
 - sf:CONTENT_ENCODING_GZIP:java.lang.String
 - sf:CONTENT_ENCODING_HEADER:java.lang.String
-- sf:CONTENT_TYPE_ENCODED_FORM:java.lang.String
 - sf:CONTENT_TYPE_HEADER:java.lang.String
-- sf:CONTENT_TYPE_JSON:java.lang.String
 - sf:ETAG_HEADER:java.lang.String
 - sf:IF_NONE_MATCH_HEADER:java.lang.String
 - sf:INSTANCE:com.intellij.collaboration.api.httpclient.HttpClientUtil
+- sf:MIME_TYPE_APPLICATION_PREFIX:java.lang.String
+- sf:MIME_TYPE_ENCODED_FORM:java.lang.String
+- sf:MIME_TYPE_JSON:java.lang.String
+- sf:MIME_TYPE_JSON_SUFFIX:java.lang.String
+- sf:MIME_TYPE_TEXT_PREFIX:java.lang.String
+- sf:MIME_TYPE_XML_SUFFIX:java.lang.String
 - sf:USER_AGENT_HEADER:java.lang.String
-- f:checkStatusCodeWithLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,I,java.io.InputStream):V
+- f:getRequestName(java.lang.String,java.net.URI):java.lang.String
+- f:getRequestName(java.net.http.HttpRequest):java.lang.String
 - f:getUserAgentValue(java.lang.String):java.lang.String
-- f:inflateAndReadWithErrorHandlingAndLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,kotlin.jvm.functions.Function2):java.net.http.HttpResponse$BodyHandler
+- f:isJsonMimeType(java.lang.String):Z
+f:com.intellij.collaboration.api.httpclient.HttpClientUtilKt
 com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 - configure(java.net.http.HttpRequest$Builder):java.net.http.HttpRequest$Builder
 - configureSuspend(java.net.http.HttpRequest$Builder,kotlin.coroutines.Continuation):java.lang.Object
-f:com.intellij.collaboration.api.httpclient.InflatedStreamReadingBodyHandler
-- java.net.http.HttpResponse$BodyHandler
-- <init>(kotlin.jvm.functions.Function2):V
-- apply(java.net.http.HttpResponse$ResponseInfo):java.net.http.HttpResponse$BodySubscriber
 c:com.intellij.collaboration.api.httpclient.RequestTimeoutConfigurer
 - com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 - <init>():V

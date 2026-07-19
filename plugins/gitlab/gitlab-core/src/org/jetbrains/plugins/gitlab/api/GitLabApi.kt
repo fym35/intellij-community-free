@@ -1,5 +1,6 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:ApiStatus.Experimental
+
 package org.jetbrains.plugins.gitlab.api
 
 import com.intellij.collaboration.api.HttpApiHelper
@@ -51,7 +52,7 @@ interface GitLabApiHelper : HttpApiHelper {
 internal class GitLabApiImpl(
   private val serversManager: GitLabServersManager,
   override val server: GitLabServerPath,
-  httpHelper: HttpApiHelper
+  httpHelper: HttpApiHelper,
 ) : GitLabApi, HttpApiHelper by httpHelper {
   constructor(
     serversManager: GitLabServersManager,
@@ -89,13 +90,13 @@ suspend fun GitLabApiHelper.getMetadataOrNull(): GitLabServerMetadata? =
   runCatchingUser { getMetadata() }.getOrNull()
 
 context(api: GitLabApi.Rest)
-suspend inline fun <reified T> HttpRequest.loadValue(requestName: GitLabApiRequestName): T =
+suspend inline fun <reified T : Any> HttpRequest.loadValue(requestName: GitLabApiRequestName): T =
   api.withErrorStats(requestName) {
     loadJsonValue<T>().body()
   }
 
 context(api: GitLabApi.Rest)
-suspend inline fun <reified T> HttpRequest.loadList(requestName: GitLabApiRequestName): List<T> =
+suspend inline fun <reified T : Any> HttpRequest.loadList(requestName: GitLabApiRequestName): List<T> =
   api.withErrorStats(requestName) {
     loadJsonList<T>().body()
   }
@@ -112,7 +113,7 @@ suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject
 }
 
 context(api: GitLabApi.GraphQL)
-suspend inline fun <reified T> HttpRequest.loadResponse(query: GitLabGQLQuery, vararg pathFromData: String): T? {
+suspend inline fun <reified T : Any> HttpRequest.loadResponse(query: GitLabGQLQuery, vararg pathFromData: String): T? {
   val request = this
   return api.withErrorStats(query) {
     api.loadResponseByClass(request, T::class.java, *pathFromData).body()
@@ -130,8 +131,10 @@ suspend inline fun <reified T> GitLabApi.GraphQL.runQuery(
   vararg pathFromData: String,
 ): T? = gitLabQuery(query, variablesMap).loadResponse(query, *pathFromData)
 
-suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(requestName: GitLabApiRequestName, uri: URI,
-                                                                    eTag: String? = null)
+suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(
+  requestName: GitLabApiRequestName, uri: URI,
+  eTag: String? = null,
+)
   : HttpResponse<out List<T>?> {
   val request = request(uri).GET().apply {
     if (eTag != null) {
