@@ -153,8 +153,7 @@ private class HttpApiHelperImpl(
   private val requestConfigurer: HttpRequestConfigurer,
 ) : HttpApiHelper {
 
-  val client: HttpClient
-    get() = clientFactory.createClient()
+  val client: HttpClient = clientFactory.createClient()
 
   override suspend fun request(uri: URI): HttpRequest.Builder = HttpRequest.newBuilder(uri).apply {
     requestConfigurer.configureSuspend(this)
