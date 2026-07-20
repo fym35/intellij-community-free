@@ -163,8 +163,6 @@ internal class GHPRDataContextRepository(private val project: Project, parentCs:
       val filesService = GHPRFilesServiceImpl(requestExecutor, apiRepositoryCoordinates)
       val reactionsService = GHReactionsServiceImpl(requestExecutor, apiRepositoryCoordinates)
 
-      val listLoader = GHPRListLoader(cs, requestExecutor, apiRepositoryCoordinates)
-
       val dataProviderRepository = GHPRDataProviderRepositoryImpl(cs,
                                                                   repoDataService,
                                                                   detailsService,
@@ -188,7 +186,7 @@ internal class GHPRDataContextRepository(private val project: Project, parentCs:
 
       val creationService = GHPRCreationServiceImpl(requestExecutor, repoDataService)
       ensureActive()
-      GHPRDataContext(cs, listLoader, dataProviderRepository,
+      GHPRDataContext(cs, requestExecutor, dataProviderRepository,
                       securityService, repoDataService, creationService, detailsService, reactionsService,
                       imageLoader, avatarIconsProvider, mentionableUsersProvider, reactionIconsProvider,
                       interactionState)
