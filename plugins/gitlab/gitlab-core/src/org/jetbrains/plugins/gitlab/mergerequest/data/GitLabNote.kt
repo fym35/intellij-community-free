@@ -1,7 +1,7 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gitlab.mergerequest.data
 
-import com.intellij.collaboration.async.Change
+import com.intellij.collaboration.async.ListChange
 import com.intellij.collaboration.async.Deleted
 import com.intellij.collaboration.async.childScope
 import com.intellij.collaboration.async.mapState
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combineTransform
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -227,15 +226,15 @@ class MutableGitLabMergeRequestNote(
 
 @CodeReviewDomainEntity
 class GitLabMergeRequestDraftNoteImpl(
-  parentCs: CoroutineScope,
-  private val api: GitLabApi,
-  private val glMetadata: GitLabServerMetadata?,
-  private val projectId: String,
-  private val mr: GitLabMergeRequest,
-  private val eventSink: suspend (Change<GitLabMergeRequestDraftNoteRestDTO>) -> Unit,
-  private val noteData: GitLabMergeRequestDraftNoteRestDTO,
-  override val author: GitLabUserDTO,
-  private val isMultilinePositionSupported: Boolean,
+    parentCs: CoroutineScope,
+    private val api: GitLabApi,
+    private val glMetadata: GitLabServerMetadata?,
+    private val projectId: String,
+    private val mr: GitLabMergeRequest,
+    private val eventSink: suspend (ListChange<GitLabMergeRequestDraftNoteRestDTO>) -> Unit,
+    private val noteData: GitLabMergeRequestDraftNoteRestDTO,
+    override val author: GitLabUserDTO,
+    private val isMultilinePositionSupported: Boolean,
 ) : GitLabMergeRequestDraftNote, MutableGitLabNote {
 
   private val cs = parentCs.childScope(this::class)

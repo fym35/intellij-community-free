@@ -4,7 +4,7 @@ package org.jetbrains.plugins.gitlab.mergerequest.data
 import com.intellij.collaboration.api.page.foldToList
 import com.intellij.collaboration.async.AddedLast
 import com.intellij.collaboration.async.AllDeleted
-import com.intellij.collaboration.async.Change
+import com.intellij.collaboration.async.ListChange
 import com.intellij.collaboration.async.LoaderWithMutableCache
 import com.intellij.collaboration.async.applyListChange
 import com.intellij.collaboration.async.childScope
@@ -25,7 +25,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -103,7 +102,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
   private val reloadRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val refreshRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-  private val discussionEvents = MutableSharedFlow<Change<GitLabDiscussionRestDTO>>()
+  private val discussionEvents = MutableSharedFlow<ListChange<GitLabDiscussionRestDTO>>()
 
   // The sequence is created once and re-walked on reload/refresh, so its per-URI ETag cache is reused.
   private val discussionsSequence = api.rest.getMergeRequestDiscussionsSequence(projectId, mr.iid)
@@ -156,7 +155,7 @@ class GitLabMergeRequestDiscussionsContainerImpl(
       .modelFlow(cs, LOG)
   }
 
-  private val draftNotesEvents = MutableSharedFlow<Change<GitLabMergeRequestDraftNoteRestDTO>>()
+  private val draftNotesEvents = MutableSharedFlow<ListChange<GitLabMergeRequestDraftNoteRestDTO>>()
 
   private val draftNotesLoader: LoaderWithMutableCache<List<GitLabMergeRequestDraftNoteRestDTO>>? =
     if (glMetadata != null && GitLabVersion(15, 9) <= glMetadata.version) {

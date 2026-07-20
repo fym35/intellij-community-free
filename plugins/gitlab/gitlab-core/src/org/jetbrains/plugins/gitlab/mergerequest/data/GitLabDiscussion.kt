@@ -2,14 +2,13 @@
 package org.jetbrains.plugins.gitlab.mergerequest.data
 
 import com.intellij.collaboration.async.AddedLast
-import com.intellij.collaboration.async.Change
+import com.intellij.collaboration.async.ListChange
 import com.intellij.collaboration.async.Deleted
 import com.intellij.collaboration.async.childScope
 import com.intellij.collaboration.async.mapDataToModel
 import com.intellij.collaboration.async.mapState
 import com.intellij.collaboration.async.stateInNow
 import com.intellij.collaboration.util.CodeReviewDomainEntity
-import com.intellij.util.containers.nullize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -79,8 +78,8 @@ class LoadedGitLabDiscussion(
   glMetadata: GitLabServerMetadata?,
   private val projectId: String,
   private val currentUser: GitLabUserDTO,
-  private val eventSink: suspend (Change<GitLabDiscussionRestDTO>) -> Unit,
-  private val draftNotesEventSink: suspend (Change<GitLabMergeRequestDraftNoteRestDTO>) -> Unit,
+  private val eventSink: suspend (ListChange<GitLabDiscussionRestDTO>) -> Unit,
+  private val draftNotesEventSink: suspend (ListChange<GitLabMergeRequestDraftNoteRestDTO>) -> Unit,
   private val mr: GitLabMergeRequest,
   discussionData: GitLabDiscussionRestDTO,
   draftNotes: Flow<Result<List<GitLabMergeRequestDraftNote>>>,
