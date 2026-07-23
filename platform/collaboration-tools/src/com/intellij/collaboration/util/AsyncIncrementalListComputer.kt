@@ -34,14 +34,22 @@ interface AsyncIncrementalListComputer<T> {
     fun <T> createIn(scope: CoroutineScope, sequence: ComputableSequence<ListPart<T>>): AsyncIncrementalListComputer<T> =
       createIn(scope, sequence.getComputer())
 
-    fun <T> createIn(scope: CoroutineScope, computer: SequenceComputer<ListPart<T>>): AsyncIncrementalListComputer<T> =
-      AsyncIncrementalListComputerImpl(scope, computer)
+    fun <T> createIn(
+      scope: CoroutineScope,
+      computer: SequenceComputer<ListPart<T>>,
+      loadAfterDone: Boolean = false,
+    ): AsyncIncrementalListComputer<T> =
+      AsyncIncrementalListComputerImpl(scope, computer, loadAfterDone)
   }
 }
 
+/**
+ * @param loadAfterDone if this computer will compute more data after the [computer] returns [SequenceComputer.ComputationOutcome.Done]
+ */
 private class AsyncIncrementalListComputerImpl<T>(
   cs: CoroutineScope,
   private val computer: SequenceComputer<ListPart<T>>,
+  private val loadAfterDone: Boolean,
 ) : AsyncIncrementalListComputer<T> {
   private val _state = MutableStateFlow(IncrementallyComputedValue.initial<List<T>>())
   override val state: StateFlow<IncrementallyComputedValue<List<T>>> = _state.asStateFlow()
@@ -53,7 +61,7 @@ private class AsyncIncrementalListComputerImpl<T>(
       needMoreState.first { it }
       try {
         loadMore()
-        if (_state.value.isComplete) {
+        if (_state.value.isComplete && !loadAfterDone) {
           break
         }
       }

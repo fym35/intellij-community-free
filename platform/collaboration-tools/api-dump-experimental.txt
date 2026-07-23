@@ -1743,7 +1743,8 @@ f:com.intellij.collaboration.ui.codereview.diff.viewer.DiffViewerUtilKt
 - a:requestMore():V
 *f:com.intellij.collaboration.util.AsyncIncrementalListComputer$Companion
 - f:createIn(kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.util.ComputableSequence):com.intellij.collaboration.util.AsyncIncrementalListComputer
-- f:createIn(kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.util.SequenceComputer):com.intellij.collaboration.util.AsyncIncrementalListComputer
+- f:createIn(kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.util.SequenceComputer,Z):com.intellij.collaboration.util.AsyncIncrementalListComputer
+- bs:createIn$default(com.intellij.collaboration.util.AsyncIncrementalListComputer$Companion,kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.util.SequenceComputer,Z,I,java.lang.Object):com.intellij.collaboration.util.AsyncIncrementalListComputer
 *:com.intellij.collaboration.util.ChangesSelection
 - a:getChanges():java.util.List
 - a:getSelectedIdx():I
@@ -1789,6 +1790,7 @@ f:com.intellij.collaboration.util.CodeReviewFilesUtil
 - *sf:Companion:com.intellij.collaboration.util.ComputableSequence$Companion
 - a:getComputer():com.intellij.collaboration.util.SequenceComputer
 *f:com.intellij.collaboration.util.ComputableSequence$Companion
+- f:byCursor(java.lang.Object,kotlin.jvm.functions.Function2):com.intellij.collaboration.util.ComputableSequence
 - f:byPointer(java.lang.Object,kotlin.jvm.functions.Function2):com.intellij.collaboration.util.ComputableSequence
 f:com.intellij.collaboration.util.ComputableSequenceKt
 - *sf:asComputedSequence(kotlin.sequences.Sequence):com.intellij.collaboration.util.ComputableSequence
@@ -1837,6 +1839,7 @@ f:com.intellij.collaboration.util.KeyValuePairKt
 - *sf:Companion:com.intellij.collaboration.util.SequenceComputer$Companion
 - a:computeNext(kotlin.coroutines.Continuation):java.lang.Object
 *f:com.intellij.collaboration.util.SequenceComputer$Companion
+- f:byCursor(java.lang.Object,kotlin.jvm.functions.Function2):com.intellij.collaboration.util.SequenceComputer
 - f:byPointer(java.lang.Object,kotlin.jvm.functions.Function2):com.intellij.collaboration.util.SequenceComputer
 *:com.intellij.collaboration.util.SequenceComputer$ComputationOutcome
 *f:com.intellij.collaboration.util.SequenceComputer$ComputationOutcome$Done

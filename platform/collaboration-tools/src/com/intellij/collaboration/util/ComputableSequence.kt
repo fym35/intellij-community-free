@@ -24,7 +24,7 @@ interface SequenceComputer<T> {
 
   companion object {
     /**
-     * Builds a computer that walks a pointer: [compute] maps the current pointer to the next value and the pointer to
+     * Builds a computer that walks a pointer [PTR]: [compute] maps the current pointer to the next value and the pointer to
      * use afterwards, or `null` when the value just produced is the last one.
      *
      * The produced items are [SequenceItem]s carrying [SequenceItem.isLast] (derived from that trailing pointer), so a
@@ -42,6 +42,24 @@ interface SequenceComputer<T> {
           return ComputationOutcome.Item(SequenceItem(item, isLast = nextPointer == null))
         }
       }
+
+    /**
+     * Builds a computer that computes the next item using a cursor [C] of the last computed item.
+     *
+     * For the first request a `null` cursor is passed to [compute]
+     * If [compute] returns `null`, the last computed cursor will be used for the next computation
+     */
+    fun <C : Any, T> byCursor(startCursor: C?, compute: suspend (C?) -> Pair<T, C>?): SequenceComputer<T> =
+      object : SequenceComputer<T> {
+        private var lastCursor: C? = startCursor
+
+        override suspend fun computeNext(): ComputationOutcome<T> {
+          val computed = compute(lastCursor) ?: return ComputationOutcome.Done
+          val item = computed.first
+          lastCursor = computed.second
+          return ComputationOutcome.Item(item)
+        }
+      }
   }
 }
 
@@ -54,9 +72,20 @@ fun interface ComputableSequence<T> {
   fun getComputer(): SequenceComputer<T>
 
   companion object {
+    /**
+     * Shorthand for [SequenceComputer.byPointer]
+     */
     fun <PTR : Any, T> byPointer(initialPointer: PTR, compute: suspend (PTR) -> Pair<T, PTR?>): ComputableSequence<SequenceItem<T>> =
       ComputableSequence {
         SequenceComputer.byPointer(initialPointer, compute)
+      }
+
+    /**
+     * Shorthand for [SequenceComputer.byCursor]
+     */
+    fun <C : Any, T> byCursor(startCursor: C?, compute: suspend (C?) -> Pair<T, C>?): ComputableSequence<T> =
+      ComputableSequence {
+        SequenceComputer.byCursor(startCursor, compute)
       }
   }
 }
