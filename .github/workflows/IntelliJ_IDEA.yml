@@ -1,8 +1,8 @@
 name: IntelliJ IDEA
 on:
   schedule:
-    # daily at 4AM for the master branch
-    - cron: '0 4 * * *'
+    # every Monday at 4AM for the master branch
+    - cron: '0 4 * * 1'
   push:
     # for each release
     tags:
