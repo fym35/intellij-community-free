@@ -27,7 +27,7 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabResourceStateEventDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabReviewerDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabUserRestDTO
-import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
+import org.jetbrains.plugins.gitlab.api.getJsonListConditional
 import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.runQuery
@@ -90,7 +90,7 @@ fun GitLabApi.Rest.getMergeRequestsSearcher(
     .resolveRelative("merge_requests")
     .withQuery(searchQuery)
   return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
-    loadUpdatableJsonList<GitLabMergeRequestShortRestDTO>(
+    getJsonListConditional<GitLabMergeRequestShortRestDTO>(
       GitLabApiRequestName.REST_GET_MERGE_REQUESTS, uri, eTag
     )
   }
@@ -150,7 +150,7 @@ fun GitLabApi.Rest.getMergeRequestStateEventsSequence(
     .resolveRelative(mrIid)
     .resolveRelative("resource_state_events")
   return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
-    loadUpdatableJsonList<GitLabResourceStateEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag)
+    getJsonListConditional<GitLabResourceStateEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_STATE_EVENTS, uri, eTag)
   }.map { it.value }
 }
 
@@ -164,7 +164,7 @@ fun GitLabApi.Rest.getMergeRequestLabelEventsSequence(
     .resolveRelative(mrIid)
     .resolveRelative("resource_label_events")
   return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
-    loadUpdatableJsonList<GitLabResourceLabelEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_LABEL_EVENTS, uri, eTag)
+    getJsonListConditional<GitLabResourceLabelEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_LABEL_EVENTS, uri, eTag)
   }.map { it.value }
 }
 
@@ -178,7 +178,7 @@ fun GitLabApi.Rest.getMergeRequestMilestoneEventsSequence(
     .resolveRelative(mrIid)
     .resolveRelative("resource_milestone_events")
   return GitLabApiUtil.etagCachingLinkedPagesSequence(initialUri) { uri, eTag ->
-    loadUpdatableJsonList<GitLabResourceMilestoneEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_MILESTONE_EVENTS, uri, eTag)
+    getJsonListConditional<GitLabResourceMilestoneEventDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_MILESTONE_EVENTS, uri, eTag)
   }.map { it.value }
 }
 

@@ -20,7 +20,7 @@ import org.jetbrains.plugins.gitlab.api.dto.GitLabCommitDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabDiscussionRestDTO
 import org.jetbrains.plugins.gitlab.api.dto.GitLabNoteRestDTO
 import org.jetbrains.plugins.gitlab.api.loadList
-import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
+import org.jetbrains.plugins.gitlab.api.getJsonListConditional
 import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.runQuery
@@ -70,7 +70,7 @@ private fun GitLabApi.Rest.getMergeRequestDiscussionsUri(projectId: String, mrIi
 @SinceGitLab("10.6")
 fun GitLabApi.Rest.getMergeRequestDiscussionsSequence(projectId: String, mrIid: String): ComputableSequence<List<GitLabDiscussionRestDTO>> =
   GitLabApiUtil.etagCachingLinkedPagesSequence(getMergeRequestDiscussionsUri(projectId, mrIid)) { uri, eTag ->
-    loadUpdatableJsonList<GitLabDiscussionRestDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, uri, eTag)
+    getJsonListConditional<GitLabDiscussionRestDTO>(GitLabApiRequestName.REST_GET_MERGE_REQUEST_DISCUSSIONS, uri, eTag)
   }.map { it.value }
 
 @SinceGitLab("10.6")

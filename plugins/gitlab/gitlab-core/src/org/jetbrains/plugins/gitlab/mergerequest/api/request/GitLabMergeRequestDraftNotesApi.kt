@@ -10,7 +10,7 @@ import org.jetbrains.plugins.gitlab.api.GitLabApiUriQueryBuilder
 import org.jetbrains.plugins.gitlab.api.GitLabApiUtil
 import org.jetbrains.plugins.gitlab.api.SinceGitLab
 import org.jetbrains.plugins.gitlab.api.dto.GitLabMergeRequestDraftNoteRestDTO
-import org.jetbrains.plugins.gitlab.api.loadUpdatableJsonList
+import org.jetbrains.plugins.gitlab.api.getJsonListConditional
 import org.jetbrains.plugins.gitlab.api.loadValue
 import org.jetbrains.plugins.gitlab.api.projectApiUrl
 import org.jetbrains.plugins.gitlab.api.withErrorStats
@@ -33,7 +33,7 @@ fun GitLabApi.Rest.getMergeRequestDraftNotesSequence(
   mrIid: String,
 ): ComputableSequence<List<GitLabMergeRequestDraftNoteRestDTO>> =
   GitLabApiUtil.etagCachingLinkedPagesSequence(getMergeRequestDraftNotesUri(projectId, mrIid)) { uri, eTag ->
-    loadUpdatableJsonList<GitLabMergeRequestDraftNoteRestDTO>(GitLabApiRequestName.REST_GET_DRAFT_NOTES, uri, eTag)
+    getJsonListConditional<GitLabMergeRequestDraftNoteRestDTO>(GitLabApiRequestName.REST_GET_DRAFT_NOTES, uri, eTag)
   }.map { it.value }
 
 private fun GitLabApi.Rest.getSpecificMergeRequestDraftNoteUri(

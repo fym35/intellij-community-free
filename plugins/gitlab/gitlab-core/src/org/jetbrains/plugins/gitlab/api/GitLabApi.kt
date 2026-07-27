@@ -86,9 +86,7 @@ internal class GitLabApiImpl(
     JsonHttpApiHelper by helper
 }
 
-suspend fun GitLabApiHelper.getMetadataOrNull(): GitLabServerMetadata? =
-  runCatchingUser { getMetadata() }.getOrNull()
-
+//region REST
 context(api: GitLabApi.Rest)
 suspend inline fun <reified T : Any> HttpRequest.loadValue(requestName: GitLabApiRequestName): T =
   api.withErrorStats(requestName) {
@@ -101,6 +99,28 @@ suspend inline fun <reified T : Any> HttpRequest.loadList(requestName: GitLabApi
     loadJsonList<T>().body()
   }
 
+/**
+ * Performs a conditional `GET`, sending [eTag] (when present) as an `If-None-Match` header.
+ *
+ * A `304 Not Modified` is not an error: it is surfaced as a normal response with a `null` body (and the response
+ * status/headers preserved), so the caller can serve its cached value and keep following pagination links.
+ */
+suspend inline fun <reified T> GitLabApi.Rest.getJsonListConditional(
+  requestName: GitLabApiRequestName, uri: URI,
+  eTag: String? = null,
+): HttpResponse<out List<T>?> {
+  val request = request(uri).GET().apply {
+    if (eTag != null) {
+      header(HttpClientUtil.IF_NONE_MATCH_HEADER, eTag)
+    }
+  }.build()
+  return withErrorStats(requestName) {
+    request.loadOptionalJsonList()
+  }
+}
+//endregion
+
+//region GraphQL
 suspend fun GitLabApi.GraphQL.gitLabQuery(query: GitLabGQLQuery, variablesObject: Any? = null): HttpRequest {
   if (query == GitLabGQLQuery.GET_METADATA) {
     return query(server.gqlApiUri, { GitLabGQLQueryLoaders.default.loadQuery(query.filePath) }, variablesObject)
@@ -131,21 +151,6 @@ suspend inline fun <reified T> GitLabApi.GraphQL.runQuery(
   vararg pathFromData: String,
 ): T? = gitLabQuery(query, variablesMap).loadResponse(query, *pathFromData)
 
-suspend inline fun <reified T> GitLabApi.Rest.loadUpdatableJsonList(
-  requestName: GitLabApiRequestName, uri: URI,
-  eTag: String? = null,
-)
-  : HttpResponse<out List<T>?> {
-  val request = request(uri).GET().apply {
-    if (eTag != null) {
-      header(HttpClientUtil.IF_NONE_MATCH_HEADER, eTag)
-    }
-  }.build()
-  return withErrorStats(requestName) {
-    request.loadOptionalJsonList()
-  }
-}
-
 @Throws(GitLabGraphQLMutationException::class)
 fun <R : Any, MR : GitLabGraphQLMutationResultDTO<R>> MR?.getResultOrThrow(): R {
   val result = this
@@ -154,7 +159,11 @@ fun <R : Any, MR : GitLabGraphQLMutationResultDTO<R>> MR?.getResultOrThrow(): R 
   if (!errors.isNullOrEmpty()) throw GitLabGraphQLMutationErrorException(errors)
   return result.value as R
 }
+//endregion
 
+//region Infra
+suspend fun GitLabApiHelper.getMetadataOrNull(): GitLabServerMetadata? =
+  runCatchingUser { getMetadata() }.getOrNull()
 
 private fun httpHelper(server: GitLabServerPath, tokenSupplier: suspend () -> String): HttpApiHelper {
   val authConfigurer = object : HttpRequestConfigurer {
@@ -211,3 +220,4 @@ private class GitLabHeadersConfigurer : HttpRequestConfigurer {
       header(HttpClientUtil.USER_AGENT_HEADER, HttpClientUtil.getUserAgentValue(PLUGIN_USER_AGENT_NAME))
     }
 }
+//endregion
