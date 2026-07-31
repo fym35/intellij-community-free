@@ -54,6 +54,8 @@ internal class TestEventLogUploadSettingsClient(
     configCacheTimeoutMs
   )
   override val recorderId: String = RECORDER_ID
+  override val isSnapshotFilteringDisabled: Boolean
+    get() = false
 }
 
 internal class TestEventLogSendConfig(

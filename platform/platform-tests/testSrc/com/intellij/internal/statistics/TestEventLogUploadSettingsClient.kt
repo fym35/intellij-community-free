@@ -18,6 +18,8 @@ import javax.net.ssl.SSLContext
 const val DEFAULT_RECORDER_ID = "FUS"
 
 internal class TestEventLogUploadSettingsClient(configurationUrl: String) : EventLogSettingsClient() {
+  override val isSnapshotFilteringDisabled: Boolean
+    get() = false
   override val applicationInfo = TestEventLogApplicationInfo()
   override val configurationClient = CachedConfigurationClient(
     delegate = ConfigurationClientFactory.createTest(

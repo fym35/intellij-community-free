@@ -36,6 +36,7 @@ abstract class EventLogSettingsClient {
   abstract val configurationClient: CachedConfigurationClient
   abstract val applicationInfo: EventLogApplicationInfo
   abstract val recorderId: String
+  abstract val isSnapshotFilteringDisabled: Boolean
 
   /**
    * @return true, if configuration versions for the required product version are not empty,
@@ -150,7 +151,7 @@ abstract class EventLogSettingsClient {
       }
       return LogEventFalseFilter
     }
-    return LogEventCompositeFilter(LogEventBucketsFilter(bucketRanges), base, LogEventSnapshotBuildFilter)
+    return LogEventCompositeFilter(LogEventBucketsFilter(bucketRanges), base, LogEventSnapshotBuildFilter(isSnapshotFilteringDisabled))
   }
 
   /**

@@ -155,6 +155,7 @@ class CachedConfigurationClient(
 open class EventLogUploadSettingsClient(
   override val recorderId: String,
   override val applicationInfo: EventLogApplicationInfo,
+  override val isSnapshotFilteringDisabled: Boolean,
   cacheTimeoutMs: Long = TimeUnit.MINUTES.toMillis(10)
 ) : EventLogSettingsClient() {
   companion object {

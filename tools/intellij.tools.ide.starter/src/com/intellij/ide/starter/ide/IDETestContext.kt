@@ -186,6 +186,11 @@ open class IDETestContext(
       addSystemProperty("feature.usage.event.log.send.on.ide.close", false)
     }
 
+  fun disableFusSnapshotVersionFiltering(): IDETestContext =
+    applyVMOptionsPatch {
+      addSystemProperty("feature.usage.event.snapshot.filtering.disabled", true)
+    }
+
   fun suppressStatisticsReport(): IDETestContext = applyVMOptionsPatch {
     addSystemProperty("idea.suppress.statistics.report", true)
   }
@@ -852,15 +857,15 @@ open class IDETestContext(
   }
 
   /**
-   * Configures a localhost proxy to disable internet access for the IDE
+   * Configures a localhost proxy to disable internet access or reroute traffic to an http stub for the IDE
    */
-  fun setLocalhostProxy(): IDETestContext {
+  fun setLocalhostProxy(port: Int = 3128): IDETestContext {
     writeConfigFile("options/proxy.settings.xml", """
       <application>
         <component name="HttpConfigurable">
           <option name="USE_HTTP_PROXY" value="true" />
           <option name="PROXY_HOST" value="localhost" />
-          <option name="PROXY_PORT" value="3128" />
+          <option name="PROXY_PORT" value="$port" />
           <option name="PROXY_EXCEPTIONS" value="" />
         </component>
       </application>

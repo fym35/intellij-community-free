@@ -46,9 +46,15 @@ public class EventLogStatisticsService implements StatisticsService {
 
   public EventLogStatisticsService(@NotNull EventLogSendConfig config,
                                    @NotNull EventLogApplicationInfo application,
-                                   @Nullable EventLogSendListener listener) {
+                                   @Nullable EventLogSendListener listener,
+                                   @NotNull boolean isSnapshotFilteringDisabled) {
     myConfiguration = config;
-    mySettingsClient = new EventLogUploadSettingsClient(config.getRecorderId(), application, TimeUnit.MINUTES.toMillis(10));
+    mySettingsClient = new EventLogUploadSettingsClient(
+      config.getRecorderId(),
+      application,
+      isSnapshotFilteringDisabled,
+      TimeUnit.MINUTES.toMillis(10)
+    );
     mySendListener = listener;
   }
 

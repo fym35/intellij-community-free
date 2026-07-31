@@ -4,7 +4,6 @@ package com.intellij.internal.statistic.uploader;
 import com.intellij.internal.statistic.config.eventLog.EventLogBuildType;
 import com.intellij.internal.statistic.eventLog.DataCollectorDebugLogger;
 import com.intellij.internal.statistic.eventLog.DataCollectorSystemEventLogger;
-import com.intellij.internal.statistic.eventLog.EventLogApplicationInfo;
 import com.intellij.internal.statistic.eventLog.EventLogSendConfig;
 import com.intellij.internal.statistic.eventLog.FileDeletionCause;
 import com.intellij.internal.statistic.eventLog.config.EventLogExternalApplicationInfo;
@@ -54,7 +53,7 @@ public final class EventLogUploader {
     }
 
     Map<String, String> options = EventLogUploaderCliParser.parseOptions(args);
-    EventLogApplicationInfo appInfo = newApplicationInfo(options, logger, eventsLogger);
+    EventLogExternalApplicationInfo appInfo = newApplicationInfo(options, logger, eventsLogger);
     if (appInfo == null) {
       logger.warn("Failed creating application info from arguments");
       eventsLogger.logSendingLogsFinished(StatisticsResult.ResultCode.NO_APPLICATION_CONFIG);
@@ -86,7 +85,7 @@ public final class EventLogUploader {
     }
   }
 
-  private static void sendLogsByRecorder(@NotNull EventLogApplicationInfo appInfo,
+  private static void sendLogsByRecorder(@NotNull EventLogExternalApplicationInfo appInfo,
                                          @NotNull EventLogSendConfig config,
                                          @NotNull DataCollectorDebugLogger logger,
                                          @NotNull ExternalEventsLogger eventsLogger) {
@@ -121,7 +120,10 @@ public final class EventLogUploader {
           public void onFileDeletedAfterSend(@NotNull FileDeletionCause cause, long sizeBytes, long ageMs, long queuedMs, @NotNull EventLogBuildType buildType) {
             eventsLogger.logFileDeletedAfterSend(recorderId, cause, sizeBytes, ageMs, queuedMs, buildType);
           }
-        });
+        },
+        appInfo.isSnapshotFilteringDisabled()
+      );
+
 
       StatisticsResult result = service.send();
       eventsLogger.logSendingLogsFinished(recorderId, result.getCode());
@@ -136,7 +138,7 @@ public final class EventLogUploader {
     }
   }
 
-  private static @Nullable EventLogApplicationInfo newApplicationInfo(Map<String, String> options,
+  private static @Nullable EventLogExternalApplicationInfo newApplicationInfo(Map<String, String> options,
                                                                       DataCollectorDebugLogger logger,
                                                                       DataCollectorSystemEventLogger eventLogger) {
     String productCode = options.get(EventLogUploaderOptions.PRODUCT_OPTION);
@@ -151,9 +153,22 @@ public final class EventLogUploader {
       boolean isTestSendEndpoint = options.containsKey(EventLogUploaderOptions.TEST_SEND_ENDPOINT);
       boolean isTestConfig = options.containsKey(EventLogUploaderOptions.TEST_CONFIG);
       boolean isEAP = options.containsKey(EventLogUploaderOptions.EAP_OPTION);
+      boolean isSnapshotFilteringDisabled = options.containsKey(EventLogUploaderOptions.SNAPSHOT_FILTERING_DISABLED);
       return new EventLogExternalApplicationInfo(
-        regionalCode, productCode, productVersion, userAgent, isInternal, isTestConfig, isTestSendEndpoint, isEAP, extraHeaders, logger, eventLogger,
-        baselineVersion);
+        regionalCode,
+        productCode,
+        productVersion,
+        userAgent,
+        isInternal,
+        isTestConfig,
+        isTestSendEndpoint,
+        isEAP,
+        extraHeaders,
+        logger,
+        eventLogger,
+        baselineVersion,
+        isSnapshotFilteringDisabled
+      );
     }
     return null;
   }
