@@ -205,7 +205,7 @@ private fun KtCallExpression.resolveToFunctionSymbol(): KaNamedFunctionSymbol? =
  * Checks if the given element is in a suspend context (either in a suspend function or in a suspend lambda).
  */
 context(session: KaSession)
-private fun isInSuspendContext(element: KtExpression): Boolean {
+internal fun isInSuspendContext(element: KtExpression): Boolean {
     for (parent in element.parents(withSelf = false)) {
         when (parent) {
             is KtFunctionLiteral -> {
