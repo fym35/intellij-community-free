@@ -15,7 +15,6 @@ import com.intellij.terminal.emulator.TerminalSize
 import com.intellij.terminal.emulator.createTerminalEmulator
 import com.intellij.terminal.frontend.session.ObservableTtyConnector
 import com.intellij.terminal.frontend.session.TerminalShellIntegrationController
-import com.intellij.terminal.frontend.session.TerminalShellIntegrationStatisticsListener
 import com.intellij.terminal.frontend.session.addWorkingDirectoryListener
 import com.intellij.util.AwaitCancellationAndInvoke
 import com.intellij.util.awaitCancellationAndInvoke
@@ -680,9 +679,6 @@ internal fun createGhosttyTerminalSession(
 ): TerminalSession {
   val initialTermSize = options.initialTermSize ?: error("Initial term size must be set")
   val shellIntegrationController = TerminalShellIntegrationController()
-  if (project != null) {
-    shellIntegrationController.addListener(TerminalShellIntegrationStatisticsListener(project))
-  }
   // The observable wrapper is what the session writes through, so the heuristic
   // working-directory tracker below can watch for Enter presses in the written bytes.
   val observableTtyConnector = ttyConnector as? ObservableTtyConnector ?: ObservableTtyConnector(ttyConnector)
