@@ -26,7 +26,7 @@ private const val GROUP_ID = "terminal"
 object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
   override fun getGroup(): EventLogGroup = GROUP
 
-  private val GROUP = EventLogGroup(GROUP_ID, 20)
+  private val GROUP = EventLogGroup(GROUP_ID, 21)
 
   private val OS_VERSION_FIELD = EventFields.StringValidatedByRegexpReference("os-version", "version")
   private val SHELL_STR_FIELD = EventFields.String("shell", KNOWN_SHELLS.toList())
@@ -40,6 +40,18 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
   private val PROCESS_EXECUTABLE = EventFields.String("process_executable", getKnownCommandValuesListWithoutPaths())
   private val INSERTED_CONTENT_TYPE = EventFields.Enum<TerminalInsertedContentType>("content_type")
   private val INSERTED_CONTENT_SOURCE = EventFields.Enum<TerminalInsertedContentSource>("content_source")
+  private val TOTAL_COMMAND_INSERTED_LENGTH_FIELD = EventFields.Int(
+    "total_command_inserted_length",
+    "Total command text length growth, including typing, shell completion, command history, and paste",
+  )
+  private val POPUP_COMPLETION_LENGTH_FIELD = EventFields.Int(
+    "popup_completion_length",
+    "Total text length inserted by all popup completion acceptances while typing a command",
+  )
+  private val INLINE_COMPLETION_LENGTH_FIELD = EventFields.Int(
+    "inline_completion_length",
+    "Total text length inserted by all inline completion acceptances while typing a command",
+  )
 
   // Latency measurement related fields
   private val DURATION_FIELD = EventFields.createDurationField(DurationUnit.MILLISECONDS, "duration_ms")
@@ -61,9 +73,13 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
 
   private val localShellStartedEvent = GROUP.registerEvent("local.exec", OS_VERSION_FIELD, SHELL_STR_FIELD)
 
-  private val commandStartedEvent = GROUP.registerEvent(
+  private val commandStartedEvent = GROUP.registerVarargEvent(
     "terminal.command.executed",
-    TerminalCommandUsageStatistics.commandExecutableField, TerminalCommandUsageStatistics.subCommandField
+    TerminalCommandUsageStatistics.commandExecutableField,
+    TerminalCommandUsageStatistics.subCommandField,
+    TOTAL_COMMAND_INSERTED_LENGTH_FIELD,
+    POPUP_COMPLETION_LENGTH_FIELD,
+    INLINE_COMPLETION_LENGTH_FIELD,
   )
 
   private val commandFinishedEvent = GROUP.registerVarargEvent(
@@ -178,9 +194,22 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
   }
 
   @JvmStatic
-  fun logCommandStarted(project: Project, userCommandLine: String) {
+  fun logCommandStarted(
+    project: Project,
+    userCommandLine: String,
+    totalCommandInsertedLength: Int,
+    popupCompletionLength: Int,
+    inlineCompletionLength: Int,
+  ) {
     val commandData = TerminalCommandUsageStatistics.getLoggableCommandData(userCommandLine)
-    commandStartedEvent.log(project, commandData.command, commandData.subCommand)
+    commandStartedEvent.log(
+      project,
+      TerminalCommandUsageStatistics.commandExecutableField with commandData.command,
+      TerminalCommandUsageStatistics.subCommandField with commandData.subCommand,
+      TOTAL_COMMAND_INSERTED_LENGTH_FIELD with totalCommandInsertedLength,
+      POPUP_COMPLETION_LENGTH_FIELD with popupCompletionLength,
+      INLINE_COMPLETION_LENGTH_FIELD with inlineCompletionLength,
+    )
   }
 
   fun logCommandFinished(project: Project, userCommandLine: String, exitCode: Int, executionTime: Duration) {
