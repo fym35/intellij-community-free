@@ -153,13 +153,12 @@ acquire_lock() {
 
     local lock_owner
     if ! lock_owner=$(cat "$lock_file" 2>/dev/null); then
-      if [ -e "$lock_file" ]; then
-        rm -f "$tmp_lock_file"
-        die "Cannot read existing lock $lock_file"
-      fi
       retry_count=$((retry_count + 1))
       if [ "$retry_count" -ge 3 ]; then
         rm -f "$tmp_lock_file"
+        if [ -e "$lock_file" ]; then
+          die "Cannot read existing lock $lock_file after $retry_count attempts"
+        fi
         die "Failed to acquire $lock_file after $retry_count attempts: $link_error"
       fi
       sleep 1
@@ -172,9 +171,9 @@ acquire_lock() {
         die "Invalid lock owner in $lock_file (removed; retry the command)"
         ;;
     esac
+    retry_count=0
 
     if ps -p "$lock_owner" >/dev/null 2>&1; then
-      retry_count=0
       info "Waiting for process $lock_owner to finish downloading $TOOL_NAME..."
       sleep 1
 
