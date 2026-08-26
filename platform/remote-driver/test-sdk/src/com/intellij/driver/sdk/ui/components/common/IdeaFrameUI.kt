@@ -13,6 +13,7 @@ import com.intellij.driver.sdk.ui.components.common.editor.EditorTabsManager
 import com.intellij.driver.sdk.ui.components.common.toolwindows.ToolWindowLeftToolbarUi
 import com.intellij.driver.sdk.ui.components.common.toolwindows.ToolWindowRightToolbarUi
 import com.intellij.driver.sdk.ui.components.elements.WindowUiComponent
+import com.intellij.driver.sdk.ui.relativeTo
 import com.intellij.driver.sdk.ui.remote.Component
 import com.intellij.driver.sdk.ui.remote.Window
 import com.intellij.driver.sdk.ui.ui
@@ -116,9 +117,24 @@ open class IdeaFrameUI(data: ComponentData) : WindowUiComponent(data) {
     }
   }
 
+  fun clickEmptyToolbarArea() {
+    toolbar.click(emptyMainToolbarAreaPointOnScreen().relativeTo(toolbar))
+  }
+
+  fun doubleClickEmptyToolbarArea() {
+    toolbar.doubleClick(emptyMainToolbarAreaPointOnScreen().relativeTo(toolbar))
+  }
+
   override fun toFront() {
     super.toFront()
-    click(Point(component.width / 2, 0))
+    // Click empty toolbar space to raise and focus the frame, falling back to the toolbar center when no suitable gap can be found
+    val freePoint = if (mainToolbar.present()) emptyMainToolbarAreaPointOnScreenOrNull() else null
+    if (freePoint != null) {
+      toolbar.click(freePoint.relativeTo(toolbar))
+    }
+    else {
+      click(Point(component.width / 2, 0))
+    }
   }
 
   fun isMinimized(): Boolean = ideaFrameComponent.getState() == Frame.ICONIFIED
