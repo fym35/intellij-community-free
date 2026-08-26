@@ -168,8 +168,8 @@ acquire_lock() {
 
     case "$lock_owner" in
       ''|*[!0-9]*)
-        rm -f "$tmp_lock_file"
-        die "Invalid lock owner in $lock_file"
+        rm -f "$tmp_lock_file" "$lock_file"
+        die "Invalid lock owner in $lock_file (removed; retry the command)"
         ;;
     esac
 
