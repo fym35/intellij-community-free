@@ -8,6 +8,9 @@ class TerminalCommandCompletionMetrics {
   private var totalCommandInsertedLength: Int = 0
   private var popupCompletionLength: Int = 0
   private var inlineCompletionLength: Int = 0
+  private var typingsCount: Int = 0
+  private var backspacesCount: Int = 0
+  private var commandTypingStartedAt: Long? = null
 
   /** Counts only command length growth; removals do not affect the metric. */
   fun recordCommandLengthChanged(previousLength: Int, currentLength: Int) {
@@ -22,8 +25,27 @@ class TerminalCommandCompletionMetrics {
     if (length > 0) inlineCompletionLength += length
   }
 
-  fun takeAndReset(): CompletionLengthSnapshot {
-    return CompletionLengthSnapshot(totalCommandInsertedLength, popupCompletionLength, inlineCompletionLength).also {
+  fun recordTyping(timeMillis: Long) {
+    typingsCount++
+    commandTypingStartedAt = commandTypingStartedAt ?: timeMillis
+  }
+
+  fun recordBackspace(timeMillis: Long) {
+    backspacesCount++
+    commandTypingStartedAt = commandTypingStartedAt ?: timeMillis
+  }
+
+  fun takeAndReset(timeMillis: Long = System.currentTimeMillis()): CompletionLengthSnapshot {
+    return CompletionLengthSnapshot(
+      totalCommandInsertedLength = totalCommandInsertedLength,
+      popupCompletionLength = popupCompletionLength,
+      inlineCompletionLength = inlineCompletionLength,
+      typingsCount = typingsCount,
+      backspacesCount = backspacesCount,
+      commandTypingTimeMillis = commandTypingStartedAt?.let {
+        (timeMillis - it).coerceAtLeast(0)
+      },
+    ).also {
       reset()
     }
   }
@@ -32,11 +54,17 @@ class TerminalCommandCompletionMetrics {
     totalCommandInsertedLength = 0
     popupCompletionLength = 0
     inlineCompletionLength = 0
+    typingsCount = 0
+    backspacesCount = 0
+    commandTypingStartedAt = null
   }
 
   data class CompletionLengthSnapshot(
     val totalCommandInsertedLength: Int,
     val popupCompletionLength: Int,
     val inlineCompletionLength: Int,
+    val typingsCount: Int,
+    val backspacesCount: Int,
+    val commandTypingTimeMillis: Long?,
   )
 }

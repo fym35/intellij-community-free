@@ -52,6 +52,12 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
     "inline_completion_length",
     "Total text length inserted by all inline completion acceptances while typing a command",
   )
+  private val TYPINGS_COUNT_FIELD = EventFields.Int("typings_count", "Number of raw typing events received while composing a command")
+  private val BACKSPACES_COUNT_FIELD = EventFields.Int("backspaces_count", "Number of Backspace key presses while composing a command")
+  private val COMMAND_TYPING_TIME_FIELD = EventFields.Long(
+    "command_typing_time",
+    "Time in milliseconds from the first typing event to command execution",
+  )
 
   // Latency measurement related fields
   private val DURATION_FIELD = EventFields.createDurationField(DurationUnit.MILLISECONDS, "duration_ms")
@@ -80,6 +86,9 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
     TOTAL_COMMAND_INSERTED_LENGTH_FIELD,
     POPUP_COMPLETION_LENGTH_FIELD,
     INLINE_COMPLETION_LENGTH_FIELD,
+    TYPINGS_COUNT_FIELD,
+    BACKSPACES_COUNT_FIELD,
+    COMMAND_TYPING_TIME_FIELD,
   )
 
   private val commandFinishedEvent = GROUP.registerVarargEvent(
@@ -200,6 +209,9 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
     totalCommandInsertedLength: Int,
     popupCompletionLength: Int,
     inlineCompletionLength: Int,
+    typingsCount: Int,
+    backspacesCount: Int,
+    commandTypingTimeMillis: Long,
   ) {
     val commandData = TerminalCommandUsageStatistics.getLoggableCommandData(userCommandLine)
     commandStartedEvent.log(
@@ -209,6 +221,9 @@ object ReworkedTerminalUsageCollector : CounterUsagesCollector() {
       TOTAL_COMMAND_INSERTED_LENGTH_FIELD with totalCommandInsertedLength,
       POPUP_COMPLETION_LENGTH_FIELD with popupCompletionLength,
       INLINE_COMPLETION_LENGTH_FIELD with inlineCompletionLength,
+      TYPINGS_COUNT_FIELD with typingsCount,
+      BACKSPACES_COUNT_FIELD with backspacesCount,
+      COMMAND_TYPING_TIME_FIELD with commandTypingTimeMillis,
     )
   }
 

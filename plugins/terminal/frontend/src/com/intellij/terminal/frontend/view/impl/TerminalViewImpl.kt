@@ -432,6 +432,7 @@ class TerminalViewImpl(
     ) {
       val shellIntegration = shellIntegrationDeferred.await()
       commandCompletionStatistics.install(shellIntegration, outputModel, coroutineScope.asDisposable())
+      addKeyEventsListener(coroutineScope.asDisposable(), commandCompletionStatistics)
 
       outputEditor.putUserData(TerminalBlocksModel.KEY, shellIntegration.blocksModel)
       TerminalBlocksDecorator(

@@ -1,8 +1,11 @@
 package com.intellij.terminal.frontend.fus
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.terminal.frontend.view.TerminalKeyEvent
+import com.intellij.terminal.frontend.view.TerminalKeyEventsListener
 import org.jetbrains.plugins.terminal.fus.ReworkedTerminalUsageCollector
 import org.jetbrains.plugins.terminal.view.TerminalContentChangeEvent
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
@@ -15,6 +18,7 @@ import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalCommandStart
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalOutputStatus
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalShellIntegration
 import org.jetbrains.plugins.terminal.view.shellIntegration.getTypedCommandText
+import java.awt.event.KeyEvent
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class TerminalCommandCompletionStatistics(private val project: Project) {
@@ -22,8 +26,10 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
   private var commandStartTime: Long? = null
   private var trackedCommandBlockId: TerminalBlockId? = null
   private var previousCommandLength: Int = 0
+  private var shellIntegration: TerminalShellIntegration? = null
 
   fun install(shellIntegration: TerminalShellIntegration, outputModel: TerminalOutputModel, parentDisposable: Disposable) {
+    this.shellIntegration = shellIntegration
     outputModel.addListener(parentDisposable, object : TerminalOutputModelListener {
       override fun afterContentChanged(event: TerminalContentChangeEvent) {
         if (event.isTypeAhead || shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return
@@ -47,17 +53,25 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
 
     shellIntegration.addCommandExecutionListener(parentDisposable, object : TerminalCommandExecutionListener {
       override fun commandStarted(event: TerminalCommandStartedEvent) {
-        val completionMetrics = metrics.takeAndReset()
+        val timeMillis = System.currentTimeMillis()
+        val completionMetrics = metrics.takeAndReset(timeMillis)
         val command = event.commandBlock.executedCommand ?: return
         trackedCommandBlockId = null
         previousCommandLength = 0
-        commandStartTime = System.currentTimeMillis()
+        commandStartTime = timeMillis
+        val commandTypingTimeMillis = completionMetrics.commandTypingTimeMillis ?: run {
+          LOG.warn("Skipping command metrics because typing start time was not recorded")
+          return
+        }
         ReworkedTerminalUsageCollector.logCommandStarted(
           project,
           command,
           totalCommandInsertedLength = completionMetrics.totalCommandInsertedLength,
           popupCompletionLength = completionMetrics.popupCompletionLength,
           inlineCompletionLength = completionMetrics.inlineCompletionLength,
+          typingsCount = completionMetrics.typingsCount,
+          backspacesCount = completionMetrics.backspacesCount,
+          commandTypingTimeMillis = commandTypingTimeMillis,
         )
       }
 
@@ -79,7 +93,22 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
     metrics.recordInlineInserted(length)
   }
 
+  override fun afterKeyEvent(event: TerminalKeyEvent) {
+    if (shellIntegration?.outputStatus?.value != TerminalOutputStatus.TypingCommand) return
+
+    val awtEvent = event.awtEvent
+    when {
+      awtEvent.id == KeyEvent.KEY_TYPED -> {
+        metrics.recordTyping(awtEvent.`when`)
+      }
+      awtEvent.id == KeyEvent.KEY_PRESSED && awtEvent.keyCode == KeyEvent.VK_BACK_SPACE -> {
+        metrics.recordBackspace(awtEvent.`when`)
+      }
+    }
+  }
+
   companion object {
     val KEY: Key<TerminalCommandCompletionStatistics> = Key.create("terminal.command.completion.statistics")
+    private val LOG = logger<TerminalCommandCompletionStatistics>()
   }
 }
