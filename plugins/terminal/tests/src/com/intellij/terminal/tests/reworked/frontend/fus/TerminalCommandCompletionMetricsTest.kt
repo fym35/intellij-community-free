@@ -9,7 +9,7 @@ internal class TerminalCommandCompletionMetricsTest {
   fun `counts initial typed command`() {
     val metrics = TerminalCommandCompletionMetrics()
 
-    metrics.recordCommandLengthChanged(0, 4)
+    metrics.recordCommandTextInserted(4)
 
     assertThat(metrics.takeAndReset()).isEqualTo(snapshot(totalCommandInsertedLength = 4))
   }
@@ -18,7 +18,7 @@ internal class TerminalCommandCompletionMetricsTest {
   fun `counts typed characters appended to command`() {
     val metrics = TerminalCommandCompletionMetrics()
 
-    metrics.recordCommandLengthChanged(4, 12)
+    metrics.recordCommandTextInserted(8)
 
     assertThat(metrics.takeAndReset()).isEqualTo(snapshot(totalCommandInsertedLength = 8))
   }
@@ -27,8 +27,8 @@ internal class TerminalCommandCompletionMetricsTest {
   fun `does not subtract deleted text`() {
     val metrics = TerminalCommandCompletionMetrics()
 
-    metrics.recordCommandLengthChanged(0, 12)
-    metrics.recordCommandLengthChanged(12, 6)
+    metrics.recordCommandTextInserted(12)
+    metrics.recordCommandTextInserted(-6)
 
     assertThat(metrics.takeAndReset()).isEqualTo(snapshot(totalCommandInsertedLength = 12))
   }
@@ -66,7 +66,7 @@ internal class TerminalCommandCompletionMetricsTest {
   fun `resets metrics for next command`() {
     val metrics = TerminalCommandCompletionMetrics()
 
-    metrics.recordCommandLengthChanged(0, 4)
+    metrics.recordCommandTextInserted(4)
     metrics.recordPopupInserted(10)
     metrics.recordInlineInserted(3)
     metrics.takeAndReset()

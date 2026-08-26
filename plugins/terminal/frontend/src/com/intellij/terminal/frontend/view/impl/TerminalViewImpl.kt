@@ -362,7 +362,6 @@ class TerminalViewImpl(
       coroutineScope.childScope("TerminalShellIntegrationEventsHandler"),
     )
     controller.addEventsHandler(shellIntegrationEventsHandler)
-
     controller.addTerminationCallback(coroutineScope.asDisposable()) {
       mutableSessionState.value = TerminalViewSessionState.Terminated
       // Hide the cursor on process termination
@@ -431,7 +430,12 @@ class TerminalViewImpl(
       CoroutineName("Shell integration features init")
     ) {
       val shellIntegration = shellIntegrationDeferred.await()
-      commandCompletionStatistics.install(shellIntegration, outputModel, coroutineScope.asDisposable())
+      commandCompletionStatistics.install(
+        shellIntegration,
+        outputModel,
+        { sessionModel.terminalState.value.isCursorVisible },
+        coroutineScope.asDisposable(),
+      )
       addKeyEventsListener(coroutineScope.asDisposable(), commandCompletionStatistics)
 
       outputEditor.putUserData(TerminalBlocksModel.KEY, shellIntegration.blocksModel)

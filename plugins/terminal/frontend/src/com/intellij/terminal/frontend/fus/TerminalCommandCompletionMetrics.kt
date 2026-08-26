@@ -12,9 +12,9 @@ class TerminalCommandCompletionMetrics {
   private var backspacesCount: Int = 0
   private var commandTypingStartedAt: Long? = null
 
-  /** Counts only command length growth; removals do not affect the metric. */
-  fun recordCommandLengthChanged(previousLength: Int, currentLength: Int) {
-    totalCommandInsertedLength += (currentLength - previousLength).coerceAtLeast(0)
+  /** Counts inserted command text; removals do not affect the metric. */
+  fun recordCommandTextInserted(length: Int) {
+    totalCommandInsertedLength += length.coerceAtLeast(0)
   }
 
   fun recordPopupInserted(length: Int) {

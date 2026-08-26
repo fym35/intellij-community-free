@@ -1,13 +1,14 @@
 package com.intellij.terminal.frontend.fus
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalKeyEventsListener
 import org.jetbrains.plugins.terminal.fus.ReworkedTerminalUsageCollector
-import org.jetbrains.plugins.terminal.view.TerminalContentChangeEvent
+import org.jetbrains.plugins.terminal.view.TerminalCursorOffsetChangeEvent
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
 import org.jetbrains.plugins.terminal.view.TerminalOutputModelListener
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalBlockId
@@ -25,39 +26,39 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
   private val metrics = TerminalCommandCompletionMetrics()
   private var commandStartTime: Long? = null
   private var trackedCommandBlockId: TerminalBlockId? = null
-  private var previousCommandLength: Int = 0
+  private var previousTypedCommandLength: Int? = null
+  private var previousCursorOffset: Long? = null
+  private var cursorPositionChanged: Boolean = false
+  private var cursorProcessingScheduled: Boolean = false
   private var shellIntegration: TerminalShellIntegration? = null
 
-  fun install(shellIntegration: TerminalShellIntegration, outputModel: TerminalOutputModel, parentDisposable: Disposable) {
+  fun install(
+    shellIntegration: TerminalShellIntegration,
+    outputModel: TerminalOutputModel,
+    isCursorVisible: () -> Boolean,
+    parentDisposable: Disposable,
+  ) {
     this.shellIntegration = shellIntegration
     outputModel.addListener(parentDisposable, object : TerminalOutputModelListener {
-      override fun afterContentChanged(event: TerminalContentChangeEvent) {
-        if (event.isTypeAhead || shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return
+      override fun cursorOffsetChanged(event: TerminalCursorOffsetChangeEvent) {
+        cursorPositionChanged = true
+        if (cursorProcessingScheduled) return
 
-        val commandBlock = shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock ?: return
-        if (trackedCommandBlockId != commandBlock.id) {
-          metrics.reset()
-          trackedCommandBlockId = commandBlock.id
-          previousCommandLength = 0
+        cursorProcessingScheduled = true
+        invokeLater {
+          cursorProcessingScheduled = false
+          processCursorPositionChanged(outputModel, isCursorVisible())
         }
-        val currentCommandLength = commandBlock.getTypedCommandText(outputModel)?.length ?: return
-        if (currentCommandLength == 0) {
-          metrics.reset()
-          previousCommandLength = 0
-          return
-        }
-        metrics.recordCommandLengthChanged(previousCommandLength, currentCommandLength)
-        previousCommandLength = currentCommandLength
       }
     })
-
     shellIntegration.addCommandExecutionListener(parentDisposable, object : TerminalCommandExecutionListener {
       override fun commandStarted(event: TerminalCommandStartedEvent) {
         val timeMillis = System.currentTimeMillis()
         val completionMetrics = metrics.takeAndReset(timeMillis)
         val command = event.commandBlock.executedCommand ?: return
         trackedCommandBlockId = null
-        previousCommandLength = 0
+        previousTypedCommandLength = null
+        previousCursorOffset = null
         commandStartTime = timeMillis
         val commandTypingTimeMillis = completionMetrics.commandTypingTimeMillis ?: run {
           LOG.warn("Skipping command metrics because typing start time was not recorded")
@@ -93,6 +94,43 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
     metrics.recordInlineInserted(length)
   }
 
+  /** Called after all events in a terminal output batch have been applied. */
+  fun processCursorPositionChanged(outputModel: TerminalOutputModel, isCursorVisible: Boolean) {
+    if (!cursorPositionChanged) return
+    cursorPositionChanged = false
+    if (!isCursorVisible) return
+
+    recordCursorPositionChanged(outputModel)
+  }
+
+  private fun recordCursorPositionChanged(outputModel: TerminalOutputModel) {
+    val commandBlock = getActiveCommandBlock() ?: return
+    val commandStartOffset = commandBlock.commandStartOffset ?: return
+    if (trackedCommandBlockId != commandBlock.id) {
+      metrics.reset()
+      trackedCommandBlockId = commandBlock.id
+      previousTypedCommandLength = 0
+      previousCursorOffset = commandStartOffset.toAbsolute()
+    }
+
+    val typedCommandLength = commandBlock.getTypedCommandText(outputModel)?.length ?: return
+    val cursorOffset = outputModel.cursorOffset.toAbsolute()
+    if (typedCommandLength == 0) {
+      metrics.reset()
+      previousTypedCommandLength = 0
+      previousCursorOffset = cursorOffset
+      return
+    }
+
+    val modelDelta = (typedCommandLength - checkNotNull(previousTypedCommandLength)).coerceAtLeast(0)
+    val cursorDelta = (cursorOffset - checkNotNull(previousCursorOffset)).coerceAtLeast(0)
+    val delta = minOf(modelDelta.toLong(), cursorDelta).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+    metrics.recordCommandTextInserted(delta)
+    previousTypedCommandLength = typedCommandLength
+    previousCursorOffset = cursorOffset
+  }
+
   override fun afterKeyEvent(event: TerminalKeyEvent) {
     if (shellIntegration?.outputStatus?.value != TerminalOutputStatus.TypingCommand) return
 
@@ -105,6 +143,12 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
         metrics.recordBackspace(awtEvent.`when`)
       }
     }
+  }
+
+  private fun getActiveCommandBlock(): TerminalCommandBlock? {
+    val shellIntegration = shellIntegration ?: return null
+    if (shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return null
+    return shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock
   }
 
   companion object {
