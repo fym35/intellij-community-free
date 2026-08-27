@@ -203,7 +203,6 @@ class TerminalViewImpl(
 
   private var outputBufferHyperlinksFacade: FrontendTerminalHyperlinkFacade? = null
   private var alternateBufferHyperlinksFacade: FrontendTerminalHyperlinkFacade? = null
-  private val commandCompletionStatistics = TerminalCommandCompletionStatistics(project)
 
   init {
     sessionModel = TerminalSessionModelImpl()
@@ -430,15 +429,18 @@ class TerminalViewImpl(
       CoroutineName("Shell integration features init")
     ) {
       val shellIntegration = shellIntegrationDeferred.await()
-      commandCompletionStatistics.install(
-        shellIntegration,
-        outputModel,
-        { sessionModel.terminalState.value.isCursorVisible },
-        coroutineScope.asDisposable(),
+      val commandCompletionStatistics = TerminalCommandCompletionStatistics.install(
+        project = project,
+        shellIntegration = shellIntegration,
+        outputModel = outputModel,
+        isCursorVisible = { sessionModel.terminalState.value.isCursorVisible },
+        registerKeyEventsListener = this@TerminalViewImpl::addKeyEventsListener,
+        coroutineScope = coroutineScope.childScope("TerminalCommandCompletionStatistics"),
       )
-      addKeyEventsListener(coroutineScope.asDisposable(), commandCompletionStatistics)
 
       outputEditor.putUserData(TerminalBlocksModel.KEY, shellIntegration.blocksModel)
+      outputEditor.putUserData(TerminalCommandCompletionStatistics.KEY, commandCompletionStatistics)
+
       TerminalBlocksDecorator(
         outputEditor,
         outputModel,
@@ -455,7 +457,7 @@ class TerminalViewImpl(
         coroutineScope = coroutineScope.childScope("TerminalTypingTracker")
       )
       if (TerminalAiInlineCompletion.isEnabled()) {
-        configureInlineCompletion(outputModel, shellIntegration, typingTracker, commandCompletionStatistics)
+        configureInlineCompletion(outputModel, shellIntegration, typingTracker)
       }
 
       val startupOptions = startupOptionsDeferred.await()
@@ -465,7 +467,6 @@ class TerminalViewImpl(
         sessionModel,
         shellIntegration,
         startupOptions.envVariables,
-        commandCompletionStatistics,
         coroutineScope.childScope("TerminalCommandCompletion")
       )
     }
@@ -690,7 +691,6 @@ class TerminalViewImpl(
     sessionModel: TerminalSessionModel,
     shellIntegration: TerminalShellIntegration,
     envVariables: Map<String, String>,
-    commandCompletionStatistics: TerminalCommandCompletionStatistics,
     coroutineScope: CoroutineScope,
   ) {
     val eelDescriptor = LocalEelDescriptor // TODO: it should be determined by where shell is running to work properly in WSL and Docker
@@ -703,7 +703,6 @@ class TerminalViewImpl(
       )
     )
     editor.putUserData(TerminalCommandCompletionServices.KEY, services)
-    editor.putUserData(TerminalCommandCompletionStatistics.KEY, commandCompletionStatistics)
 
     TerminalCommandCompletionTypingListener.install(
       terminalView,
@@ -716,7 +715,6 @@ class TerminalViewImpl(
     outputModel: MutableTerminalOutputModel,
     shellIntegration: TerminalShellIntegration,
     typingTracker: TerminalTypingTracker,
-    commandCompletionStatistics: TerminalCommandCompletionStatistics,
   ) {
     val inlineCompletionScope = coroutineScope.childScope("TerminalInlineCompletion")
     val inlineCompletionController = TerminalInlineCompletionController(

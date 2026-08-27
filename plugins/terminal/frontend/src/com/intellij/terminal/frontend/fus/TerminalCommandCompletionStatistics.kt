@@ -1,16 +1,16 @@
 package com.intellij.terminal.frontend.fus
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalKeyEventsListener
+import com.intellij.util.asDisposable
+import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.plugins.terminal.fus.ReworkedTerminalUsageCollector
-import org.jetbrains.plugins.terminal.view.TerminalCursorOffsetChangeEvent
+import org.jetbrains.plugins.terminal.block.ui.TerminalUiUtils
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
-import org.jetbrains.plugins.terminal.view.TerminalOutputModelListener
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalBlockId
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalCommandBlock
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalCommandExecutionListener
@@ -22,43 +22,54 @@ import org.jetbrains.plugins.terminal.view.shellIntegration.getTypedCommandText
 import java.awt.event.KeyEvent
 import kotlin.time.Duration.Companion.milliseconds
 
-internal class TerminalCommandCompletionStatistics(private val project: Project) {
+internal class TerminalCommandCompletionStatistics private constructor(
+  private val project: Project,
+  private val shellIntegration: TerminalShellIntegration,
+) {
   private val metrics = TerminalCommandCompletionMetrics()
   private var commandStartTime: Long? = null
   private var trackedCommandBlockId: TerminalBlockId? = null
-  private var previousTypedCommandLength: Int? = null
-  private var previousCursorOffset: Long? = null
-  private var cursorPositionChanged: Boolean = false
-  private var cursorProcessingScheduled: Boolean = false
-  private var shellIntegration: TerminalShellIntegration? = null
+  private var previousTypedCommandLength: Int = 0
+  private var previousCursorOffset: Long = 0
 
-  fun install(
-    shellIntegration: TerminalShellIntegration,
+  companion object {
+    val KEY: Key<TerminalCommandCompletionStatistics> = Key.create("terminal.command.completion.statistics")
+    private val LOG = logger<TerminalCommandCompletionStatistics>()
+
+    fun install(
+      project: Project,
+      shellIntegration: TerminalShellIntegration,
+      outputModel: TerminalOutputModel,
+      isCursorVisible: () -> Boolean,
+      registerKeyEventsListener: (Disposable, TerminalKeyEventsListener) -> Unit,
+      coroutineScope: CoroutineScope,
+    ): TerminalCommandCompletionStatistics {
+      val statistics = TerminalCommandCompletionStatistics(project, shellIntegration)
+      statistics.installListeners(outputModel, isCursorVisible, registerKeyEventsListener, coroutineScope)
+      return statistics
+    }
+  }
+
+  private fun installListeners(
     outputModel: TerminalOutputModel,
     isCursorVisible: () -> Boolean,
-    parentDisposable: Disposable,
+    registerKeyEventsListener: (Disposable, TerminalKeyEventsListener) -> Unit,
+    coroutineScope: CoroutineScope,
   ) {
-    this.shellIntegration = shellIntegration
-    outputModel.addListener(parentDisposable, object : TerminalOutputModelListener {
-      override fun cursorOffsetChanged(event: TerminalCursorOffsetChangeEvent) {
-        cursorPositionChanged = true
-        if (cursorProcessingScheduled) return
-
-        cursorProcessingScheduled = true
-        invokeLater {
-          cursorProcessingScheduled = false
-          processCursorPositionChanged(outputModel, isCursorVisible())
-        }
+    TerminalUiUtils.listenOutputModelChanges(outputModel, coroutineScope) {
+      if (isCursorVisible()) {
+        recordCommandTextChanged(outputModel)
       }
-    })
+    }
+    val parentDisposable = coroutineScope.asDisposable()
     shellIntegration.addCommandExecutionListener(parentDisposable, object : TerminalCommandExecutionListener {
       override fun commandStarted(event: TerminalCommandStartedEvent) {
         val timeMillis = System.currentTimeMillis()
         val completionMetrics = metrics.takeAndReset(timeMillis)
         val command = event.commandBlock.executedCommand ?: return
         trackedCommandBlockId = null
-        previousTypedCommandLength = null
-        previousCursorOffset = null
+        previousTypedCommandLength = 0
+        previousCursorOffset = 0
         commandStartTime = timeMillis
         val commandTypingTimeMillis = completionMetrics.commandTypingTimeMillis ?: run {
           LOG.warn("Skipping command metrics because typing start time was not recorded")
@@ -84,6 +95,11 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
         ReworkedTerminalUsageCollector.logCommandFinished(project, command, exitCode, (System.currentTimeMillis() - startTime).milliseconds)
       }
     })
+    registerKeyEventsListener(parentDisposable, object : TerminalKeyEventsListener {
+      override fun afterKeyEvent(event: TerminalKeyEvent) {
+        recordKeyEvent(event)
+      }
+    })
   }
 
   fun recordPopupInserted(length: Int) {
@@ -94,16 +110,8 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
     metrics.recordInlineInserted(length)
   }
 
-  /** Called after all events in a terminal output batch have been applied. */
-  fun processCursorPositionChanged(outputModel: TerminalOutputModel, isCursorVisible: Boolean) {
-    if (!cursorPositionChanged) return
-    cursorPositionChanged = false
-    if (!isCursorVisible) return
-
-    recordCursorPositionChanged(outputModel)
-  }
-
-  private fun recordCursorPositionChanged(outputModel: TerminalOutputModel) {
+  /** Records command text changes after current terminal output updates. */
+  private fun recordCommandTextChanged(outputModel: TerminalOutputModel) {
     val commandBlock = getActiveCommandBlock() ?: return
     val commandStartOffset = commandBlock.commandStartOffset ?: return
     if (trackedCommandBlockId != commandBlock.id) {
@@ -113,8 +121,10 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
       previousCursorOffset = commandStartOffset.toAbsolute()
     }
 
-    val typedCommandLength = commandBlock.getTypedCommandText(outputModel)?.length ?: return
     val cursorOffset = outputModel.cursorOffset.toAbsolute()
+    if (cursorOffset == previousCursorOffset) return
+
+    val typedCommandLength = commandBlock.getTypedCommandText(outputModel)?.length ?: return
     if (typedCommandLength == 0) {
       metrics.reset()
       previousTypedCommandLength = 0
@@ -131,8 +141,8 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
     previousCursorOffset = cursorOffset
   }
 
-  override fun afterKeyEvent(event: TerminalKeyEvent) {
-    if (shellIntegration?.outputStatus?.value != TerminalOutputStatus.TypingCommand) return
+  private fun recordKeyEvent(event: TerminalKeyEvent) {
+    if (shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return
 
     val awtEvent = event.awtEvent
     when {
@@ -146,13 +156,8 @@ internal class TerminalCommandCompletionStatistics(private val project: Project)
   }
 
   private fun getActiveCommandBlock(): TerminalCommandBlock? {
-    val shellIntegration = shellIntegration ?: return null
     if (shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return null
     return shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock
   }
 
-  companion object {
-    val KEY: Key<TerminalCommandCompletionStatistics> = Key.create("terminal.command.completion.statistics")
-    private val LOG = logger<TerminalCommandCompletionStatistics>()
-  }
 }
