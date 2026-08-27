@@ -1,4 +1,4 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.junit;
 
 import com.intellij.execution.Location;
@@ -90,7 +90,7 @@ public final class UniqueIdConfigurationProducer extends JUnitConfigurationProdu
     GlobalSearchScope searchScope =
       module != null ? GlobalSearchScope.moduleWithDependenciesAndLibrariesScope(module) : GlobalSearchScope.projectScope(project);
     if (!DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(() -> JUnitUtil.isJUnit5(searchScope, project) ||
-                                                                    TestObject.hasJupiterEnginesAPI(searchScope, JavaPsiFacade.getInstance(project)))) {
+                                                                    JUnitLauncherDependencies.hasJupiterEnginesAPI(searchScope, JavaPsiFacade.getInstance(project)))) {
       return null;
     }
     return
