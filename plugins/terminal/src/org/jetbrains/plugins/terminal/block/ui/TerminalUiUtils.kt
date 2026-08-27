@@ -17,6 +17,8 @@ import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.ShortcutSet
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.UI
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.undo.UndoUtil
 import com.intellij.openapi.diagnostic.logger
@@ -53,6 +55,7 @@ import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.application
+import com.intellij.util.asDisposable
 import com.intellij.util.asSafely
 import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.concurrency.annotations.RequiresBlockingContext
@@ -67,12 +70,20 @@ import com.jediterm.terminal.model.TerminalTextBuffer
 import com.jediterm.terminal.ui.AwtTransformers
 import com.jediterm.terminal.util.CharUtils
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.MagicConstant
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.terminal.block.output.TextAttributesProvider
 import org.jetbrains.plugins.terminal.block.output.TextStyleAdapter
 import org.jetbrains.plugins.terminal.block.session.TerminalModel
 import org.jetbrains.plugins.terminal.session.TerminalGridSize
+import org.jetbrains.plugins.terminal.view.TerminalContentChangeEvent
+import org.jetbrains.plugins.terminal.view.TerminalCursorOffsetChangeEvent
+import org.jetbrains.plugins.terminal.view.TerminalOutputModel
+import org.jetbrains.plugins.terminal.view.TerminalOutputModelListener
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
@@ -97,6 +108,43 @@ import kotlin.math.max
 
 @ApiStatus.Internal
 object TerminalUiUtils {
+  /**
+   * Output model usually fires two events on every content update: content change and cursor position change.
+   * If these events are handled synchronously, the handler may see a stale cursor offset right after the content update,
+   * but it will be corrected later when the cursor position change is applied.
+   * To not see the "intermediate" state of the model, let's invoke [onUpdate] change asynchronously -
+   * the state of the model is expected to be consistent there.
+   *
+   * Use the approach with [MutableStateFlow] to schedule a single [onUpdate] call
+   * for a burst of output model changes that happen in the same EDT invocation.
+   */
+  fun listenOutputModelChanges(
+    outputModel: TerminalOutputModel,
+    coroutineScope: CoroutineScope,
+    onUpdate: () -> Unit,
+  ) {
+    var counter = 0L
+    val updatesFlow = MutableStateFlow(counter)
+
+    outputModel.addListener(coroutineScope.asDisposable(), object : TerminalOutputModelListener {
+      override fun afterContentChanged(event: TerminalContentChangeEvent) {
+        updatesFlow.value = ++counter
+      }
+
+      override fun cursorOffsetChanged(event: TerminalCursorOffsetChangeEvent) {
+        updatesFlow.value = ++counter
+      }
+    })
+
+    coroutineScope.launch(Dispatchers.UI + ModalityState.any().asContextElement()) {
+      updatesFlow
+        .filter { it != 0L }
+        .collect {
+          onUpdate()
+        }
+    }
+  }
+
   fun createOutputEditor(
     document: Document,
     project: Project,

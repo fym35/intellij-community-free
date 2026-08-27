@@ -2,9 +2,6 @@
 package com.intellij.terminal.frontend.view.impl
 
 import com.intellij.ide.IdeEventQueue
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.UI
-import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.editor.Editor
@@ -18,23 +15,18 @@ import com.intellij.util.asDisposable
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.plugins.terminal.block.BlockTerminalOptions
 import org.jetbrains.plugins.terminal.block.reworked.TerminalSessionModel
 import org.jetbrains.plugins.terminal.block.ui.TerminalUi
+import org.jetbrains.plugins.terminal.block.ui.TerminalUiUtils
 import org.jetbrains.plugins.terminal.block.ui.calculateTerminalSize
 import org.jetbrains.plugins.terminal.block.ui.doWithoutScrollingAnimation
-import org.jetbrains.plugins.terminal.view.TerminalContentChangeEvent
-import org.jetbrains.plugins.terminal.view.TerminalCursorOffsetChangeEvent
 import org.jetbrains.plugins.terminal.view.TerminalOffset
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
-import org.jetbrains.plugins.terminal.view.TerminalOutputModelListener
 import java.awt.Rectangle
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -80,7 +72,7 @@ class TerminalOutputScrollingModelImpl(
     // instead of the editor's default fixed-line-height increment.
     editor.scrollableIncrementProvider = LineSnappingIncrementProvider()
 
-    listenOutputModelChanges(coroutineScope.childScope("outputModelChanges")) {
+    TerminalUiUtils.listenOutputModelChanges(outputModel, coroutineScope.childScope("outputModelChanges")) {
       if (shouldScrollToCursor) {
         LOG.trace { "Updating scroll position because the output content changed" }
         updateScrollPosition(outputModel.cursorOffset)
@@ -284,39 +276,6 @@ class TerminalOutputScrollingModelImpl(
       JBUI.scale(TerminalUi.blockTopInset)
     }
     else 0
-  }
-
-  /**
-   * Output model usually fires two events on every content update: content change and cursor position change.
-   * If these events are handled synchronously, the handler may see a stale cursor offset right after the content update,
-   * but it will be corrected later when the cursor position change is applied.
-   * To not see the "intermediate" state of the model, let's invoke [onUpdate] change asynchronously -
-   * the state of the model is expected to be consistent there.
-   *
-   * Use the approach with [MutableStateFlow] to schedule a single [onUpdate] call
-   * for a burst of output model changes that happen in the same EDT invocation.
-   */
-  private fun listenOutputModelChanges(coroutineScope: CoroutineScope, onUpdate: () -> Unit) {
-    var counter = 0L
-    val updatesFlow = MutableStateFlow(counter)
-
-    outputModel.addListener(coroutineScope.asDisposable(), object : TerminalOutputModelListener {
-      override fun afterContentChanged(event: TerminalContentChangeEvent) {
-        updatesFlow.value = ++counter
-      }
-
-      override fun cursorOffsetChanged(event: TerminalCursorOffsetChangeEvent) {
-        updatesFlow.value = ++counter
-      }
-    })
-
-    coroutineScope.launch(Dispatchers.UI + ModalityState.any().asContextElement()) {
-      updatesFlow
-        .filter { it != 0L }  // Do not call `onUpdate()` for the initial state
-        .collect {
-          onUpdate()
-        }
-    }
   }
 
   @TestOnly
