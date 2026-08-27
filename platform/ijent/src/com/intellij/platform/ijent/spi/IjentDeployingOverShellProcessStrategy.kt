@@ -12,12 +12,14 @@ import com.intellij.platform.eel.channels.EelSendChannelException
 import com.intellij.platform.eel.channels.sendWholeBuffer
 import com.intellij.platform.eel.provider.utils.consumeAsEelChannel
 import com.intellij.platform.eel.provider.utils.sendWholeText
-import com.intellij.platform.ijent.IjentLog
+import com.intellij.platform.ijent.IjentLogger
 import com.intellij.platform.ijent.IjentScope
 import com.intellij.platform.ijent.IjentUnavailableException
+import com.intellij.platform.ijent.IjentUnavailableException.CommunicationFailure
 import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.getIjentGrpcArgv
 import com.intellij.platform.ijent.spi.IjentSessionMediatorUtils.readLineOrThrow
+import com.intellij.platform.ijent.tcp.MutualTlsCertificates
 import com.intellij.platform.ijent.tcp.TcpDeployInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -72,10 +74,27 @@ abstract class IjentDeployingOverShellProcessStrategy(
 
   protected sealed interface ExecutionStrategy {
     data object Default : ExecutionStrategy
-    data class Tcp(val deployInfo: TcpDeployInfo) : ExecutionStrategy
+
+    /**
+     * [tlsCertificates] intentionally has no default value: every deployer must state explicitly whether the TCP socket
+     * of IJent is protected with mutual TLS or is left plaintext and unauthenticated.
+     *
+     * [noShutdownOnDisconnect] makes IJent outlive the death of its gRPC peer; in exchange, an explicit close asks it
+     * to terminate in-band (the flag is mirrored into [IjentConnectionContext.noShutdownOnDisconnect]). Only a deployer
+     * that supervises the transport may set it: for everyone else a lost connection is the only stop signal there is,
+     * and losing it would leave an orphan behind.
+     */
+    data class Tcp(
+      val deployInfo: TcpDeployInfo,
+      val tlsCertificates: MutualTlsCertificates?,
+      val noShutdownOnDisconnect: Boolean = false,
+    ) : ExecutionStrategy
   }
 
   protected open val executionStrategy: ExecutionStrategy = ExecutionStrategy.Default
+
+  final override val noShutdownOnDisconnect: Boolean
+    get() = (executionStrategy as? ExecutionStrategy.Tcp)?.noShutdownOnDisconnect == true
 
   /**
    * Interruption strategy for the initial shell setup.
@@ -98,7 +117,7 @@ abstract class IjentDeployingOverShellProcessStrategy(
   private val myContext: Deferred<DeployingContextAndShell> = run {
     var createdShellProcess: ShellProcessWrapper? = null
     val context = scope.s.async(currentDispatcher, start = CoroutineStart.LAZY) {
-      val ijentProcessScope = IjentSessionMediatorUtils.createProcessScope(scope, ijentLabel, LOG)
+      val ijentProcessScope = IjentSessionMediatorUtils.createProcessScope(scope, ijentLabel)
       val processFacade = createShellProcessFacade(ijentProcessScope)
       val mediator = IjentSessionProcessMediator.create(
         parentScope = scope,
@@ -140,12 +159,27 @@ abstract class IjentDeployingOverShellProcessStrategy(
   }
 
   final override suspend fun createProcess(binaryPath: String): IjentSessionProcessMediator {
+    val targetPlatform = getTargetPlatform()
     return getMyContext().execCommand {
       when (val strategy = executionStrategy) {
-        is ExecutionStrategy.Tcp -> execIjentWithTcp(binaryPath, strategy.deployInfo)
-        else -> execIjent(binaryPath)
+        is ExecutionStrategy.Tcp -> execIjentWithTcp(binaryPath, strategy, targetPlatform)
+        else -> execIjent(binaryPath, targetPlatform)
       }
     }
+  }
+
+  // A member rather than a file-level helper because the strategy type is protected.
+  private suspend fun DeployingContextAndShell.execIjentWithTcp(
+    remotePathToBinary: String,
+    strategy: ExecutionStrategy.Tcp,
+    targetPlatform: EelPlatform.Posix,
+  ): IjentSessionProcessMediator {
+    val joinedCmd = getIjentGrpcArgv(remotePathToBinary,
+                                     selfDeleteOnExit = true,
+                                     noShutdownOnDisconnect = strategy.noShutdownOnDisconnect,
+                                     deployInfo = strategy.deployInfo,
+                                     useTLS = strategy.tlsCertificates != null).joinToString(" ")
+    return createMediator(remotePathToBinary, joinedCmd, targetPlatform, strategy.tlsCertificates)
   }
 
   final override suspend fun copyFile(file: Path): String {
@@ -178,10 +212,25 @@ private class ShellProcessWrapper(
 ) {
   @ThrowsChecked(EelSendChannelException::class)
   suspend fun write(data: String) {
+    write(data, sensitive = false)
+  }
+
+  /**
+   * Same as [write], but the payload never reaches the log, because it carries a private key.
+   */
+  @ThrowsChecked(EelSendChannelException::class)
+  suspend fun writeSensitive(data: String) {
+    write(data, sensitive = true)
+  }
+
+  @ThrowsChecked(EelSendChannelException::class)
+  private suspend fun write(data: String, sensitive: Boolean) {
     @Suppress("NAME_SHADOWING")
     val data = if (data.endsWith("\n")) data else "$data\n"
     LOG.debug {
-      val debugData = data.replace(Regex("\n\n+")) { "<\\n ${it.value.length} times>\n" }
+      val debugData =
+        if (sensitive) "<TLS bootstrap data, ${data.length} bytes>"
+        else data.replace(Regex("\n\n+")) { "<\\n ${it.value.length} times>\n" }
       "Executing a script inside the shell: $debugData"
     }
     withContext(Dispatchers.IO) {
@@ -255,7 +304,7 @@ private suspend fun <T : Any> DeployingContextAndShell.execCommand(block: suspen
 
     throw when (mainError) {
       is IjentUnavailableException, is CancellationException -> mainError
-      else -> IjentStartupError.CommunicationError(mainError)
+      else -> CommunicationFailure(mainError.message.orEmpty(), mainError)
     }
   }
 }
@@ -281,7 +330,6 @@ internal data class DeployingContext(
   val cp: String,
   val cut: String,
   val env: String,
-  val getent: String,
   val head: String,
   val mktemp: String,
   val rm: String,
@@ -289,6 +337,12 @@ internal data class DeployingContext(
   val tail: String,
   val uname: String,
   val whoami: String,
+
+  /** `getent` is a part of glibc, therefore it is absent on macOS and other BSD-like systems. */
+  val getent: String?,
+
+  /** Although `id` is defined by POSIX, there's no guarantee that a stripped down system has it. */
+  val id: String?,
 )
 
 /**
@@ -327,13 +381,12 @@ private suspend fun createDeployingContext(
 @VisibleForTesting
 internal suspend fun createDeployingContext(filterAvailableBinariesCmd: suspend (commands: Collection<String>) -> Collection<String>): DeployingContext {
   // This strange at first glance code helps reduce copy-paste errors.
-  val commands: Set<String> = setOf(
+  val requiredCommands: Set<String> = setOf(
     "busybox",
     "chmod",
     "cp",
     "cut",
     "env",
-    "getent",
     "head",
     "mktemp",
     "rm",
@@ -342,25 +395,40 @@ internal suspend fun createDeployingContext(filterAvailableBinariesCmd: suspend 
     "uname",
     "whoami",
   )
+
+  // Not every operating system has these utilities, and the deployment can be performed without any of them.
+  val optionalCommands: Set<String> = setOf(
+    "getent",
+    "id",
+  )
+
   val outputOfWhich = mutableListOf<String>()
 
-  fun getCommandPath(name: String): String {
-    assert(name in commands)
+  fun getOptionalCommandPath(name: String): String? {
+    assert(name in optionalCommands)
     return when {
       name in outputOfWhich -> name
       "busybox" in outputOfWhich -> "busybox $name"
-      else -> throw IjentStartupError.IncompatibleTarget(setOf("busybox", name).joinToString(prefix = "The remote machine has none of: "))
+      else -> null
     }
   }
 
-  outputOfWhich += filterAvailableBinariesCmd(commands)
+  fun getCommandPath(name: String): String {
+    assert(name in requiredCommands)
+    return when {
+      name in outputOfWhich -> name
+      "busybox" in outputOfWhich -> "busybox $name"
+      else -> throw CommunicationFailure(setOf("busybox", name).joinToString(prefix = "The remote machine has none of: "), null)
+    }
+  }
+
+  outputOfWhich += filterAvailableBinariesCmd(requiredCommands + optionalCommands)
 
   return DeployingContext(
     chmod = getCommandPath("chmod"),
     cp = getCommandPath("cp"),
     cut = getCommandPath("cut"),
     env = getCommandPath("env"),
-    getent = getCommandPath("getent"),
     head = getCommandPath("head"),
     mktemp = getCommandPath("mktemp"),
     rm = getCommandPath("rm"),
@@ -368,6 +436,8 @@ internal suspend fun createDeployingContext(filterAvailableBinariesCmd: suspend 
     tail = getCommandPath("tail"),
     uname = getCommandPath("uname"),
     whoami = getCommandPath("whoami"),
+    getent = getOptionalCommandPath("getent"),
+    id = getOptionalCommandPath("id"),
   )
 }
 
@@ -375,19 +445,36 @@ private suspend fun DeployingContextAndShell.getTargetPlatform(): EelPlatform.Po
   // There are two arguments in `uname` that can show the process architecture: `-m` and `-p`. According to `man uname`, `-p` is more
   // verbose, and that information may be sufficient for choosing the right binary.
   // https://man.freebsd.org/cgi/man.cgi?query=uname&sektion=1
-  process.write("${context.uname} -pm")
+  //
+  // All known implementations of `uname`, including busybox and GNU coreutils, print the fields in the same order regardless of the order
+  // of the options: the operating system, the machine, the processor. A single call saves a round trip, and round trips are expensive
+  // on slow connections.
+  process.write("${context.uname} -spm")
 
-  val arch = process.readLine().split(" ").filterTo(linkedSetOf(), String::isNotEmpty)
+  val unameOutput = process.readLine().split(" ").filter(String::isNotEmpty)
+  if (unameOutput.isEmpty()) {
+    throw CommunicationFailure("Empty output of `uname`", null)
+  }
 
-  val targetPlatform = when {
-    arch.isEmpty() -> throw IjentStartupError.IncompatibleTarget("Empty output of `uname`")
-    "x86_64" in arch -> EelPlatform.Linux(EelPlatform.Arch.X86_64)
-    "aarch64" in arch -> EelPlatform.Linux(EelPlatform.Arch.ARM_64)
-    else -> throw IjentStartupError.IncompatibleTarget("No binary for architecture $arch")
+  val osName = unameOutput.first()
+  val arch = unameOutput.drop(1).toSet()
+
+  // Linux calls the 64-bit ARM architecture `aarch64`, while macOS calls the same architecture `arm64`.
+  val targetArch = when {
+    "x86_64" in arch || "amd64" in arch -> EelPlatform.Arch.X86_64
+    "aarch64" in arch || "arm64" in arch -> EelPlatform.Arch.ARM_64
+    else -> throw CommunicationFailure("No binary for architecture $arch", null)
+  }
+
+  val targetPlatform = when (osName) {
+    "Linux" -> EelPlatform.Linux(targetArch)
+    "Darwin" -> EelPlatform.Darwin(targetArch)
+    else -> throw CommunicationFailure("No binary for the operating system $osName", null)
   }
   return targetPlatform
 }
 
+@ThrowsChecked(EelSendChannelException::class)
 private suspend fun DeployingContextAndShell.uploadIjentBinary(
   ijentBinaryOnLocalDisk: Path,
   pathMapper: suspend (Path) -> String?,
@@ -401,14 +488,39 @@ private suspend fun DeployingContextAndShell.uploadIjentBinary(
     "BINARY=\"\$($mktemp -d)/ijent\";\n"
   })
 
+  val chmodAndEcho = context.run {
+    "$chmod 500 \"\$BINARY\"; echo \"\$BINARY\";\n"
+  }
+
   if (ijentBinaryPreparedOnTarget != null) {
     process.write(context.run {
-      "$cp ${posixQuote(ijentBinaryPreparedOnTarget)} \$BINARY;\n"
+      "$cp ${posixQuote(ijentBinaryPreparedOnTarget)} \$BINARY; $chmodAndEcho"
     })
   }
   else {
     process.write(context.run {
-      "$head -c ${ijentBinarySize + BUGGY_DASH_BUFFER_FILLER.length} > \$BINARY.tmp;\n"
+      // The file `$BINARY.tmp` will contain the following content:
+      // <\n * (random number in 0..filler_size)> + useful data + <\n + filler_size>
+      // The script below extracts the useful data and puts it into `$BINARY`.
+      // It hasn't been checked if `LC_ALL` really needed for sed/head/tail, this variable
+      // is overridden just in case.
+      //
+      // It is important to send all these commands with a single expression and wait for the output.
+      // `head` on macOS (not on BSD) reads data greedily.
+      // Even though there's a correct limiter in the source code of `head`
+      //    https://github.com/apple-oss-distributions/text_cmds/blob/592aaf8a50aa5810ee8183df20f0ba48bb23aa7e/head/head.c#L210-L214
+      // it uses `fread` that reads data ahead
+      //    https://github.com/apple-oss-distributions/Libc/blob/main/stdio/FreeBSD/makebuf.c#L250
+      // It's not clear how to trigger unbuffered I/O (env var STDBUF0=U does not work). Also, the MAXSIZE from the source above
+      // is also unreliable, macOS can make this buffer for Unix sockets bigger.
+      // Therefore, exploiting the trick with BUGGY_DASH_BUFFER_FILLER again would be unreliable.
+      $$"""
+      $$head -c $${ijentBinarySize + BUGGY_DASH_BUFFER_FILLER.length} > $BINARY.tmp; \
+      BYTES_TO_SKIP=$(LC_ALL=C $$sed -n -e '/./{=;q;}' $BINARY.tmp | LC_ALL=C $$head -n1); \
+      LC_ALL=C $$tail -c+$BYTES_TO_SKIP $BINARY.tmp | LC_ALL=C $$head -c $$ijentBinarySize > $BINARY; \
+      $$rm -f $BINARY.tmp; \
+      $$chmodAndEcho
+      """.trimIndent()
     })
 
     // Old versions of busybox with bundled problematic versions of dash don't handle arguments
@@ -426,56 +538,63 @@ private suspend fun DeployingContextAndShell.uploadIjentBinary(
     LOG.debug { "Sent the IJent binary $ijentBinaryOnLocalDisk" }
     LOG.debug { "Writing workaround command for Dash (2 of 2)" }
     process.write(BUGGY_DASH_BUFFER_FILLER)
-
-    // Now the file `$BINARY.tmp` contains the following content:
-    // <\n * (random number in 0..filler_size)> + useful data + <\n + filler_size>
-    // The script below extracts the useful data and puts it into `$BINARY`.
-    // It wasn't checked if `LC_ALL` really needed for sed/head/tail, this variable
-    // was overridden just in case.
-    process.write(context.run {
-      """
-      | BYTES_TO_SKIP=${'$'}(LC_ALL=C $sed -e '/^${'$'}/d; =; q' ${'$'}BINARY.tmp | LC_ALL=C $head -n1);
-      | LC_ALL=C $tail -c+${'$'}BYTES_TO_SKIP ${'$'}BINARY.tmp | LC_ALL=C $head -c ${ijentBinarySize} > ${'$'}BINARY;
-      | $rm -f ${'$'}BINARY.tmp;
-      """.trimMargin()
-    })
   }
-
-  process.write(context.run {
-    "$chmod 500 \"\$BINARY\"; echo \"\$BINARY\";\n"
-  })
 
   return process.readLine()
 }
 
 
-private suspend fun DeployingContextAndShell.execIjent(remotePathToBinary: String): IjentSessionProcessMediator {
+private suspend fun DeployingContextAndShell.execIjent(
+  remotePathToBinary: String,
+  targetPlatform: EelPlatform.Posix,
+): IjentSessionProcessMediator {
   val joinedCmd = getIjentGrpcArgv(remotePathToBinary, selfDeleteOnExit = true).joinToString(" ")
-  return createMediator(remotePathToBinary, joinedCmd)
+  return createMediator(remotePathToBinary, joinedCmd, targetPlatform)
 }
+
+/**
+ * Returns a shell command that writes the login shell of the current user into stdout, or null if there's no known way to get it
+ * on [targetPlatform].
+ */
+private fun DeployingContext.getLoginShellCmd(targetPlatform: EelPlatform.Posix): String? =
+  when (targetPlatform) {
+    is EelPlatform.Linux ->
+      getent?.let { """$it passwd "${'$'}($whoami)" | $cut -d: -f7""" }
+
+    // BSD-like systems, including macOS, don't have `getent`, but their `id` prints the whole passwd entry with the option `-P`.
+    // GNU coreutils, in contrast, don't have such an option in `id`.
+    is EelPlatform.Darwin, is EelPlatform.FreeBSD ->
+      id?.let { """$it -P "${'$'}($whoami)" | $cut -d: -f10""" }
+  }
 
 private suspend fun DeployingContextAndShell.createMediator(
   remotePathToBinary: String,
   joinedCmd: String,
+  targetPlatform: EelPlatform.Posix,
+  tlsCertificates: MutualTlsCertificates? = null,
 ): IjentSessionProcessMediator {
+  // IJent reads the PEM blocks from its stdin before it binds the socket, and the shell hands the heredoc to it while parsing `exec`.
+  // The delimiter is quoted, hence the shell performs no expansion inside the payload, and it starts with `~`, a character that never
+  // appears in a PEM document, so no line of the payload can accidentally terminate the heredoc.
+  val tlsBootstrap =
+    if (tlsCertificates != null) " <<'$TLS_HEREDOC_DELIMITER'\n${tlsCertificates.serverBootstrapPem()}$TLS_HEREDOC_DELIMITER"
+    else ""
   val commandLineArgs = context.run {
+    val loginShell = getLoginShellCmd(targetPlatform)?.let { "\"${'$'}($it)\"" } ?: "''"
     """
     | cd ${posixQuote(remotePathToBinary.substringBeforeLast('/'))};
-    | export SHELL="${'$'}($getent passwd "${'$'}($whoami)" | $cut -d: -f7)";
+    | export SHELL=$loginShell;
     | if [ -z "${'$'}SHELL" ]; then export SHELL='/bin/sh' ; fi;
     | exec "${'$'}SHELL" -c ${posixQuote(joinedCmd)}
-    """.trimMargin()
+    """.trimMargin() + tlsBootstrap
   }
-  process.write(commandLineArgs)
+  if (tlsCertificates != null) {
+    process.writeSensitive(commandLineArgs)
+  }
+  else {
+    process.write(commandLineArgs)
+  }
   return process.extractProcess()
-}
-
-
-private suspend fun DeployingContextAndShell.execIjentWithTcp(remotePathToBinary: String, deployInfo: TcpDeployInfo): IjentSessionProcessMediator {
-  val joinedCmd = getIjentGrpcArgv(remotePathToBinary,
-                                   selfDeleteOnExit = true,
-                                   deployInfo = deployInfo).joinToString(" ")
-  return createMediator(remotePathToBinary, joinedCmd)
 }
 
 /**
@@ -496,7 +615,9 @@ private suspend fun DeployingContextAndShell.execIjentWithTcp(remotePathToBinary
  * we see the situation of compiling a shell with a problematic version and increased global buffer as improbable.
  */
 private val BUGGY_DASH_BUFFER_FILLER: String get() = "\n".repeat(8192)
-private val LOG = IjentLog.getInstance<IjentDeployingOverShellProcessStrategy>()
+private val LOG = IjentLogger.LIFETIME_LOG
+
+private const val TLS_HEREDOC_DELIMITER: String = "~IJENT_TLS_BOOTSTRAP"
 
 private val SHELL_UNSAFE_CHARACTERS: Set<Char> = setOf(
   '|', '&', ';', '<', '>', '(', ')', '$', '`', '\\', '"', '\'', ' ', '\t', '\n', '*', '?', '[', '#', '~', '=', '%',

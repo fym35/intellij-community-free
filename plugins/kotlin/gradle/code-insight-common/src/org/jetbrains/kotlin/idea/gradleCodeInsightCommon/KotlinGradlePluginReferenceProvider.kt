@@ -6,12 +6,13 @@ import com.intellij.model.psi.PsiSymbolReference
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.singleVariableAccessCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -27,7 +28,7 @@ private val KOTLIN_PROJECT_SCRIPT_TEMPLATE = FqName("KotlinProjectScriptTemplate
 private val PLUGINS: Name = Name.identifier("plugins")
 
 class KotlinGradlePluginReferenceProvider : AbstractKotlinGradleReferenceProvider() {
-    override fun getImplicitReference(
+    override fun getGradleImplicitReference(
         element: PsiElement,
         offsetInElement: Int
     ): PsiSymbolReference? = when (element) {

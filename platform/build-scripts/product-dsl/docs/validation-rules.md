@@ -20,6 +20,9 @@ Validation ensures module and plugin dependencies are resolvable at runtime and 
 | 12 | Suppression config keys | Config | [suppression-config.md](validators/suppression-config.md) |
 | 13 | Plugin content structural validation | Plugin | [plugin-content-structure.md](validators/plugin-content-structure.md) |
 | 14 | Embedded content module dependencies | Product | [embedded-content-module-dependency.md](validators/embedded-content-module-dependency.md) |
+| 15 | Unused embedded library modules | Module set | [unused-embedded-library-module.md](validators/unused-embedded-library-module.md) |
+| 16 | Unused shared library modules | Module set | [unused-shared-library-module.md](validators/unused-shared-library-module.md) |
+| 17 | Library license coverage | Content module | [library-license.md](validators/library-license.md) |
 
 ## When Validation Runs
 

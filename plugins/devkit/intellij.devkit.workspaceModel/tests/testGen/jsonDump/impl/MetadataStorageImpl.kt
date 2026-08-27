@@ -18,9 +18,8 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
     val primitiveTypeStringNotNullable = ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "String")
     val primitiveTypeIntNotNullable = ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "Int")
     val primitiveTypeListNotNullable = ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "List")
-
+    val primitiveTypeSetNotNullable = ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "Set")
     var typeMetadata: StorageTypeMetadata
-
     typeMetadata = FinalClassMetadata.ClassMetadata(fqName = "com.intellij.devkit.workspaceModel.jsonDump.TestSymbolicId",
                                                     properties = listOf(OwnPropertyMetadata(isComputable = false,
                                                                                             isKey = false,
@@ -35,9 +34,7 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                                             valueType = primitiveTypeStringNotNullable,
                                                                                             withDefault = false)),
                                                     supertypes = listOf("com.intellij.platform.workspace.storage.SymbolicEntityId"))
-
     addMetadata(typeMetadata)
-
     typeMetadata = EntityMetadata(fqName = "com.intellij.devkit.workspaceModel.jsonDump.BaseTestEntity",
                                   entityDataFqName = "com.intellij.devkit.workspaceModel.jsonDump.impl.BaseTestEntityData",
                                   supertypes = listOf("com.intellij.platform.workspace.storage.WorkspaceEntity",
@@ -124,6 +121,22 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                                                                       supertypes = listOf()))),
                                                                                                                           primitive = primitiveTypeListNotNullable),
                                                                           withDefault = false),
+                                                      OwnPropertyMetadata(isComputable = false,
+                                                                          isKey = false,
+                                                                          isOpen = false,
+                                                                          name = "stringList",
+                                                                          valueType = ValueTypeMetadata.ParameterizedType(generics = listOf(
+                                                                            primitiveTypeStringNotNullable),
+                                                                                                                          primitive = primitiveTypeListNotNullable),
+                                                                          withDefault = false),
+                                                      OwnPropertyMetadata(isComputable = false,
+                                                                          isKey = false,
+                                                                          isOpen = false,
+                                                                          name = "stringSet",
+                                                                          valueType = ValueTypeMetadata.ParameterizedType(generics = listOf(
+                                                                            primitiveTypeStringNotNullable),
+                                                                                                                          primitive = primitiveTypeSetNotNullable),
+                                                                          withDefault = false),
                                                       OwnPropertyMetadata(isComputable = true,
                                                                           isKey = false,
                                                                           isOpen = false,
@@ -151,9 +164,7 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                           withDefault = false)),
                                   extProperties = listOf(),
                                   isAbstract = false)
-
     addMetadata(typeMetadata)
-
     typeMetadata = EntityMetadata(fqName = "com.intellij.devkit.workspaceModel.jsonDump.ChildEntity",
                                   entityDataFqName = "com.intellij.devkit.workspaceModel.jsonDump.impl.ChildEntityData",
                                   supertypes = listOf("com.intellij.platform.workspace.storage.WorkspaceEntity"),
@@ -182,9 +193,7 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                           withDefault = false)),
                                   extProperties = listOf(),
                                   isAbstract = false)
-
     addMetadata(typeMetadata)
-
     typeMetadata = EntityMetadata(fqName = "com.intellij.devkit.workspaceModel.jsonDump.ExtensionChildEntity",
                                   entityDataFqName = "com.intellij.devkit.workspaceModel.jsonDump.impl.ExtensionChildEntityData",
                                   supertypes = listOf("com.intellij.platform.workspace.storage.WorkspaceEntity"),
@@ -231,9 +240,7 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                                                                            isNullable = false),
                                                                              withDefault = false)),
                                   isAbstract = false)
-
     addMetadata(typeMetadata)
-
     typeMetadata = EntityMetadata(fqName = "com.intellij.devkit.workspaceModel.jsonDump.SingleChild",
                                   entityDataFqName = "com.intellij.devkit.workspaceModel.jsonDump.impl.SingleChildData",
                                   supertypes = listOf("com.intellij.platform.workspace.storage.WorkspaceEntity"),
@@ -262,19 +269,18 @@ internal object MetadataStorageImpl : MetadataStorageBase() {
                                                                           withDefault = false)),
                                   extProperties = listOf(),
                                   isAbstract = false)
-
     addMetadata(typeMetadata)
   }
 
   override fun initializeMetadataHash() {
-    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.BaseTestEntity", metadataHash = 1978440464)
-    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ChildEntity", metadataHash = 1942527778)
-    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ExtensionChildEntity", metadataHash = -1045264058)
-    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.SingleChild", metadataHash = 1237266012)
+    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.BaseTestEntity", metadataHash = 1539583166)
     addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.AbstractClass", metadataHash = -2125859360)
     addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ImplClass1", metadataHash = -312361998)
     addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ImplClass2", metadataHash = -243329592)
     addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.TestSymbolicId", metadataHash = -544617414)
+    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ChildEntity", metadataHash = 1942527778)
+    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.ExtensionChildEntity", metadataHash = -1045264058)
+    addMetadataHash(typeFqn = "com.intellij.devkit.workspaceModel.jsonDump.SingleChild", metadataHash = 1237266012)
     addMetadataHash(typeFqn = "com.intellij.platform.workspace.storage.SymbolicEntityId", metadataHash = -1612564642)
   }
 }

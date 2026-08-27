@@ -16,8 +16,10 @@ import org.jetbrains.intellij.build.MacDistributionCustomizer
 import org.jetbrains.intellij.build.NativeBinaryDownloader
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
+import org.jetbrains.intellij.build.impl.BuildUtils.checkedReplace
 import org.jetbrains.intellij.build.impl.LibraryPackMode
 import org.jetbrains.intellij.build.impl.PlatformLayout
+import org.jetbrains.intellij.build.impl.PluginLayout
 import org.jetbrains.intellij.build.productLayout.CommunityModuleSets
 import org.jetbrains.intellij.build.productLayout.ProductModulesContentSpec
 import org.jetbrains.intellij.build.productLayout.productModules
@@ -76,7 +78,7 @@ class MPSProperties : JetBrainsProductProperties() {
             "intellij.java.ide.customization",
             "intellij.json",
             "intellij.copyright",
-            "intellij.mcpserver",
+            "intellij.mcpserver.plugin",
             "intellij.properties",
             "intellij.terminal",
             "intellij.vcs.git",
@@ -98,7 +100,7 @@ class MPSProperties : JetBrainsProductProperties() {
         productLayout.buildAllCompatiblePlugins = false
         productLayout.compatiblePluginsToIgnore = persistentListOf("intellij.java.plugin")
 
-        val pluginLayouts = productLayout.pluginLayouts + JavaPluginLayout.javaPlugin()
+        val pluginLayouts = productLayout.pluginLayouts + JavaPluginLayout.javaPlugin(patchPluginXml())
         productLayout.pluginLayouts = pluginLayouts.toPersistentList()
 
         productLayout.addPlatformSpec { layout, _ ->
@@ -114,8 +116,8 @@ class MPSProperties : JetBrainsProductProperties() {
             layout.excludeFromModule("intellij.platform.testFramework", "mockito-extensions/**")
 
             layout.withModule("intellij.java.rt", "idea_rt.jar")
-            layout.withProjectLibrary("Eclipse", LibraryPackMode.MERGED)
-            layout.withProjectLibrary("http-client", LibraryPackMode.MERGED)
+            layout.withProjectLibrary("Eclipse", "lib.jar", "withProjectLibrary")
+            layout.withProjectLibrary("http-client", "lib.jar", "withProjectLibrary")
             layout.withoutProjectLibrary("Ant")
             layout.withoutProjectLibrary("Gradle")
             layout.withProjectLibrary("maven-resolver-provider", LibraryPackMode.STANDALONE_MERGED)
@@ -189,11 +191,21 @@ class MPSProperties : JetBrainsProductProperties() {
 
         moduleSet(CommunityModuleSets.ideCommon())
 
+        // JSP base modules — the Java plugin's intellij.jsp/intellij.jsp.spi content modules depend on
+        // intellij.jsp.base, which java-capable products provide (see CommunityProductFragments.javaIdeBaseFragment).
+        moduleSet(CommunityModuleSets.jspBase())
+
         module("intellij.platform.whatsNew")
         module("intellij.ide.startup.importSettings")
+        // the sqlite JDBC driver `importSettings` needs; private, so plugins bundle their own copy of it
+        privateModule("intellij.libraries.sqlite")
 
         module("intellij.platform.customization.min")
         module("intellij.idea.customization.base")
+
+      module("intellij.platform.ide.nonModalWelcomeScreen")
+      module("intellij.platform.ide.nonModalWelcomeScreen.frontend")
+      module("intellij.platform.ide.nonModalWelcomeScreen.backend")
     }
 
     override fun getSystemSelector(appInfo: ApplicationInfoProperties, buildNumber: String): String {
@@ -225,4 +237,14 @@ class MPSProperties : JetBrainsProductProperties() {
             installerImagesPath = projectHome.resolve("build/resources")
         }
     }
+}
+
+private fun patchPluginXml(): (PluginLayout.PluginLayoutSpec) -> Unit = { spec ->
+  spec.withPluginXmlPatcher { text, _ ->
+    checkedReplace(
+      oldText = text,
+      regex = """<version>([^.]+)\.([^.]+)\.?(.*)</version>""",
+      newText = """<version>$1.100$2.$3-MPS</version>""",
+    )
+  }
 }

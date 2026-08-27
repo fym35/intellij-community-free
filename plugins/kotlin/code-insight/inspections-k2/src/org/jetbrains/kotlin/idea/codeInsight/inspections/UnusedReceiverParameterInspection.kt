@@ -12,20 +12,16 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.defaultType
-import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
-import org.jetbrains.kotlin.analysis.api.components.resolveCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
-import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
+import org.jetbrains.kotlin.analysis.api.expressions.expectedType
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaSingleOrMultiCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaVariableAccessCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbols
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -33,24 +29,28 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
+import org.jetbrains.kotlin.analysis.api.types.buildSubstitutor
+import org.jetbrains.kotlin.analysis.api.types.defaultType
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
+import org.jetbrains.kotlin.idea.codeInsight.inspections.utils.getThisLabelName
+import org.jetbrains.kotlin.idea.codeInsight.inspections.utils.getThisWithLabel
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.codeinsight.utils.callExpression
 import org.jetbrains.kotlin.idea.codeinsight.utils.resolveExpression
 import org.jetbrains.kotlin.idea.codeinsight.utils.typeIfSafeToResolve
-import org.jetbrains.kotlin.idea.codeInsight.inspections.utils.getThisLabelName
-import org.jetbrains.kotlin.idea.codeInsight.inspections.utils.getThisWithLabel
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeSignatureProcessor
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinMethodDescriptor
 import org.jetbrains.kotlin.idea.k2.refactoring.getThisReceiverOwner
 import org.jetbrains.kotlin.idea.references.KtSimpleNameReference
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport.SearchUtils.isOverridable
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper
@@ -85,6 +85,7 @@ import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.hasActualModifier
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.psi.typeRefHelpers.setReceiverTypeReference
+import org.jetbrains.kotlin.resolution.KtResolvable
 import org.jetbrains.kotlin.resolution.KtResolvableCall
 
 internal class UnusedReceiverParameterInspection : AbstractKotlinInspection() {
@@ -110,6 +111,12 @@ internal class UnusedReceiverParameterInspection : AbstractKotlinInspection() {
         )
     }
 
+    context(_: KaSession)
+    private fun KtTypeReference.collectUsedTypeParameters(): Set<KaTypeParameterSymbol> =
+        sequenceOf(this)
+            .plus(collectDescendantsOfType<KtTypeReference>())
+            .mapNotNullTo(mutableSetOf()) { (it.typeIfSafeToResolve as? KaTypeParameterType)?.symbol }
+
     private fun checkElement(callableDeclaration: KtCallableDeclaration, holder: ProblemsHolder) {
         val receiverTypeReference = callableDeclaration.receiverTypeReference
         if (receiverTypeReference == null || receiverTypeReference.textRange.isEmpty) return
@@ -133,9 +140,10 @@ internal class UnusedReceiverParameterInspection : AbstractKotlinInspection() {
 
         analyze(callableDeclaration) {
             if (callableDeclaration.expectedType != null) return
-            val usedTypeParametersInReceiver = callableDeclaration.collectDescendantsOfType<KtTypeReference>()
-                .mapNotNull { (it.typeIfSafeToResolve as? KaTypeParameterType)?.symbol }
-                .filterTo(mutableSetOf()) { it.isReified }
+
+            val usedTypeParametersInReceiver = receiverTypeReference.collectUsedTypeParameters()
+            val usedInReturnType = callableDeclaration.typeReference?.collectUsedTypeParameters().orEmpty()
+            if (usedTypeParametersInReceiver.any { it in usedInReturnType }) return
 
             val receiverType = receiverTypeReference.typeIfSafeToResolve
             val receiverTypeSymbol = receiverType?.symbol
@@ -156,7 +164,8 @@ internal class UnusedReceiverParameterInspection : AbstractKotlinInspection() {
                 }
             }
 
-            if (!isReceiverUsedInside(callableDeclaration, usedTypeParametersInReceiver)) {
+            val usedReifiedTypeParametersInReceiver = usedTypeParametersInReceiver.filterTo(mutableSetOf()) { it.isReified }
+            if (!isReceiverUsedInside(callableDeclaration, usedReifiedTypeParametersInReceiver)) {
                 registerProblem(holder, receiverTypeReference, textForReceiver = null)
             }
         }
@@ -307,6 +316,7 @@ private fun isUsageOfSymbol(symbol: KaDeclarationSymbol, element: KtElement): Bo
 
             partiallyAppliedSymbol.dispatchReceiver?.getThisReceiverOwner() == symbol ||
                     partiallyAppliedSymbol.extensionReceiver?.getThisReceiverOwner() == symbol ||
+                    partiallyAppliedSymbol.contextArguments.any { it.getThisReceiverOwner() == symbol } ||
                     (receiverType != null && resolvedCall.hasContextReceiverOfType(receiverType)) // potentially captured by context receiver
         }
 
@@ -315,21 +325,21 @@ private fun isUsageOfSymbol(symbol: KaDeclarationSymbol, element: KtElement): Bo
 
     when (element) {
         is KtClassLiteralExpression -> {
-            val typeParameterType = (element.receiverExpression?.mainReference?.resolveToSymbol() as? KaTypeParameterSymbol)?.defaultType
+            val typeParameterType = ((element.receiverExpression as? KtResolvable)?.resolveSymbol() as? KaTypeParameterSymbol)?.defaultType
             if (typeParameterType != null && receiverType?.semanticallyEquals(typeParameterType) == true) {
                 return true
             }
         }
     }
 
-    fun processOperators(e: KtElement): Boolean {
-        val operatorFunctions = e.mainReference?.resolveToSymbols()?.filterIsInstance<KaFunctionSymbol>() ?: return false
-        return operatorFunctions.any { receiverType?.symbol == it.containingDeclaration }
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+    fun processOperators(e: KtResolvableCall): Boolean {
+        return e.resolveSymbols().filterIsInstance<KaFunctionSymbol>().any { receiverType?.symbol == it.containingDeclaration }
     }
 
     return when (element) {
         is KtThisExpression -> { // Check if this refers to our receiver
-            val referencedSymbol = element.instanceReference.mainReference.resolveToSymbol()
+            val referencedSymbol = element.resolveSymbol()
             referencedSymbol is KaReceiverParameterSymbol && referencedSymbol.owningCallableSymbol == symbol
         }
 

@@ -22,7 +22,6 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.platform.eel.provider.utils.EelPathUtils;
 import com.intellij.platform.eel.provider.utils.EelProjectUtils;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.vcs.log.Hash;
@@ -315,7 +314,7 @@ public class GitImpl extends GitImplBase {
                                             boolean force,
                                             boolean detach,
                                             GitLineHandlerListener @NotNull ... listeners) {
-    return checkout(repository, reference, newBranch, force, detach, false, listeners);
+    return checkout(repository, reference, newBranch, force, detach, false, false, listeners);
   }
 
   /**
@@ -331,12 +330,16 @@ public class GitImpl extends GitImplBase {
                                             boolean force,
                                             boolean detach,
                                             boolean withReset,
+                                            boolean ignoreOtherWorktrees,
                                             GitLineHandlerListener @NotNull ... listeners) {
     final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.CHECKOUT);
     h.setSilent(false);
     h.setStdoutSuppressed(false);
     if (force) {
       h.addParameters("--force");
+    }
+    if (ignoreOtherWorktrees) {
+      h.addParameters("--ignore-other-worktrees");
     }
     if (newBranch == null) { // simply checkout
       h.addParameters(detach ? reference + "^0" : reference); // we could use `--detach` here, but it is supported only since 1.7.5.
@@ -807,7 +810,7 @@ public class GitImpl extends GitImplBase {
     GitCommandResult result = runCommand(handler);
     String output = result.getOutputAsJoinedString();
     if (result.success()) {
-      if (GitUtil.isHashString(output, false)) {
+      if (GitUtil.isPossibleHash(output)) {
         return HashImpl.build(output);
       }
       else {
@@ -901,12 +904,16 @@ public class GitImpl extends GitImplBase {
   public @NotNull GitCommandResult createWorkingTree(@NotNull GitRepository repository,
                                                      @NotNull FilePath workingTreePath,
                                                      @NotNull GitReference sourceRef,
-                                                     @Nullable String newBranchName) {
+                                                     @Nullable String newBranchName,
+                                                     boolean force) {
     GitLineHandler handler = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.WORKTREE);
     handler.setSilent(false);
     handler.setStdoutSuppressed(false);
     handler.setStderrSuppressed(false);
     handler.addParameters("add");
+    if (force) {
+      handler.addParameters("--force");
+    }
     if (newBranchName != null) {
       handler.addParameters("-b", newBranchName);
     }

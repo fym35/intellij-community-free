@@ -11,7 +11,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.plus
-import org.jetbrains.annotations.TestOnly
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.BuildContext
 import java.lang.StackWalker.Option
 import kotlin.streams.asSequence
@@ -36,6 +36,9 @@ sealed class BaseLayout {
   internal var moduleExcludes: PersistentMap<String, MutableList<String>> = persistentMapOf()
     private set
 
+  @ApiStatus.Internal
+  fun getModuleExcludesModuleNames(): Set<String> = moduleExcludes.keys
+
   @JvmField
   internal val includedProjectLibraries: ObjectLinkedOpenHashSet<ProjectLibraryData> = ObjectLinkedOpenHashSet()
 
@@ -56,9 +59,6 @@ sealed class BaseLayout {
   fun hasLibrary(name: String): Boolean = includedProjectLibraries.any { it.libraryName == name }
 
   fun findProjectLibrary(name: String): ProjectLibraryData? = includedProjectLibraries.firstOrNull { it.libraryName == name }
-
-  @TestOnly
-  fun includedProjectLibraryNames(): Sequence<String> = includedProjectLibraries.asSequence().map { it.libraryName }
 
   fun filteredIncludedModuleNames(excludedRelativeJarPath: String, includeFromSubdirectories: Boolean = true): Sequence<String> {
     return _includedModules.asSequence().filter {

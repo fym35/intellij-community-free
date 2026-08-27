@@ -451,7 +451,7 @@ private fun CoroutineScope.loadThirdPartyBundledPluginDescriptors(loadingContext
 suspend fun loadDescriptors(
   zipPoolDeferred: Deferred<ZipEntryResolverPool>,
   mainClassLoaderDeferred: Deferred<ClassLoader>?,
-): Pair<PluginDescriptorLoadingContext, PluginsDiscoveryResult> {
+): PluginsDiscoveryResult {
   val isUnitTestMode = PluginManagerCore.isUnitTestMode
   val isRunningFromSources = PluginManagerCore.isRunningFromSources()
   val isInDevServerMode = AppMode.isRunningFromDevBuild()
@@ -460,7 +460,7 @@ suspend fun loadDescriptors(
     isMissingSubDescriptorIgnored = true,
     checkOptionalConfigFileUniqueness = isUnitTestMode || isRunningFromSources,
   )
-  val discoveredPlugins = loadingContext.use {
+  return loadingContext.use {
     loadDescriptors(
       loadingContext = loadingContext,
       isUnitTestMode = isUnitTestMode,
@@ -470,7 +470,6 @@ suspend fun loadDescriptors(
       mainClassLoaderDeferred = mainClassLoaderDeferred,
     )
   }
-  return loadingContext to discoveredPlugins
 }
 
 internal fun CoroutineScope.scheduleLoading(
@@ -483,84 +482,30 @@ internal fun CoroutineScope.scheduleLoading(
     loadDescriptors(zipPoolDeferred, mainClassLoaderDeferred)
   }
   val pluginSetDeferred = async {
-    val (loadingContext, discoveredPlugins) = resultDeferred.await()
-    val pluginsState = PluginManagerCore.initializeAndSetPlugins(
-      descriptorLoadingErrors = loadingContext.copyDescriptorLoadingErrors(),
+    val discoveredPlugins = resultDeferred.await()
+    val reportingPolicy = PluginLoadingErrorReportingPolicy.forCurrentProduct()
+    val pluginSet = PluginManagerCore.initializeAndSetPlugins(
       initContext = initContext,
       discoveredPlugins = discoveredPlugins,
     )
-    val pluginSet = pluginsState.pluginSet
     this@scheduleLoading.launch {
       // logging is not as a part of a plugin set job for performance reasons
-      logPlugins(plugins = pluginSet.allPlugins, initContext = initContext, incompletePlugins = pluginsState.incompletePluginsForLogging, log = {
-        // make sure that logger is ready to use (not a console logger)
-        (logDeferred?.await() ?: LOG).info(it)
-      })
+      val logger = logDeferred?.await() ?: LOG
+      PluginInitializationDiagnosticUtils.logExclusionTree(logger, pluginSet)
+      PluginInitializationDiagnosticUtils.logPluginLists(
+        logger = logger,
+        initContext = initContext,
+        plugins = pluginSet.allPlugins,
+      )
+      PluginInitializationDiagnosticUtils.logMajorPluginLoadingProblems(
+        logger = logger,
+        pluginSet = pluginSet,
+        reportingPolicy = reportingPolicy,
+      )
     }
     pluginSet
   }
   return pluginSetDeferred
-}
-
-private suspend fun logPlugins(
-  plugins: Collection<IdeaPluginDescriptorImpl>,
-  initContext: PluginInitializationContext,
-  incompletePlugins: List<PluginMainDescriptor>,
-  log: suspend (String) -> Unit,
-) {
-  if (AppMode.isDisableNonBundledPlugins()) {
-    log("Running with disableThirdPartyPlugins argument, third-party plugins will be disabled")
-  }
-
-  val bundled = StringBuilder()
-  val disabled = StringBuilder()
-  val custom = StringBuilder()
-  val disabledPlugins = HashSet<PluginId>()
-  for (descriptor in plugins) {
-    val pluginId = descriptor.pluginId
-    val target = if (!PluginManagerCore.isLoaded(descriptor)) {
-      if (!initContext.isPluginDisabled(pluginId)) {
-        // the plugin will be logged as part of "Problems found loading plugins"
-        continue
-      }
-      disabledPlugins.add(pluginId)
-      disabled
-    }
-    else if (descriptor.isBundled || PluginManagerCore.SPECIAL_IDEA_PLUGIN_ID == pluginId) {
-      bundled
-    }
-    else {
-      custom
-    }
-    appendPlugin(descriptor, target)
-  }
-
-  for (descriptor in incompletePlugins) {
-    val pluginId = descriptor.pluginId
-    // log only explicitly disabled plugins
-    if (initContext.isPluginDisabled(pluginId) && !disabledPlugins.contains(pluginId)) {
-      appendPlugin(descriptor, disabled)
-    }
-  }
-
-  log("Loaded bundled plugins: $bundled")
-  if (custom.isNotEmpty()) {
-    log("Loaded custom plugins: $custom")
-  }
-  if (disabled.isNotEmpty()) {
-    log("Disabled plugins: $disabled")
-  }
-}
-
-private fun appendPlugin(descriptor: IdeaPluginDescriptor, target: StringBuilder) {
-  if (target.isNotEmpty()) {
-    target.append(", ")
-  }
-  target.append(descriptor.name)
-  val version = descriptor.version
-  if (version != null) {
-    target.append(" (").append(version).append(')')
-  }
 }
 
 private suspend fun loadDescriptors(
@@ -589,7 +534,10 @@ private suspend fun loadDescriptors(
     val pluginsFromPropertyDeferred = loadDescriptorsFromProperty(loadingContext, zipPool)
     pluginsDeferred.await() + listOfNotNull(thirdPartyBundledPluginsDeferred.await(), pluginsFromPropertyDeferred.await())
   }
-  return PluginsDiscoveryResult.build(discoveredPlugins)
+  return PluginsDiscoveryResult.build(
+    discoveredPluginLists = discoveredPlugins,
+    descriptorLoadingErrors = loadingContext.copyDescriptorLoadingErrors(),
+  )
 }
 
 internal fun CoroutineScope.loadPluginDescriptorsForPathBasedLoader(
@@ -1193,7 +1141,10 @@ fun loadDescriptorsFromOtherIde(
     loadingContext.close()
     pool.close()
   }
-  return PluginsDiscoveryResult.build(discoveredPlugins)
+  return PluginsDiscoveryResult.build(
+    discoveredPluginLists = discoveredPlugins,
+    descriptorLoadingErrors = loadingContext.copyDescriptorLoadingErrors(),
+  )
 }
 
 suspend fun loadDescriptorsFromCustomPluginDir(customPluginDir: Path, ignoreCompatibility: Boolean = false): DiscoveredPluginsList {
@@ -1432,7 +1383,7 @@ private fun loadPluginDependencyDescriptors(
       dependency.setSubDescriptor(subDescriptor)
     }
     finally {
-      visitedFiles.removeLast()
+      visitedFiles.removeAt(visitedFiles.lastIndex)
     }
   }
 }

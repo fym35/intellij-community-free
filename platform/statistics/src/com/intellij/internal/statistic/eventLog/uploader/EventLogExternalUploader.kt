@@ -38,6 +38,7 @@ import com.intellij.internal.statistic.uploader.EventLogUploaderOptions.USER_AGE
 import com.intellij.internal.statistic.uploader.events.ExternalEventsLogger
 import com.intellij.internal.statistic.uploader.events.ExternalSystemErrorEvent
 import com.intellij.internal.statistic.uploader.events.ExternalSystemEvent
+import com.intellij.internal.statistic.uploader.events.ExternalUploadFileDeletedEvent
 import com.intellij.internal.statistic.uploader.events.ExternalUploadFinishedEvent
 import com.intellij.internal.statistic.config.StatisticsStringUtil
 import com.intellij.internal.statistic.uploader.events.ExternalUploadSendEvent
@@ -106,6 +107,9 @@ object EventLogExternalUploader {
         is ExternalSystemErrorEvent -> {
           eventLogSystemCollector.logLoadingConfigFailed(event.errorClass, event.timestamp)
         }
+        is ExternalUploadFileDeletedEvent -> {
+          eventLogSystemCollector.logFileDeleted(event.cause, event.ageMs, event.queuedMs, event.sizeBytes, event.buildType)
+        }
       }
     }
   }
@@ -158,7 +162,8 @@ object EventLogExternalUploader {
       findLibraryByClass(MetadataStorage::class.java), // com.jetbrains.fus.reporting.fus-api
       findLibraryByClass(Json::class.java), // kotlinx.serialization.json
       findLibraryByClass(StringFormat::class.java), // kotlinx.serialization
-      findLibraryByClass(StatisticsStringUtil::class.java) // statistics config (IJPL-238623 extracted to separate jar)
+      findLibraryByClass(StatisticsStringUtil::class.java), // statistics config (IJPL-238623 extracted to separate jar)
+      findLibraryByClass(kotlinx.coroutines.flow.StateFlow::class.java) // kotlinx.coroutines.flow
     )
     val classpath = joinAsClasspath(libPaths.toList(), uploader)
 

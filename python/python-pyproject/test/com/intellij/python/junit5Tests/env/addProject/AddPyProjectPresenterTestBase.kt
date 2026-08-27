@@ -7,19 +7,19 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.writeAction
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.python.junit5Tests.framework.env.pySdkFixture
+import com.intellij.python.junit5Tests.framework.pyModuleFixture
 import com.intellij.python.pyproject.PyProjectToml
 import com.intellij.python.pyproject.model.internal.addPyProject.AddPyProjectAction
 import com.intellij.python.pyproject.model.internal.addPyProject.ConvertToPyProjectAction
 import com.intellij.python.pyproject.model.internal.addPyProject.PyProjectPresenter
 import com.intellij.python.pyproject.model.internal.addPyProject.projectCreationPresenter
 import com.intellij.testFramework.common.timeoutRunBlocking
-import com.intellij.testFramework.junit5.fixture.moduleFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
 import com.intellij.testFramework.utils.vfs.refreshAndGetVirtualDirectory
-import com.jetbrains.python.PyNames
 import com.jetbrains.python.packaging.PyPackageName
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.pythonSdk
@@ -40,12 +40,12 @@ abstract class AddPyProjectPresenterTestBase protected constructor(
   private val toolName: @NlsSafe String,
   private val additionalChecks: AdditionalChecks?,
   // For poetry bug workaround https://github.com/python-poetry/poetry/issues/10974
-  private val spacesInProjectNamesLeadToBug: Boolean = false
+  private val spacesInProjectNamesLeadToBug: Boolean = false,
 ) {
   private val sdkFixture by pySdkFixture()
   private val pathFixture = tempPathFixture()
   private val projectFixture = projectFixture(pathFixture)
-  private val module by projectFixture.moduleFixture(pathFixture, addPathToSourceRoot = true, moduleTypeId = PyNames.MODULE)
+  private val module by projectFixture.pyModuleFixture(pathFixture, addPathToSourceRoot = true)
 
   /**
    * There are two modes: with [projectName] ([AddPyProjectAction] is used) and when [projectName] is `null` -> [ConvertToPyProjectAction]
@@ -56,7 +56,7 @@ abstract class AddPyProjectPresenterTestBase protected constructor(
   fun testPyProject(projectName: @NlsSafe String?): Unit = timeoutRunBlocking {
 
     val sdk = sdkFixture.sdk
-    val additionalData = additionalChecks?.additionalData
+    val additionalData = additionalChecks?.additionalData?.invoke(module)
     additionalData?.let { additionalDataToSet ->
       writeAction {
         val m = sdk.sdkModificator
@@ -73,7 +73,7 @@ abstract class AddPyProjectPresenterTestBase protected constructor(
     val tempDir = pathFixture.get()
     // For no projectName we create project in the same dir
     val projectDir = if (projectName != null) tempDir.resolve(sut.projectName) else tempDir
-    val toml = PyProjectToml.parse(projectDir.resolve("pyproject.toml").readText())!!
+    val toml = PyProjectToml.parse(tomlFileContent = projectDir.resolve("pyproject.toml").readText(), "someProject")!!
     val expectedProjectName = projectName ?: projectDir.fileName.pathString
     if (' ' !in expectedProjectName || !spacesInProjectNamesLeadToBug) {
       Assertions.assertEquals(PyPackageName.normalizeProjectName(expectedProjectName), toml.project.name)
@@ -109,5 +109,8 @@ abstract class AddPyProjectPresenterTestBase protected constructor(
     return event.projectCreationPresenter(forNewProject)!!
   }
 
-  protected data class AdditionalChecks(val additionalData: PythonSdkAdditionalData, val fileNames: Set<String>)
+  protected data class AdditionalChecks(
+    val additionalData: (Module) -> PythonSdkAdditionalData,
+    val fileNames: Set<String>,
+  )
 }

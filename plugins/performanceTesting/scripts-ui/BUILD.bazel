@@ -1,4 +1,5 @@
 load("@community//build:tests-options.bzl", "jps_test")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 
 jps_test(
@@ -84,6 +85,8 @@ jvm_library(
 exports_files(
     [
         "intellij.performanceTesting.ui.iml",
+        "resources/META-INF/plugin.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -154,6 +157,8 @@ jvm_library(
         "//libraries/lucene.common:lucene.common_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
+        "//libraries/misc/plugin",
+        "//libraries/misc/plugin:plugin_test_lib",
     ],
 )
 ### auto-generated section `build intellij.performanceTesting.ui.tests` end

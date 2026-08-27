@@ -1,0 +1,51 @@
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
+load("@rules_jvm//:jvm.bzl", "jvm_library")
+
+### auto-generated section `build intellij.extendedToolWindowsUi` start
+jvm_library(
+    name = "extendedToolWindowsUi",
+    srcs = glob(
+        [],
+        allow_empty = True,
+    ),
+    module_name = "intellij.extendedToolWindowsUi",
+    resource_strip_prefix = "resources",
+    resources = glob(
+        ["resources/**/*"],
+    ),
+    visibility = ["//visibility:public"],
+)
+
+jvm_library(
+    name = "extendedToolWindowsUi_test_lib",
+    testonly = True,
+    srcs = glob(
+        [],
+        allow_empty = True,
+    ),
+    module_name = "intellij.extendedToolWindowsUi",
+    visibility = ["//visibility:public"],
+    runtime_deps = [":extendedToolWindowsUi"],
+)
+### auto-generated section `build intellij.extendedToolWindowsUi` end
+
+### auto-generated section `iml intellij.extendedToolWindowsUi` start
+exports_files(
+    [
+        "intellij.extendedToolWindowsUi.iml",
+        "resources/META-INF/plugin.xml",
+        "plugin-content.yaml",
+    ],
+    visibility = ["//visibility:public"],
+)
+### auto-generated section `iml intellij.extendedToolWindowsUi` end
+
+### auto-generated section `dev content intellij.extendedToolWindowsUi` start
+dev_dist_plugin_content(
+    descriptor_module = ":extendedToolWindowsUi",
+    prepacked_content_modules = [
+        "//plugins/extended-toolwindows-ui/backend:backend_content_module_jar",
+        "//plugins/extended-toolwindows-ui/frontend:frontend_content_module_jar",
+    ],
+)
+### auto-generated section `dev content intellij.extendedToolWindowsUi` end

@@ -19,8 +19,8 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinc-analysis-api",
-        "@lib//:kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
     ],
 )
 
@@ -49,8 +49,10 @@ jvm_library(
         "//java/testFramework",
         "//java/testFramework:testFramework_test_lib",
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinc-analysis-api",
-        "@lib//:kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
         "@lib//:kotlinc-kotlin-compiler-tests",
         "@lib//:kotlin-test",
         "//java/java-psi-api:psi",
@@ -71,8 +73,6 @@ jvm_library(
         "//platform/projectModel-api:projectModel_test_lib",
         "//plugins/kotlin/frontend-independent",
         "//plugins/kotlin/frontend-independent:frontend-independent_test_lib",
-        "//plugins/kotlin/j2k/shared",
-        "//plugins/kotlin/j2k/shared:shared_test_lib",
         "//plugins/kotlin/test-framework",
         "//plugins/kotlin/test-framework:test-framework_test_lib",
         "//platform/testFramework",
@@ -99,6 +99,8 @@ jvm_library(
         "//plugins/kotlin/base/code-insight/minimal:minimal_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
+        "//plugins/kotlin/j2k/k2:kotlin-j2k",
+        "//plugins/kotlin/j2k/k2:kotlin-j2k_test_lib",
     ],
 )
 ### auto-generated section `build kotlin.j2k.shared.tests` end

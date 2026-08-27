@@ -15,10 +15,11 @@ private val communityPluginModelBuilderOptions = SourceCodeBasedPluginModelBuild
   modulesWithIncorrectlyPlacedModuleDescriptor = setOf(
     "intellij.android.device-explorer",
   ),
-  prefixesOfPathsIncludedFromLibrariesViaXiInclude = listOf(
-    "META-INF/analysis-api/analysis-api-fir.xml",
+  xiIncludeTargetsResidingInLibraries = listOf(
+    "META-INF/analysis-api/*",
+    "META-INF/extensions/*",
     "META-INF/wizard-template-impl.xml",
-    "META-INF/tips-",
+    "META-INF/tips-*",
   ),
   additionalPatternsOfDirectoriesContainingIncludedXmlFiles = listOf(
     "org/jetbrains/android/dom",
@@ -34,12 +35,6 @@ val communityPluginValidationOptions: PluginValidationOptions = PluginValidation
   // only perform the check once in AllProductsPackagingTest.pluginModel.
   skipServicesOverridesCheck = true,
   pluginsToOptionalDepends = existingOptionalDependsTagInCommunityPlugins,
-  filesNamedLikeContentModuleDescriptorsButIncludedViaXiInclude = setOf(
-    "intellij.platform.project.xml",
-    "intellij.platform.ide.progress.xml",
-    "intellij.platform.syntax.psi.xml",
-    "kotlin.plugin.k2.xml",
-  ),
   referencedPluginIdsOfExternalPlugins = setOf(
     // These modules are defined in the Ultimate part.
     "com.intellij.marketplace",

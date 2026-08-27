@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.markdown.backend` start
 jvm_library(
@@ -33,6 +34,7 @@ jvm_library(
         "//platform/diagnostic",
         "//libraries/markdown",
         "//platform/kernel/backend",
+        "//platform/kernel/rpc.backend",
         "//platform/platform-impl:ide-impl",
         "//platform/analysis-api:analysis",
         "//platform/ide-core",
@@ -44,8 +46,15 @@ jvm_library(
         "//fleet/rhizomedb",
         "//platform/lang-impl",
         "//platform/editor-ui-api:editor-ui",
+        "//platform/refactoring",
+        "//platform/util:util-ui",
+        "//platform/execution-impl",
+        "//platform/execution",
+        "//platform/statistics",
     ],
 )
+
+content_module_jar(module = ":backend")
 
 jvm_library(
     name = "backend_test_lib",
@@ -76,6 +85,7 @@ jvm_library(
         "//libraries/markdown:markdown_test_lib",
         "//platform/backend:backend_test_lib",
         "//platform/kernel/backend:backend_test_lib",
+        "//platform/kernel/rpc.backend:rpc.backend_test_lib",
         "//platform/platform-impl:ide-impl_test_lib",
         "//platform/analysis-api:analysis_test_lib",
         "//platform/ide-core:ide-core_test_lib",
@@ -87,6 +97,11 @@ jvm_library(
         "//fleet/rhizomedb:rhizomedb_test_lib",
         "//platform/lang-impl:lang-impl_test_lib",
         "//platform/editor-ui-api:editor-ui_test_lib",
+        "//platform/refactoring:refactoring_test_lib",
+        "//platform/util:util-ui_test_lib",
+        "//platform/execution-impl:execution-impl_test_lib",
+        "//platform/execution:execution_test_lib",
+        "//platform/statistics:statistics_test_lib",
     ],
 )
 ### auto-generated section `build intellij.markdown.backend` end
@@ -95,6 +110,7 @@ jvm_library(
 exports_files(
     [
         "intellij.markdown.backend.iml",
+        "resources/intellij.markdown.backend.xml",
     ],
     visibility = ["//visibility:public"],
 )

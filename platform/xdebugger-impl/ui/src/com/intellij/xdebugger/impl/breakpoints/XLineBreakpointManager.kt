@@ -9,60 +9,74 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.debugger.impl.rpc.XBreakpointId
 import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointManagerProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointManagerProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy
 import com.intellij.util.containers.MultiMap
 import org.jetbrains.annotations.ApiStatus
+import java.util.concurrent.ConcurrentHashMap
 
-private val log = logger<XLineBreakpointManager>()
+private val log = logger<XLineBreakpointManager<*>>()
 
 @ApiStatus.Internal
-class XLineBreakpointManager(
+class XLineBreakpointManager<B : XLineBreakpointProxy>(
   internal val project: Project,
   private val manager: XBreakpointManagerProxy,
 ): XLineBreakpointManagerProxy {
-  private val myBreakpoints = MultiMap.createConcurrent<String, XLineBreakpointProxy>()
+  private val myBreakpointsById = ConcurrentHashMap<XBreakpointId, B>()
+  private val myBreakpointsByFile = MultiMap.createConcurrent<VirtualFile, B>()
 
-  @ApiStatus.Internal
-  fun onFileDeleted(url: String) {
-    removeBreakpoints(myBreakpoints[url])
+  fun onFileDeleted(file: VirtualFile) {
+    removeBreakpoints(getFileBreakpoints(file))
   }
 
-  @ApiStatus.Internal
   fun onFileUrlChanged(oldUrl: String, newUrl: String) {
-    myBreakpoints.values().forEach { breakpoint ->
-      val url = breakpoint.getFile()?.url ?: breakpoint.getFileUrl()
+    getAllBreakpoints().forEach { breakpoint ->
+      val url = breakpoint.getFileUrl()
       if (FileUtil.startsWith(url, oldUrl)) {
         breakpoint.setFileUrl(newUrl + url.substring(oldUrl.length))
       }
     }
   }
 
-  fun registerBreakpoint(breakpoint: XLineBreakpointProxy) {
-    val fileUrl = breakpoint.getFile()?.url ?: breakpoint.getFileUrl()
-    log.debug { "Register line breakpoint ${breakpoint.id} ${breakpoint.javaClass.simpleName}: $fileUrl" }
-    myBreakpoints.putValue(fileUrl, breakpoint)
+  fun registerBreakpoint(breakpoint: B) {
+    myBreakpointsById[breakpoint.id] = breakpoint
+    log.debug { "Register line breakpoint ${breakpoint.id} ${breakpoint.javaClass.simpleName}: ${breakpoint.getFileUrl()}" }
+    val file = breakpoint.getFile()
+    if (file != null) {
+      myBreakpointsByFile.putValue(file, breakpoint)
+    }
+    else {
+      log.warn("Breakpoint(${breakpoint.id}) file is not found during registration: ${breakpoint.getFileUrl()}")
+    }
   }
 
-  fun unregisterBreakpoint(breakpoint: XLineBreakpointProxy) {
-    val fileUrl = breakpoint.getFile()?.url ?: breakpoint.getFileUrl()
-    val removed = myBreakpoints.remove(fileUrl, breakpoint)
-    log.debug { "Unregister line breakpoint ${breakpoint.id} [removed=$removed] ${breakpoint.javaClass.simpleName}: $fileUrl" }
+  fun unregisterBreakpoint(breakpoint: B) {
+    val removed = myBreakpointsById.remove(breakpoint.id) != null
+    val removedByFile = breakpoint.getFile()?.let { myBreakpointsByFile.remove(it, breakpoint) } ?: false
+    if (removed != removedByFile) {
+      val associatedFile = myBreakpointsByFile.entrySet().firstOrNull { it.value == breakpoint }?.key
+      if (associatedFile != null) {
+        myBreakpointsByFile.remove(associatedFile, breakpoint)
+      }
+    }
+    log.debug { "Unregister line breakpoint ${breakpoint.id} [removed=$removed] ${breakpoint.javaClass.simpleName}: ${breakpoint.getFileUrl()}" }
   }
 
-  override fun getDocumentBreakpointProxies(document: Document): Collection<XLineBreakpointProxy> {
+  override fun getDocumentBreakpointProxies(document: Document): Collection<B> {
     val file = FileDocumentManager.getInstance().getFile(document) ?: return emptyList()
-    return myBreakpoints[file.url]
+    return getFileBreakpoints(file)
   }
 
-  override fun getAllBreakpoints(): Collection<XLineBreakpointProxy> {
-    return myBreakpoints.values()
+  override fun getAllBreakpoints(): Collection<B> {
+    return myBreakpointsById.values
   }
 
-  fun getFileBreakpoints(fileUrl: String): Collection<XLineBreakpointProxy> {
-    return myBreakpoints[fileUrl]
+  fun getFileBreakpoints(file: VirtualFile): Collection<B> {
+    return myBreakpointsByFile[file]
   }
 
   fun removeBreakpoints(toRemove: Collection<XBreakpointProxy>?) {

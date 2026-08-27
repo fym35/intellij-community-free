@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "execution-process-mediator-common-tests_test",
@@ -33,13 +34,15 @@ jvm_library(
         # do not sort,
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//libraries/guava",
         "//libraries/protobuf",
         "//libraries/javax/annotation",
         "//libraries/grpc",
     ],
 )
+
+content_module_jar(module = ":common")
 
 jvm_library(
     name = "common_test_lib",
@@ -54,6 +57,7 @@ jvm_library(
         # do not sort,
         ":common",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/guava:guava_test_lib",
         "//libraries/protobuf:protobuf_test_lib",
         "//libraries/javax/annotation:annotation_test_lib",
@@ -69,6 +73,8 @@ jvm_library(
 exports_files(
     [
         "intellij.execution.process.mediator.common.iml",
+        "resources/intellij.execution.process.mediator.common.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -107,7 +113,8 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/guava",
         "//libraries/guava:guava_test_lib",
         "//libraries/protobuf",

@@ -62,6 +62,10 @@ public class PyCallableTypeImpl implements PyCallableType {
     this(null, parameters != null ? new PyCallableParameterListTypeImpl(parameters) : null, returnType, callable, modifier);
   }
 
+  public static @NotNull PyCallableTypeImpl withUnknownParameters(@Nullable PyType returnType) {
+    return new PyCallableTypeImpl(null, null, returnType, null, null);
+  }
+
   @Override
   public @Nullable List<PyTypeParameterType> getTypeParameters(TypeEvalContext context) {
     return myTypeParameters;
@@ -73,8 +77,10 @@ public class PyCallableTypeImpl implements PyCallableType {
   }
 
   @Override
-  public @Nullable PyType getCallType(@NotNull TypeEvalContext context, @NotNull PyCallSiteOwner callSite) {
-    if (myCallable instanceof PyFunction function) {
+  public @Nullable PyType getCallType(@NotNull TypeEvalContext context,
+                                      @Nullable PyCallSiteOwner callSite,
+                                      @NotNull List<PyCallableArgument> arguments) {
+    if (callSite != null && myCallable instanceof PyFunction function) {
       for (PyTypeProvider typeProvider : PyTypeProvider.EP_NAME.getExtensionList()) {
         final Ref<PyType> typeRef = typeProvider.getCallType(function, callSite, context);
         if (typeRef != null) {
@@ -87,10 +93,9 @@ public class PyCallableTypeImpl implements PyCallableType {
       return PyNarrowedType.Companion.bindIfNeeded(myReturnType, callSite);
     }
 
-    List<PyExpression> arguments = callSite.getArguments(myCallable);
     PyCallableParameterListType parametersType = new PyCallableParameterListTypeImpl(ContainerUtil.notNullize(getParameters(context)));
     ArgumentMappingResults mappingResults = PyCallExpressionHelper.analyzeArguments(arguments, parametersType, context);
-    final var substitutions = PyTypeChecker.unifyGenericCall(null, mappingResults.getMappedParameters(), context);
+    final var substitutions = PyTypeChecker.unifyGenericCall(mappingResults.getMappedParameters(), context);
     final var substitutionsWithUnresolvedReturnGenerics =
       PyTypeChecker.getSubstitutionsWithUnresolvedReturnGenerics(this, myReturnType, substitutions, context);
     PyType typeAfterSubstitution = PyTypeChecker.substitute(myReturnType, substitutionsWithUnresolvedReturnGenerics, context);

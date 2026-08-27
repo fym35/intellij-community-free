@@ -1,6 +1,7 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.jewel.markdown.testing` start
 create_kotlinc_options(
@@ -25,7 +26,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//platform/jewel/markdown/core",
         "//platform/jewel/ui",
         "//platform/jewel/foundation",
@@ -33,6 +34,8 @@ jvm_library(
         "//libraries/compose-runtime-desktop",
     ],
 )
+
+content_module_jar(module = ":testing")
 
 jvm_library(
     name = "testing_test_lib",
@@ -52,7 +55,8 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//platform/jewel/markdown/core",
         "//platform/jewel/markdown/core:core_test_lib",
         "//platform/jewel/ui",
@@ -71,6 +75,7 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.jewel.markdown.testing.iml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

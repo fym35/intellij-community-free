@@ -4,6 +4,7 @@ package org.intellij.plugins.markdown.editor.injection
 import com.intellij.codeInsight.completion.CodeCompletionHandlerBase
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.lookup.LookupManager
+import com.intellij.injected.editor.DocumentWindow
 import com.intellij.lang.html.HTMLLanguage
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -96,13 +97,13 @@ class MarkdownInjectionTest : LightPlatformCodeInsightTestCase() {
   fun `test fence in quotes`() {
     val content =
       """
-      > class C {
-      >
-      >   public static void main(String[] args) {
-      >
-      >   }
-      >
-      > }
+      class C {
+
+        public static void main(String[] args) {
+
+        }
+
+      }
       """.trimIndent()
     val text =
       """
@@ -115,7 +116,7 @@ class MarkdownInjectionTest : LightPlatformCodeInsightTestCase() {
       >
       > }
       > ```
-      """.trimIndent()
+    """.trimIndent()
     doTest(text, true)
     assertEquals(content, file.findElementAt(editor.caretModel.offset)!!.containingFile.text)
   }
@@ -123,13 +124,13 @@ class MarkdownInjectionTest : LightPlatformCodeInsightTestCase() {
   fun `test fence in list`() {
     val content =
       """
-      |  class C {
+      |class C {
+      |
+      |  public static void main(String[] args) {
       |  
-      |    public static void main(String[] args) {
-      |    
-      |    }
-      |    
       |  }
+      |  
+      |}
       """.trimMargin()
     val text =
       """
@@ -250,6 +251,24 @@ class MarkdownInjectionTest : LightPlatformCodeInsightTestCase() {
     )
   }
 
+  fun `test code fence escaper filters fence syntax`() {
+    val text = "> ```java\n> class C {}\n> ```"
+    configureFromFileText("test.md", text)
+
+    val codeFence = PsiTreeUtil.findChildOfType(file, MarkdownCodeFence::class.java)!!
+    val escaper = codeFence.createLiteralTextEscaper()
+    val range = escaper.relevantTextRange
+    val decoded = StringBuilder()
+
+    assertTrue(escaper.decode(range, decoded))
+    assertEquals("class C {}", decoded.toString())
+
+    val contentStart = codeFence.text.indexOf("class")
+    assertEquals(contentStart, escaper.getOffsetInHost(0, range))
+    assertEquals(contentStart + decoded.length, escaper.getOffsetInHost(decoded.length, range))
+    assertEquals(-1, escaper.getOffsetInHost(decoded.length + 1, range))
+  }
+
   fun `test typing after replacing code fence opening line break with enter does not corrupt injected psi`() {
     configureFromFileText("test.md", "```java<selection>\n<caret></selection>String s = \"<h1>test</h1>\";\n```")
 
@@ -257,6 +276,32 @@ class MarkdownInjectionTest : LightPlatformCodeInsightTestCase() {
       type('\n')
       type("class C {}")
     }
+  }
+
+  fun `test blank line in quoted fence is not a separate injection range`() {
+    val text = """
+      > ```shell
+      > pwd
+      >
+      > echo done
+      > ```
+    """.trimIndent()
+    configureFromFileText("test.md", text)
+
+    val contentStart = text.indexOf("pwd")
+    val injectedElement = InjectedLanguageManager.getInstance(project).findInjectedElementAt(file, contentStart)
+    assertNotNull(injectedElement)
+    val injectedDocument = PsiDocumentManager.getInstance(project).getDocument(injectedElement!!.containingFile) as DocumentWindow
+
+    assertTrue(injectedDocument.hostRanges.all { editor.document.getText(TextRange.create(it)).isNotBlank() })
+    assertEquals(
+      """
+        pwd
+
+        echo done
+      """.trimIndent(),
+      injectedElement.containingFile.text
+    )
   }
 
   private fun doTest(text: String, shouldHaveInjection: Boolean) {

@@ -3,6 +3,7 @@ package com.intellij.psi.impl.file.impl
 
 import com.intellij.codeInsight.multiverse.CodeInsightContext
 import com.intellij.codeInsight.multiverse.CodeInsightContextManagerImpl
+import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
@@ -134,10 +135,7 @@ internal class MultiverseFileViewProviderCache(
       }
     }
 
-    val firstEntry = fileMap.entries.firstOrNull()
-    if (firstEntry == null ||
-        !evaluator.isRecreatedViewProviderIsIdentical(vFile, firstEntry.value as AbstractFileViewProvider, firstEntry.key)
-    ) {
+    if (!canFileMapBeResurrected(vFile, fileMap)) {
       dropPossibleInvalidation(fileMap)
       remove(vFile)
       return null
@@ -268,6 +266,28 @@ internal class MultiverseFileViewProviderCache(
         }
       }
     }
+  }
+
+  override fun canViewProviderBeResurrected(viewProvider: AbstractFileViewProvider): Boolean {
+    val vFile = viewProvider.virtualFile
+    val fileMap = cache[vFile] ?: return false
+
+    return canFileMapBeResurrected(vFile, fileMap)
+  }
+
+  override fun getRecreationFailureReason(viewProvider: AbstractFileViewProvider): String? {
+    val vFile = viewProvider.virtualFile
+    if (!vFile.isValid) return "View provider resurrection failed: virtual file is invalid: $vFile"
+    if (cache[vFile] == null) return "View provider resurrection failed: no cached view providers for $vFile"
+
+    return evaluator.getRecreationFailureReason(vFile, viewProvider, viewProvider.codeInsightContext)
+  }
+
+  private fun canFileMapBeResurrected(vFile: VirtualFile, fileMap: FileProviderMap): Boolean {
+    if (!vFile.isValid()) return false
+
+    val firstEntry = fileMap.entries.firstOrNull()
+    return firstEntry != null && evaluator.getRecreationFailureReason(vFile, firstEntry.value as AbstractFileViewProvider, firstEntry.key) == null
   }
 
   override fun evaluateValidity(viewProvider: AbstractFileViewProvider): Boolean {

@@ -2,13 +2,20 @@
 
 package org.jetbrains.kotlin.idea.k2.codeinsight.fixes
 
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
+import org.jetbrains.kotlin.analysis.api.components.returnType
+import org.jetbrains.kotlin.analysis.api.evaluation.evaluate
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.isMarkedNullable
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory
 import org.jetbrains.kotlin.idea.quickfix.AddConstModifierFix
-import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
@@ -16,6 +23,7 @@ import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 
 internal object ConstFixFactories {
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     val addConstModifierFixFactory =
         KotlinQuickFixFactory.ModCommandBased { diagnostic: KaFirDiagnostic.NonConstValUsedInConstantExpression ->
             val expression = when (val psi = diagnostic.psi) {
@@ -25,8 +33,8 @@ internal object ConstFixFactories {
             } ?: return@ModCommandBased emptyList()
 
             val property: KtProperty = analyze(expression) {
-                val propertySymbol = expression.mainReference.resolveToSymbol() ?: return@analyze null
-                (propertySymbol.psi as? KtProperty)?.takeIf(::constModifierApplicable)
+                val propertySymbol = expression.resolveSymbol() ?: return@analyze null
+                (propertySymbol.psi as? KtProperty)?.takeIf { constModifierApplicable(it) }
             } ?: return@ModCommandBased emptyList()
 
             val action = AddConstModifierFix(property).asIntention().asModCommandAction() ?: return@ModCommandBased emptyList()
@@ -34,7 +42,8 @@ internal object ConstFixFactories {
         }
 }
 
-private fun KaSession.constModifierApplicable(property: KtProperty): Boolean {
+context(session: KaSession)
+private fun constModifierApplicable(property: KtProperty): Boolean {
     val isInsideObject = property.getStrictParentOfType<KtObjectDeclaration>() != null
     val type = property.returnType
     val initializer = property.initializer
@@ -46,7 +55,7 @@ private fun KaSession.constModifierApplicable(property: KtProperty): Boolean {
         !property.isTopLevel && !isInsideObject -> false
         property.getter != null -> false
         type.isMarkedNullable -> false
-        !type.isPrimitive && !type.isStringType -> false
+        type.classId !in KaStandardTypeClassIds.PRIMITIVES && type.classId != KaStandardTypeClassIds.STRING -> false
         initializer == null -> false
         constValue == null || constValue is KaConstantValue.ErrorValue -> false
         else -> true

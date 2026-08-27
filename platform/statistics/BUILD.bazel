@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "statistics-tests_test",
@@ -38,14 +39,14 @@ jvm_library(
         "//platform/core-api:core",
         "//platform/core-impl",
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//platform/util/jdom",
         "//platform/statistics/uploader",
         "//platform/statistics/config",
         "//libraries/fastutil",
         "//platform/util/concurrency",
         "//platform/core-ui",
-        "@lib//:jna",
+        "//libraries/jna",
         "//platform/util",
         "//platform/runtime/product",
         "//platform/platform-util-io:ide-util-io",
@@ -75,6 +76,16 @@ jvm_library(
     ],
 )
 
+content_module_jar(
+    libraries = [
+        # do not sort,
+        "@lib//:com-jetbrains-fus-reporting-fus-api",
+        "@lib//:com-jetbrains-fus-reporting-ap-validation-all",
+        "@lib//:jetbrains-fus-reporting-api-jvm",
+    ],
+    module = ":statistics",
+)
+
 jvm_library(
     name = "statistics_test_lib",
     testonly = True,
@@ -95,12 +106,14 @@ jvm_library(
         ":statistics",
         "//platform/core-api:core_test_lib",
         "//platform/core-impl:core-impl_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//platform/util/jdom:jdom_test_lib",
         "//platform/statistics/uploader:uploader_test_lib",
         "//platform/statistics/config:config_test_lib",
         "//libraries/fastutil:fastutil_test_lib",
         "//platform/util/concurrency:concurrency_test_lib",
         "//platform/core-ui:core-ui_test_lib",
+        "//libraries/jna:jna_test_lib",
         "//platform/util:util_test_lib",
         "//platform/runtime/product:product_test_lib",
         "//platform/platform-util-io:ide-util-io_test_lib",
@@ -136,6 +149,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.statistics.iml",
+        "resources/intellij.platform.statistics.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -192,7 +207,8 @@ jvm_library(
         "//platform/core-impl",
         "//platform/core-impl:core-impl_test_lib",
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//platform/util/jdom",
         "//platform/util/jdom:jdom_test_lib",
         "//platform/statistics/uploader",
@@ -203,7 +219,8 @@ jvm_library(
         "//platform/util/concurrency:concurrency_test_lib",
         "//platform/core-ui",
         "//platform/core-ui:core-ui_test_lib",
-        "@lib//:jna",
+        "//libraries/jna",
+        "//libraries/jna:jna_test_lib",
         "//platform/util",
         "//platform/util:util_test_lib",
         "//platform/runtime/product",

@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.evaluationPlugin.languages.python` start
 jvm_library(
@@ -35,9 +36,12 @@ jvm_library(
         "//python:python-community-impl",
         "//plugins/evaluation-plugin/languages",
         "//plugins/evaluation-plugin/core",
-        "//python/python-sdk:sdk",
+        "//python/python-sdk/backend",
+        "//python/python-requirements/backend",
     ],
 )
+
+content_module_jar(module = ":python")
 
 jvm_library(
     name = "python_test_lib",
@@ -66,7 +70,8 @@ jvm_library(
         "//python:python-community-impl_test_lib",
         "//plugins/evaluation-plugin/languages:languages_test_lib",
         "//plugins/evaluation-plugin/core:core_test_lib",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend:backend_test_lib",
+        "//python/python-requirements/backend:backend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.evaluationPlugin.languages.python` end
@@ -75,6 +80,7 @@ jvm_library(
 exports_files(
     [
         "intellij.evaluationPlugin.languages.python.iml",
+        "resources/intellij.evaluationPlugin.languages.python.xml",
     ],
     visibility = ["//visibility:public"],
 )

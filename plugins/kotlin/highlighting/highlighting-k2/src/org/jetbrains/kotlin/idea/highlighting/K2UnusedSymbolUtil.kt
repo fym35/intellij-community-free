@@ -33,18 +33,19 @@ import com.intellij.util.Processor
 import com.siyeh.ig.psiutils.SerializationUtils
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
-import org.jetbrains.kotlin.analysis.api.components.importableFqName
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
+import org.jetbrains.kotlin.analysis.api.resolution.KaSingleCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbols
 import org.jetbrains.kotlin.analysis.api.resolution.singleConstructorCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.successfulVariableAccessCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.scopes.memberScope
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.session.canBeAnalysed
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -56,9 +57,16 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.classSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
+import org.jetbrains.kotlin.analysis.api.symbols.fakeOverrideOriginal
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
+import org.jetbrains.kotlin.analysis.api.symbols.intersectionOverriddenSymbols
 import org.jetbrains.kotlin.analysis.api.symbols.nameOrAnonymous
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.restoreSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
+import org.jetbrains.kotlin.analysis.api.types.expandedSymbol
 import org.jetbrains.kotlin.asJava.LightClassUtil
 import org.jetbrains.kotlin.asJava.classes.KtLightClass
 import org.jetbrains.kotlin.asJava.elements.KtLightMethod
@@ -107,11 +115,11 @@ import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtConstructor
-import org.jetbrains.kotlin.psi.KtContainerNode
 import org.jetbrains.kotlin.psi.KtContainerNodeForControlStructureBody
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
@@ -153,8 +161,9 @@ import org.jetbrains.kotlin.psi.psiUtil.hasExpectModifier
 import org.jetbrains.kotlin.psi.psiUtil.isAncestor
 import org.jetbrains.kotlin.psi.psiUtil.isPrivateNestedClassOrObject
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
-import org.jetbrains.kotlin.psi.psiUtil.referenceExpression
 import org.jetbrains.kotlin.psi.simpleNameExpressionRecursiveVisitor
+import org.jetbrains.kotlin.resolution.KtResolvable
+import org.jetbrains.kotlin.resolution.KtResolvableCall
 import org.jetbrains.kotlin.resolve.DataClassResolver
 
 object K2UnusedSymbolUtil {
@@ -254,7 +263,7 @@ object K2UnusedSymbolUtil {
             withResolve = false,
         ) ?: return false
         val call = anno.resolveToCall()?.successfulFunctionCallOrNull() ?: return false
-        val levelArgument = call.argumentMapping.entries.find { it.value.symbol.name == DEPRECATION_LEVEL_PARAMETER_NAME } ?: return false
+        val levelArgument = call.valueArgumentMapping.entries.find { it.value.symbol.name == DEPRECATION_LEVEL_PARAMETER_NAME } ?: return false
         val levelArgumentCall = levelArgument.key.resolveToCall()?.successfulVariableAccessCall() ?: return false
         return levelArgumentCall.symbol.importableFqName == DEPRECATION_LEVEL_HIDDEN
     }
@@ -328,13 +337,12 @@ object K2UnusedSymbolUtil {
     }
 
     // variation of IDEA's AnnotationUtil.checkAnnotatedUsingPatterns()
+    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     fun checkAnnotatedUsingPatterns(declaration: KtNamedDeclaration, annotationPatterns: Collection<String>): Boolean {
         if (declaration.annotationEntries.isEmpty()) return false
         val annotationsPresent = declaration.annotationEntries.mapNotNull {
-            val reference = it?.calleeExpression?.constructorReferenceExpression?.mainReference ?: return@mapNotNull null
-            val symbol = reference.resolveToSymbol() ?: return@mapNotNull null
-            val constructorSymbol = symbol as? KaConstructorSymbol ?: return@mapNotNull null
+            val constructorSymbol = it.resolveSymbol() ?: return@mapNotNull null
             constructorSymbol.containingClassId?.asSingleFqName()?.asString()
         }
         if (annotationsPresent.isEmpty()) return false
@@ -504,7 +512,7 @@ object K2UnusedSymbolUtil {
                             refElement is KtElement && analyze(refElement) {
                                 refElement.getStrictParentOfType<KtTypeAlias>() != null // ignore unusedness of type aliased classes - they are too hard to trace
                                         || refElement.getStrictParentOfType<KtCallExpression>()?.resolveToCall()
-                                    ?.singleFunctionCallOrNull()?.partiallyAppliedSymbol?.symbol == symbolPointer?.restoreSymbol()
+                                    ?.singleFunctionCallOrNull()?.symbol == symbolPointer?.restoreSymbol()
                             }
                         })
             ) {
@@ -576,6 +584,7 @@ object K2UnusedSymbolUtil {
      * In the above code, CC is not referenced by any expressions other than `import C.CC.value`,
      * but `C.CC.value` is used by `fun value() = value`, so we cannot delete `import C.CC.value`, and we have to keep CC.
      */
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     private fun checkPrivateDeclaration(
         declaration: KtNamedDeclaration,
@@ -589,9 +598,9 @@ object K2UnusedSymbolUtil {
             setOfImportedDeclarations += it
         })
 
-        return setOfImportedDeclarations.mapNotNull { it.referenceExpression() }
-            .filter { symbol in it.mainReference.resolveToSymbols() }
-            .any { !checkReference(it.mainReference.element, declaration, originalDeclaration) }
+        return setOfImportedDeclarations
+            .filter { symbol in it.resolveSymbols() }
+            .any { !checkReference(it, declaration, originalDeclaration) }
     }
 
     // search for references to an element in the scope, satisfying predicate, lazily
@@ -693,12 +702,14 @@ object K2UnusedSymbolUtil {
         return containingFile.anyDescendantOfType(PsiReferenceExpression::isQualifiedNameInEnumStaticMethods)
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     private fun KtImportDirective.resolveReferenceToSymbol(): KaSymbol? = when (importedReference) {
         is KtReferenceExpression -> importedReference as KtReferenceExpression
         else -> importedReference?.getChildOfType<KtReferenceExpression>()
-    }?.mainReference?.resolveToSymbol()
+    }?.resolveSymbol()
 
+    @OptIn(KtExperimentalApi::class, KaExperimentalApi::class)
     context(_: KaSession)
     private fun KtImportDirective.isUsedStarImportOfEnumStaticFunctions(): Boolean {
         if (importPath?.isAllUnder != true) return false
@@ -708,10 +719,13 @@ object K2UnusedSymbolUtil {
 
         val enumStaticMethods = ENUM_STATIC_METHOD_NAMES_WITH_ENTRIES.map { FqName("$importedEnumFqName.$it") }
 
+        @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
         fun KtExpression.isNameInEnumStaticMethods(): Boolean {
             if (getQualifiedExpressionForSelector() != null) return false
             if (((this as? KtNameReferenceExpression)?.parent as? KtCallableReferenceExpression)?.receiverExpression != null) return false
-            val symbol = mainReference?.resolveToSymbol() as? KaCallableSymbol ?: return false
+            val symbol = ((this as? KtResolvableCall)?.resolveCall() as? KaSingleCall<*, *>)?.symbol
+                ?: (this as? KtResolvable)?.resolveSymbol() as? KaCallableSymbol
+                ?: return false
             return symbol.callableId?.asSingleFqName() in enumStaticMethods
         }
 
@@ -861,7 +875,12 @@ object K2UnusedSymbolUtil {
                 ) {
                     RenameElementFix(declaration, "_")
                 } else {
-                    val fix = RemoveUnusedVariableFix(declaration, true, false)
+                    val fix = RemoveUnusedVariableFix(
+                        element = declaration,
+                        isSimpleCase = true,
+                        couldBeAnExplicitlyIgnoredValue = false,
+                        isNameBasedDestructuringEntry = false
+                    )
                     val descriptor = InspectionManager.getInstance(ownerFunction.project)
                         .createProblemDescriptor(declaration, "", fix, ProblemHighlightType.GENERIC_ERROR_OR_WARNING, true)
                     QuickFixWrapper.wrap(descriptor, fix)

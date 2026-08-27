@@ -1,6 +1,5 @@
 package com.intellij.python.pyrefly
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.project.Project
@@ -8,13 +7,14 @@ import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.stopAndRestartClientsIfNeeded
 import com.intellij.platform.lsp.api.stopClients
 import com.intellij.python.lsp.core.PyLspCoreBundle
-import com.intellij.python.pytools.ui.toSafeProperty
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProvider
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
 import com.intellij.python.pyrefly.typeEngine.PyreflyLspTypeEngineProvider
-import com.intellij.python.pytools.isEnabledOn
+import com.intellij.python.pytools.isActiveOn
 import com.intellij.python.pytools.ui.PyToolsUiBundle
+import com.intellij.python.pytools.ui.toSafeProperty
+import com.intellij.ui.components.Badge
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.RowLayout
@@ -40,7 +40,10 @@ internal class PyreflyPyTypeEngineProvider : PyTypeEngineProvider {
   }
 
   private fun shouldBeEnabled(project: Project): Boolean {
-    return isSupported(project) && PyreflyPyTool.getInstance().isEnabledOn(project)
+    // Run the server whenever Pyrefly is active — either selected as the type engine, or enabled as
+    // an LSP tool. `isSupported` is intentionally not required here: the tool is allowed in
+    // multi-module projects (where the engine is not), and a selected engine is already supported.
+    return PyreflyPyTool.getInstance().isActiveOn(project)
   }
 
   override fun Panel.createConfigurableContent(project: Project, propertyGraph: PropertyGraph): RowsRange {
@@ -49,7 +52,7 @@ internal class PyreflyPyTypeEngineProvider : PyTypeEngineProvider {
     return rowsRange {
       row {
         comment(PyLspCoreBundle.message("pyrefly.description")).gap(RightGap.SMALL)
-        icon(AllIcons.General.Beta)
+        icon(Badge.beta)
       }.layout(RowLayout.INDEPENDENT)
 
       collapsibleGroup(PyreflyBundle.message("pyrefly.additional.settings.title"), indent = true) {

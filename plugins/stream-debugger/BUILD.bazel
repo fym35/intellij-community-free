@@ -1,5 +1,25 @@
+load("@community//build:bazel_targets_json.bzl", "current_bazel_targets_json")
 load("@community//build:tests-options.bzl", "jps_test")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
+load("@jps_dynamic_deps_community//:targets.bzl", "ALL_COMMUNITY_TARGETS")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+
+BAZEL_TARGETS_JSON = current_bazel_targets_json()
+
+jps_test(
+    name = "java-debugger-streams-tests_test",
+    timeout = "long",
+    data = ALL_COMMUNITY_TARGETS + [
+        BAZEL_TARGETS_JSON,
+        "@debugger_test_deps_debugger_agent//file:debugger-agent.jar",
+    ],
+    jvm_flags = [
+        "-Dintellij.build.bazel.targets.json.file=$(rlocationpath %s)" % BAZEL_TARGETS_JSON,
+    ],
+    tags = ["community-aggregator"],
+    runtime_deps = [":java-debugger-streams-tests_test_lib"],
+)
+### skip generation section `test intellij.java.debugger.streams.tests`
 
 ### auto-generated section `build intellij.debugger.streams.plugin` start
 jvm_library(
@@ -33,10 +53,29 @@ jvm_library(
 exports_files(
     [
         "intellij.debugger.streams.plugin.iml",
+        "resources/META-INF/plugin.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.debugger.streams.plugin` end
+
+### auto-generated section `dev content intellij.debugger.streams.plugin` start
+dev_dist_plugin_content(
+    content_modules = [
+        "//plugins/stream-debugger/rt",
+        "//plugins/stream-debugger/rt/gatherers",
+    ],
+    descriptor_module = ":debugger-streams-plugin",
+    prepacked_content_modules = [
+        "//plugins/stream-debugger/backend:backend_content_module_jar",
+        "//plugins/stream-debugger/core:core_content_module_jar",
+        "//plugins/stream-debugger/java/frontend:frontend_content_module_jar",
+        "//plugins/stream-debugger/java:java_content_module_jar",
+        "//plugins/stream-debugger/shared:shared_content_module_jar",
+    ],
+)
+### auto-generated section `dev content intellij.debugger.streams.plugin` end
 
 ### auto-generated section `build intellij.java.debugger.streams.tests` start
 jvm_library(
@@ -117,6 +156,16 @@ jvm_library(
         "//java/testFramework:testFramework_test_lib",
         "//java/java-backend:backend",
         "//java/java-backend:backend_test_lib",
+        "//java/plugin",
+        "//java/plugin:plugin_test_lib",
+        "//aether-dependency-resolver/plugin",
+        "//aether-dependency-resolver/plugin:plugin_test_lib",
+        "//platform/structure-view-impl/plugin",
+        "//platform/structure-view-impl/plugin:plugin_test_lib",
+        "//platform/todo/plugin",
+        "//platform/todo/plugin:plugin_test_lib",
+        "//libraries/misc/plugin",
+        "//libraries/misc/plugin:plugin_test_lib",
         "//java/openapi:java",
         "//java/openapi:java_test_lib",
         "//platform/core-ui",
@@ -134,6 +183,8 @@ jvm_library(
         "//platform/code-style-api:codeStyle_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
+        "//libraries/asm",
+        "//libraries/asm:asm_test_lib",
         "//platform/projectModel-api:projectModel",
         "//platform/projectModel-api:projectModel_test_lib",
     ],
@@ -148,10 +199,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.java.debugger.streams.tests` end
-
-### auto-generated section `test intellij.java.debugger.streams.tests` start
-jps_test(
-    name = "java-debugger-streams-tests_test",
-    runtime_deps = [":java-debugger-streams-tests_test_lib"],
-)
-### auto-generated section `test intellij.java.debugger.streams.tests` end

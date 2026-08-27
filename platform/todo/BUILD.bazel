@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.todo` start
 jvm_library(
@@ -19,6 +20,7 @@ jvm_library(
     visibility = ["//visibility:public"],
     deps = [
         # do not sort,
+        "//platform/kernel/rpc",
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/serialization/core",
         "//platform/analysis-api:analysis",
@@ -54,6 +56,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":todo")
+
 jvm_library(
     name = "todo_test_lib",
     testonly = True,
@@ -66,6 +70,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":todo",
+        "//platform/kernel/rpc:rpc_test_lib",
         "//libraries/kotlinx/serialization/core:core_test_lib",
         "//platform/analysis-api:analysis_test_lib",
         "//platform/util/concurrency:concurrency_test_lib",
@@ -105,6 +110,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.todo.iml",
+        "resources/intellij.platform.todo.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

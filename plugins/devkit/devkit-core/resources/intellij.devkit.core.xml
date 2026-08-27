@@ -11,10 +11,53 @@
     <module name="intellij.java.ui"/>
     <module name="intellij.java.xml.dom.impl"/>
     <module name="intellij.json.backend"/>
+    <module name="intellij.libraries.caffeine"/>
+    <module name="intellij.libraries.fastutil"/>
+    <module name="intellij.libraries.guava"/>
+    <module name="intellij.libraries.jackson"/>
+    <module name="intellij.libraries.jackson.databind"/>
+    <module name="intellij.libraries.jetbrains.annotations"/>
+    <module name="intellij.libraries.kotlinx.collections.immutable"/>
+    <module name="intellij.libraries.kotlinx.serialization.core"/>
+    <module name="intellij.libraries.kotlinx.serialization.json"/>
+    <module name="intellij.libraries.kotlinx.serialization.protobuf"/>
+    <module name="intellij.libraries.netty.buffer"/>
+    <module name="intellij.libraries.netty.codec.http"/>
+    <module name="intellij.libraries.protobuf"/>
+    <module name="intellij.libraries.snakeyaml"/>
+    <module name="intellij.libraries.stream"/>
     <module name="intellij.libraries.xerces"/>
+    <module name="intellij.platform.analysis"/>
+    <module name="intellij.platform.builtInServer"/>
+    <module name="intellij.platform.core"/>
+    <module name="intellij.platform.core.impl"/>
+    <module name="intellij.platform.core.ui"/>
+    <module name="intellij.platform.debugger.impl"/>
+    <module name="intellij.platform.editor.ex"/>
+    <module name="intellij.platform.editor.ui"/>
+    <module name="intellij.platform.execution"/>
+    <module name="intellij.platform.execution.impl"/>
+    <module name="intellij.platform.ide"/>
+    <module name="intellij.platform.ide.core"/>
+    <module name="intellij.platform.ide.core.impl"/>
+    <module name="intellij.platform.ide.impl"/>
+    <module name="intellij.platform.ide.progress"/>
+    <module name="intellij.platform.indexing"/>
     <module name="intellij.platform.jps.build"/>
+    <module name="intellij.platform.lang"/>
+    <module name="intellij.platform.lang.core"/>
+    <module name="intellij.platform.lang.impl"/>
+    <module name="intellij.platform.markdown.utils"/>
+    <module name="intellij.platform.projectModel"/>
+    <module name="intellij.platform.refactoring"/>
+    <module name="intellij.platform.serviceContainer"/>
+    <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.structureView"/>
     <module name="intellij.platform.testRunner"/>
+    <module name="intellij.platform.usageView"/>
+    <module name="intellij.platform.usageView.impl"/>
+    <module name="intellij.platform.util.ui"/>
+    <module name="intellij.platform.workspace.jps"/>
     <module name="intellij.properties.backend"/>
     <module name="intellij.properties.backend.psi"/>
     <module name="intellij.spellchecker"/>
@@ -165,16 +208,14 @@
                  description="Shows inline split-mode compatibility hints for DevKit plugin descriptors."/>
     <registryKey key="devkit.split.mode.run.jps.to.bazel.in.quick.fix" defaultValue="false"
                  description="Automatically run JPS to Bazel conversion after applying a fix that touches runtime/compile dependencies"/>
-    <registryKey key="devkit.split.mode.add.to.exclusions.quick.fix.enabled" defaultValue="false"
-                 description="Enables the DevKit split-mode quick fix that suppresses a single violation through DevKitSplitModeInspectionExclusions.json."/>
 
-    <registryKey key="devkit.split.mode.analysis.api.restrictions.source" defaultValue="[bundled*|project|project-or-bundled]"
+    <registryKey key="devkit.split.mode.analysis.api.restrictions.source" defaultValue="[bundled|project|project-or-bundled*]"
                  description="Source of ApiRestrictions.json5 for DevKit split-mode inspections."
                  restartRequired="true"/>
-    <registryKey key="devkit.split.mode.analysis.predefined.module.kinds.source" defaultValue="[bundled*|project|project-or-bundled]"
+    <registryKey key="devkit.split.mode.analysis.predefined.module.kinds.source" defaultValue="[bundled|project|project-or-bundled*]"
                  description="Source of PredefinedModuleKinds.json5 for DevKit split-mode inspections."
                  restartRequired="true"/>
-    <registryKey key="devkit.split.mode.qodana.analysis.scope.source" defaultValue="[bundled|project*|project-or-bundled]"
+    <registryKey key="devkit.split.mode.qodana.analysis.scope.source" defaultValue="[bundled|project|project-or-bundled*]"
                  description="Source of SplitModeQodanaAnalysisScope.json for DevKit split-mode inspections."
                  restartRequired="true"/>
 
@@ -232,6 +273,12 @@
                      enabledByDefault="true" level="WARNING"
                      implementationClass="org.jetbrains.idea.devkit.inspections.PluginXmlExtensionRegistrationInspection"
                      key="inspection.plugin.xml.extension.registration.display.name"/>
+    <localInspection language="XML" applyToDialects="false"
+                     projectType="INTELLIJ_PLUGIN"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.descriptor"
+                     enabledByDefault="false" level="ERROR"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.PluginXmlReferencesModuleReachabilityInspection"
+                     key="inspection.plugin.xml.references.module.reachability.display.name"/>
 
     <localInspection language="JVM" shortName="ComponentNotRegistered"
                      projectType="INTELLIJ_PLUGIN"
@@ -333,6 +380,18 @@
                      enabledByDefault="true" level="WARNING"
                      implementationClass="org.jetbrains.idea.devkit.inspections.UseHtmlChunkToolTipInspection"
                      key="inspection.use.html.chunk.tooltip.display.name"/>
+    <localInspection language="UAST" shortName="UseVirtualFileToVirtualFileUrlConversion"
+                     projectType="INTELLIJ_PLUGIN"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.code"
+                     enabledByDefault="true" level="WARNING"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.UseVirtualFileToVirtualFileUrlConversionInspection"
+                     key="inspection.use.virtual.file.to.virtual.file.url.conversion.display.name"/>
+    <localInspection language="UAST" shortName="UseVirtualFileUrlToVirtualFileConversion"
+                     projectType="INTELLIJ_PLUGIN"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.code"
+                     enabledByDefault="true" level="WARNING"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.UseVirtualFileUrlToVirtualFileConversionInspection"
+                     key="inspection.use.virtual.file.url.to.virtual.file.conversion.display.name"/>
     <localInspection language="UAST" shortName="UseDPIAwareInsets"
                      projectType="INTELLIJ_PLUGIN"
                      groupPathKey="inspections.group.path" groupKey="inspections.group.code"
@@ -456,6 +515,11 @@
                      enabledByDefault="false" level="WARNING"
                      implementationClass="org.jetbrains.idea.devkit.inspections.ExtensionClassShouldBeFinalAndNonPublicInspection"
                      key="inspection.extension.class.should.be.final.and.non.public.display.name"/>
+    <localInspection language="JVM" shortName="LightProjectDescriptorEqualsHashCode"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.code"
+                     enabledByDefault="true" level="ERROR"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.LightProjectDescriptorEqualsHashCodeInspection"
+                     key="inspection.light.project.descriptor.equals.hashcode.display.name"/>
     <localInspection language="XML" applyToDialects="false" shortName="LightServiceMigrationXML"
                      projectType="INTELLIJ_PLUGIN"
                      groupPathKey="inspections.group.path" groupKey="inspections.group.descriptor"

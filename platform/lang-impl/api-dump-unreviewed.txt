@@ -389,13 +389,6 @@ f:com.intellij.build.BuildContentDescriptor
 - isActivateToolWindowWhenFailed():Z
 - isNavigateToError():com.intellij.util.ThreeState
 f:com.intellij.build.BuildTextConsoleView
-- <init>(com.intellij.openapi.project.Project,Z,java.util.List):V
-- append(com.intellij.build.events.Failure):Z
-- append(java.lang.String,Z):V
-- appendEventResult(com.intellij.build.events.EventResult):Z
-- coloredTextAvailable(java.lang.String,com.intellij.openapi.util.Key):V
-- onEvent(com.intellij.build.events.OutputBuildEvent):V
-- onEvent(java.lang.Object,com.intellij.build.events.BuildEvent):V
 f:com.intellij.build.BuildTreeConsoleView
 - <init>(com.intellij.openapi.project.Project,com.intellij.build.BuildDescriptor,com.intellij.execution.ui.ExecutionConsole):V
 - addFilter(java.util.function.Predicate):V
@@ -415,7 +408,6 @@ f:com.intellij.build.BuildTreeConsoleView
 - hasDeferredOutput():Z
 - hasNextOccurence():Z
 - hasPreviousOccurence():Z
-- hideRootNode():V
 - isDisposed():Z
 - isFilteringEnabled():Z
 - isOutputPaused():Z
@@ -488,7 +480,6 @@ c:com.intellij.build.ExecutionNode
 - getElement():com.intellij.build.ExecutionNode
 - getEndTime():J
 - s:getEventResultIcon(com.intellij.build.events.EventResult):javax.swing.Icon
-- getFilter():java.util.function.Predicate
 - getNavigatables():java.util.List
 - getTitle():java.lang.String
 - hasInfos():Z
@@ -496,7 +487,6 @@ c:com.intellij.build.ExecutionNode
 - s:isFailed(com.intellij.build.events.EventResult):Z
 - s:isSkipped(com.intellij.build.events.EventResult):Z
 - reportChildMessageKind(com.intellij.build.events.MessageEvent$Kind):com.intellij.build.ExecutionNode
-- setFilter(java.util.function.Predicate):V
 - setNavigatable(com.intellij.pom.Navigatable):V
 - p:update(com.intellij.ide.projectView.PresentationData):V
 f:com.intellij.build.FileNavigatable
@@ -678,7 +668,6 @@ c:com.intellij.codeInsight.actions.RearrangeCodeProcessor
 c:com.intellij.codeInsight.actions.ReformatCodeAction
 - s:convertToPsiFiles(com.intellij.openapi.vfs.VirtualFile[],com.intellij.openapi.project.Project):com.intellij.psi.PsiFile[]
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
-- getRequiredPermissions():java.util.Collection
 - s:reformatDirectory(com.intellij.openapi.project.Project,com.intellij.psi.PsiDirectory,com.intellij.codeInsight.actions.DirectoryFormattingOptions):V
 - s:registerFileMaskFilter(com.intellij.codeInsight.actions.AbstractLayoutCodeProcessor,java.lang.String):V
 - s:registerScopeFilter(com.intellij.codeInsight.actions.AbstractLayoutCodeProcessor,com.intellij.psi.search.SearchScope):V
@@ -3368,10 +3357,6 @@ a:com.intellij.find.editorHeaderActions.PrevNextOccurrenceAction
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 f:com.intellij.find.editorHeaderActions.PrevOccurrenceAction
 - <init>(Z):V
-c:com.intellij.find.editorHeaderActions.ShowFilterPopupGroup
-- getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
-- getShortcut():com.intellij.openapi.actionSystem.ShortcutSet
-- update(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.find.editorHeaderActions.StatusTextAction
 - actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
 - createCustomComponent(com.intellij.openapi.actionSystem.Presentation,java.lang.String):javax.swing.JComponent
@@ -3811,7 +3796,6 @@ c:com.intellij.ide.actions.GotoFileAction
 - sf:ID:java.lang.String
 - actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.ide.actions.GotoFileItemProvider
-- sf:EXACT_MATCH_DEGREE:I
 - <init>(com.intellij.openapi.project.Project,com.intellij.psi.PsiElement,com.intellij.ide.util.gotoByName.GotoFileModel):V
 - filterElementsWithWeights(com.intellij.ide.util.gotoByName.ChooseByNameViewModel,com.intellij.util.indexing.FindSymbolParameters,com.intellij.openapi.progress.ProgressIndicator,com.intellij.util.Processor):Z
 - s:getQualifiedNameMatcher(java.lang.String):com.intellij.psi.codeStyle.MinusculeMatcher
@@ -4103,7 +4087,6 @@ f:com.intellij.ide.actions.searcheverywhere.PSIPresentationBgRendererWrapper
 - filterControlSymbols(java.lang.String):java.lang.String
 - getActions(java.lang.Runnable):java.util.List
 - getAdvertisement():java.lang.String
-- getAutocompleteItems(java.lang.String,I):java.util.List
 - getEffectiveContributor():com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 - getElementPriority(java.lang.Object,java.lang.String):I
 - getElementsRenderer():javax.swing.ListCellRenderer
@@ -4176,7 +4159,6 @@ f:com.intellij.ide.actions.searcheverywhere.SearchEverywhereManagerImpl
 - sf:LOCATION_SETTINGS_KEY:java.lang.String
 - <init>():V
 - <init>(com.intellij.openapi.project.Project):V
-- getCurrentlyShownPopupInstance():com.intellij.ide.actions.searcheverywhere.SearchEverywherePopupInstance
 - getCurrentlyShownUI():com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 - getPrevSelection(java.lang.String):java.lang.Object
 - getSelectedTabID():java.lang.String
@@ -4586,7 +4568,6 @@ a:com.intellij.ide.hierarchy.actions.BrowseHierarchyActionBase
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.ide.highlighter.custom.CustomFileHighlighter
 - getHighlightingLexer():com.intellij.lexer.Lexer
-- s:getKeys():java.util.Map
 - getTokenHighlights(com.intellij.psi.tree.IElementType):com.intellij.openapi.editor.colors.TextAttributesKey[]
 f:com.intellij.ide.highlighter.custom.impl.CustomFileTypeBraceMatcher
 - sf:INSTANCE:com.intellij.codeInsight.highlighting.PairedBraceMatcherAdapter
@@ -5701,7 +5682,6 @@ a:com.intellij.ide.util.projectWizard.AbstractNewProjectDialog
 - pf:init():V
 a:com.intellij.ide.util.projectWizard.AbstractNewProjectStep
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
-- ps:createOpenProjectOptions(com.intellij.openapi.project.Project,java.util.function.Consumer):com.intellij.ide.impl.OpenProjectTask
 - s:doGenerateProject(com.intellij.openapi.project.Project,java.lang.String,com.intellij.platform.DirectoryProjectGenerator,java.lang.Object):com.intellij.openapi.project.Project
 - s:doGenerateProject(java.lang.String,com.intellij.platform.DirectoryProjectGenerator,java.lang.Object,com.intellij.ide.impl.OpenProjectTask):com.intellij.openapi.project.Project
 - f:getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -5813,9 +5793,6 @@ f:com.intellij.ide.util.scopeChooser.ScopeDescriptorProvider$Companion
 f:com.intellij.internal.ImageDuplicateResultsDialog
 - <init>(com.intellij.openapi.project.Project,java.util.List,java.util.Map):V
 - getPreferredFocusedComponent():javax.swing.JComponent
-com.intellij.internal.retype.RetypeFileAssistant
-- a:acceptLookupElement(com.intellij.codeInsight.lookup.LookupElement):Z
-- retypeDone(com.intellij.openapi.editor.Editor):V
 a:com.intellij.lang.SmartEnterProcessorWithFixers
 - psf:LOG:com.intellij.openapi.diagnostic.Logger
 - psf:MAX_ATTEMPTS:I
@@ -5907,7 +5884,6 @@ f:com.intellij.largeFilesEditor.editor.LargeFileEditorProvider
 - createEditor(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile):com.intellij.openapi.fileEditor.FileEditor
 - getEditorTypeId():java.lang.String
 - getPolicy():com.intellij.openapi.fileEditor.FileEditorPolicy
-- readState(org.jdom.Element,com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile):com.intellij.openapi.fileEditor.FileEditorState
 - writeState(com.intellij.openapi.fileEditor.FileEditorState,com.intellij.openapi.project.Project,org.jdom.Element):V
 f:com.intellij.lexer.LexerUtil
 - s:getRootLexer(com.intellij.lexer.Lexer):com.intellij.lexer.Lexer
@@ -6039,7 +6015,6 @@ c:com.intellij.openapi.fileEditor.impl.text.PsiAwareTextEditorProvider
 - createFileEditor(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,com.intellij.openapi.editor.Document,kotlinx.coroutines.CoroutineScope,kotlin.coroutines.Continuation):java.lang.Object
 - p:createWrapperForEditor(com.intellij.openapi.editor.Editor):com.intellij.openapi.fileEditor.impl.text.TextEditorProvider$EditorWrapper
 - getStateImpl(com.intellij.openapi.project.Project,com.intellij.openapi.editor.Editor,com.intellij.openapi.fileEditor.FileEditorStateLevel):com.intellij.openapi.fileEditor.impl.text.TextEditorState
-- readState(org.jdom.Element,com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile):com.intellij.openapi.fileEditor.FileEditorState
 - setStateImpl(com.intellij.openapi.project.Project,com.intellij.openapi.editor.Editor,com.intellij.openapi.fileEditor.impl.text.TextEditorState,Z):V
 - writeState(com.intellij.openapi.fileEditor.FileEditorState,com.intellij.openapi.project.Project,org.jdom.Element):V
 f:com.intellij.openapi.fileTypes.PlainTextSyntaxHighlighterFactory
@@ -6423,15 +6398,6 @@ a:com.intellij.openapi.roots.ui.configuration.actions.ContentEntryEditingAction
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.openapi.roots.ui.configuration.actions.ModuleDeleteProvider
-- canDeleteElement(com.intellij.openapi.actionSystem.DataContext):Z
-- deleteElement(com.intellij.openapi.actionSystem.DataContext):V
-- s:detachModules(com.intellij.openapi.project.Project,com.intellij.openapi.module.Module[]):V
-- p:doDetachModules(com.intellij.openapi.project.Project,com.intellij.openapi.module.Module[],java.util.List):V
-- getActionTitle():java.lang.String
-- getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
-- p:getConfirmationText(java.lang.String,I):java.lang.String
-- s:getInstance():com.intellij.openapi.roots.ui.configuration.actions.ModuleDeleteProvider
-- s:removeModule(com.intellij.openapi.module.Module,java.util.Collection,com.intellij.openapi.module.ModifiableModuleModel):V
 c:com.intellij.openapi.roots.ui.configuration.projectRoot.ProjectSdksModel
 - addSdk(com.intellij.openapi.projectRoots.SdkType,java.lang.String,com.intellij.util.Consumer):V
 - apply(com.intellij.openapi.ui.MasterDetailsComponent):V

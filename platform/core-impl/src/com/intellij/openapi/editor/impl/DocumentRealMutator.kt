@@ -5,11 +5,10 @@ import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.elf.Elf
 import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.ex.DocumentRangeMarkerTree
 import com.intellij.openapi.editor.ex.DocumentSettings
 import com.intellij.openapi.editor.ex.DocumentSnapshot
+import com.intellij.openapi.editor.ex.DocumentTextPatch
 import com.intellij.util.concurrency.ThreadingAssertions
-import com.intellij.util.text.ImmutableCharSequence
 import java.util.function.UnaryOperator
 import kotlin.concurrent.Volatile
 
@@ -28,8 +27,7 @@ import kotlin.concurrent.Volatile
 internal abstract class DocumentRealMutator(
   settings: DocumentSettings,
   private val dispatcher: DocumentMagicEventDispatcher,
-  tree: DocumentRangeMarkerTree,
-) : DocumentMutatorImpl(settings, dispatcher, tree) {
+) : DocumentMutatorImpl(settings, dispatcher) {
   @Volatile private var textChangeInProgress = false
   @Volatile private var isApplyingElfChangesToReal = false
 
@@ -79,20 +77,12 @@ internal abstract class DocumentRealMutator(
   final override fun changeText(
     snapshotBefore: DocumentSnapshot,
     changeEvent: DocumentEvent,
-    newWholeText: ImmutableCharSequence,
-    newModStamp: Long,
-    clearLineFlags: Boolean,
+    patch: DocumentTextPatch,
   ): DocumentSnapshot {
     assertNotNestedModification()
     textChangeInProgress = true
     try {
-      return changeAndFireText(
-        snapshotBefore,
-        changeEvent,
-        newWholeText,
-        newModStamp,
-        clearLineFlags,
-      )
+      return changeAndFireText(snapshotBefore, changeEvent, patch)
     } finally {
       textChangeInProgress = false
     }
@@ -101,13 +91,11 @@ internal abstract class DocumentRealMutator(
   private fun changeAndFireText(
     snapshotBefore: DocumentSnapshot,
     changeEvent: DocumentEvent,
-    newWholeText: ImmutableCharSequence,
-    newModStamp: Long,
-    clearLineFlags: Boolean,
+    patch: DocumentTextPatch,
   ): DocumentSnapshot {
     if (elfBarrier()) {
       val snapshotAfterChange = dispatcher.withFiringTextUpdate(changeEvent) {
-        updateText(snapshotBefore, changeEvent, newWholeText, newModStamp, clearLineFlags)
+        updateText(snapshotBefore, patch)
       }
       if (!isApplyingElfChangesToReal) {
         appendRealChange(RealTextChange(
@@ -119,45 +107,28 @@ internal abstract class DocumentRealMutator(
       return snapshotAfterChange
     } else {
       return dispatcher.withFiringBothTextUpdate(changeEvent) {
-        updateText(snapshotBefore, changeEvent, newWholeText, newModStamp, clearLineFlags)
+        updateText(snapshotBefore, patch)
       }
     }
   }
 
   private fun updateText(
     snapshotBefore: DocumentSnapshot,
-    changeEvent: DocumentEvent,
-    newWholeText: ImmutableCharSequence,
-    newModStamp: Long,
-    clearLineFlags: Boolean,
+    patch: DocumentTextPatch,
   ): DocumentSnapshot {
-    return updateAndGet { latest ->
-      // modStamp or other metadata could be changed during before-change listeners,
-      // should merge it into final snapshot
-      val merged = snapshotBefore.withMetadata(latest)
-      merged.withText(
-        newWholeText,
-        changeEvent.offset,
-        changeEvent.offset + changeEvent.oldLength,
-        changeEvent.newFragment,
-        newModStamp,
-        changeEvent.isWholeTextReplaced,
-        clearLineFlags,
-        false,
-      )
-    }
+    return updateAndGet { latest -> mergeAndPatch(snapshotBefore, latest, patch) }
   }
 
   private fun applyElfTextChange(elfChange: ElfTextChange) {
+    val applyChange = {
+      // Rebased changes carry independently computed snapshots. Apply each patch to the published result of the
+      // preceding replay so its marker root and any listener-time metadata are inherited by the whole batch.
+      val snapshotBefore = getSnapshotSnapshot().real
+      changeText(snapshotBefore, elfChange.changeEvent, elfChange.patch)
+    }
     if (elfChange.isTransparent) {
       CommandProcessor.getInstance().runUndoTransparentAction {
-        changeText(
-          elfChange.snapshotBefore,
-          elfChange.changeEvent,
-          elfChange.newWholeText,
-          elfChange.newModStamp,
-          elfChange.clearLineFlags,
-        )
+        applyChange()
       }
       return
     }
@@ -166,13 +137,7 @@ internal abstract class DocumentRealMutator(
       elfChange.commandName,
       elfChange.commandGroupId,
     ) {
-      changeText(
-        elfChange.snapshotBefore,
-        elfChange.changeEvent,
-        elfChange.newWholeText,
-        elfChange.newModStamp,
-        elfChange.clearLineFlags,
-      )
+      applyChange()
     }
   }
 

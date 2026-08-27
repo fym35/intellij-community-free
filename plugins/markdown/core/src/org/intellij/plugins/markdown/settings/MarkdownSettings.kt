@@ -16,6 +16,10 @@ import org.intellij.plugins.markdown.ui.preview.MarkdownHtmlPanelProvider
 @Service(Service.Level.PROJECT)
 @State(name = "MarkdownSettings", storages = [(Storage("markdown.xml"))])
 class MarkdownSettings(internal val project: Project): SimplePersistentStateComponent<MarkdownSettingsState>(MarkdownSettingsState()) {
+  var enableLivePreview: Boolean
+    get() = state.enableLivePreview
+    set(value) { state.enableLivePreview = value }
+
   var areInjectionsEnabled: Boolean
     get() = state.areInjectionsEnabled
     set(value) { state.areInjectionsEnabled = value }
@@ -23,6 +27,10 @@ class MarkdownSettings(internal val project: Project): SimplePersistentStateComp
   var showProblemsInCodeBlocks: Boolean
     get() = state.showProblemsInCodeBlocks
     set(value) { state.showProblemsInCodeBlocks = value }
+
+  var isStripTrailingSpacesOnSave: Boolean
+    get() = state.isStripTrailingSpacesOnSave
+    set(value) { state.isStripTrailingSpacesOnSave = value }
 
   var splitLayout: TextEditorWithPreview.Layout
     get() = state.splitLayout
@@ -59,6 +67,10 @@ class MarkdownSettings(internal val project: Project): SimplePersistentStateComp
   var isFileGroupingEnabled: Boolean
     get() = state.isFileGroupingEnabled
     set(value) { state.isFileGroupingEnabled = value }
+
+  var useFileDirectoryForCommands: Boolean?
+    get() = state.useFileDirectoryForCommands
+    set(value) { state.useFileDirectoryForCommands = value }
 
   override fun noStateLoaded() {
     super.noStateLoaded()

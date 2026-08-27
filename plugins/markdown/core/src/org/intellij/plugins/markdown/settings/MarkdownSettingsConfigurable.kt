@@ -115,12 +115,20 @@ internal class MarkdownSettingsConfigurable(private val project: Project) : Boun
         }
       }
       row {
+        checkBox(MarkdownBundle.message("markdown.settings.enable.live.preview"))
+          .bindSelected(settings::enableLivePreview)
+      }
+      row {
         checkBox(MarkdownBundle.message("markdown.settings.enable.injections"))
           .bindSelected(settings::areInjectionsEnabled)
       }
       row {
         checkBox(MarkdownBundle.message("markdown.settings.show.problems"))
           .bindSelected(settings::showProblemsInCodeBlocks)
+      }
+      row {
+        checkBox(MarkdownBundle.message("markdown.settings.strip.trailing.spaces"))
+          .bindSelected(settings::isStripTrailingSpacesOnSave)
       }
       row {
         checkBox(MarkdownBundle.message("markdown.settings.group.documents.in.project.tree"))
@@ -135,6 +143,19 @@ internal class MarkdownSettingsConfigurable(private val project: Project) : Boun
           )
           onApply { notifyExtensionsChanged() }
         }
+      }
+      row(MarkdownBundle.message("markdown.settings.commandrunner.directory")) {
+        comboBox(
+          model = DefaultComboBoxModel(arrayOf(false, true)),
+          renderer = textListCellRenderer("") { value: Boolean? ->
+            value?.let {
+              MarkdownBundle.message(if (it) "markdown.settings.commandrunner.directory.file" else "markdown.settings.commandrunner.directory.project")
+            }
+          }
+        ).bindItem(
+          getter = { settings.useFileDirectoryForCommands },
+          setter = { settings.useFileDirectoryForCommands = it }
+        ).widthGroup(comboBoxWidthGroup)
       }.bottomGap(BottomGap.SMALL)
       extensionsListRow().apply {
         onApply { notifyExtensionsChanged() }
@@ -255,7 +276,7 @@ internal class MarkdownSettingsConfigurable(private val project: Project) : Boun
   private fun Row.customCssTextFieldWithBrowserButton(): Cell<TextFieldWithBrowseButton> {
     val field = textFieldWithBrowseButton(
       project = project,
-      fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("css")
+      fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("css").withEnvironmentRestricted(true)
     )
     field.applyToComponent {
       disposable?.let { Disposer.register(it, this@applyToComponent) }

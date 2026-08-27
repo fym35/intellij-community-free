@@ -1,6 +1,7 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "ui-tests_test",
@@ -31,8 +32,10 @@ jvm_library(
             "src/main/kotlin/**/*.kt",
             "src/main/kotlin/**/*.java",
             "src/main/kotlin/**/*.form",
-            "generated/**/*.kt",
-            "generated/**/*.java",
+            "generated/icons/**/*.kt",
+            "generated/icons/**/*.java",
+            "generated/theme/**/*.kt",
+            "generated/theme/**/*.java",
         ],
         allow_empty = True,
     ),
@@ -56,7 +59,7 @@ jvm_library(
         # do not sort,
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//libraries/skiko",
         "//platform/jewel/foundation",
         "@lib//:platform-jewel-ui-org-jetbrains-compose-components-components-resources",
@@ -67,6 +70,15 @@ jvm_library(
         "//platform/icons-api/rendering",
         "//platform/icons-impl",
     ],
+)
+
+content_module_jar(
+    libraries = [
+        # do not sort,
+        "@lib//:platform-jewel-ui-org-jetbrains-compose-components-components-resources",
+        "@lib//:platform-jewel-ui-org-jetbrains-compose-components-components-resources-desktop",
+    ],
+    module = ":ui",
 )
 
 jvm_library(
@@ -96,6 +108,7 @@ jvm_library(
         # do not sort,
         ":ui",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/skiko:skiko_test_lib",
         "//platform/jewel/foundation:foundation_test_lib",
         "//libraries/compose-foundation-desktop:compose-foundation-desktop_test_lib",
@@ -115,6 +128,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.jewel.ui.iml",
+        "src/main/resources/intellij.platform.jewel.ui.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -186,7 +201,8 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/skiko",
         "//libraries/skiko:skiko_test_lib",
         "//platform/jewel/foundation",

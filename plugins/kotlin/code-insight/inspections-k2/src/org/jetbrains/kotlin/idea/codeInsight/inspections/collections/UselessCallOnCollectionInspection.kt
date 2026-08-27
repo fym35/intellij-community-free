@@ -8,28 +8,34 @@ import com.intellij.openapi.util.TextRange
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.fullyExpandedType
 import org.jetbrains.kotlin.analysis.api.components.isClassType
-import org.jetbrains.kotlin.analysis.api.components.isNullable
-import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.targetSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.symbols.typeParameters
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
+import org.jetbrains.kotlin.analysis.api.types.fullyExpandedType
+import org.jetbrains.kotlin.analysis.api.types.isNullable
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
+import org.jetbrains.kotlin.idea.codeinsight.utils.ConvertLambdaToReferenceUtils.singleStatementOrNull
+import org.jetbrains.kotlin.idea.codeinsight.utils.callExpression
+import org.jetbrains.kotlin.idea.codeinsights.impl.base.quickFix.AssociateFunctionUtil.lambda
+import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLabeledExpression
 import org.jetbrains.kotlin.psi.KtLambdaExpression
+import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtReturnExpression
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
@@ -48,6 +54,9 @@ open class UselessCallOnCollectionInspection : AbstractUselessCallInspection() {
         UselessFilterConversion(topLevelCallableId("kotlin.sequences", "filterNotNull")),
         UselessFilterConversion(topLevelCallableId("kotlin.collections", "filterIsInstance")),
         UselessFilterConversion(topLevelCallableId("kotlin.sequences", "filterIsInstance")),
+
+        UselessFilterOfBooleanConstantConversion(topLevelCallableId("kotlin.collections", "filter")),
+        UselessFilterOfBooleanConstantConversion(topLevelCallableId("kotlin.sequences", "filter")),
 
         UselessMapNotNullConversion(topLevelCallableId("kotlin.collections", "mapNotNull"), replacementName = "map"),
         UselessMapNotNullConversion(topLevelCallableId("kotlin.sequences", "mapNotNull"), replacementName = "map"),
@@ -76,7 +85,6 @@ open class UselessCallOnCollectionInspection : AbstractUselessCallInspection() {
             val callableName = resolvedCall.symbol.callableId?.callableName?.asString() ?: return null
             if (callableName == "filterIsInstance") {
                 if (receiverTypeArgument is KaTypeArgumentWithVariance && receiverTypeArgument.variance == Variance.IN_VARIANCE) return null
-                @OptIn(KaExperimentalApi::class)
                 val typeParameterDescriptor = resolvedCall.symbol.typeParameters.singleOrNull() ?: return null
                 val argumentType = resolvedCall.typeArgumentsMapping[typeParameterDescriptor] ?: return null
                 if (receiverTypeArgumentType is KaFlexibleType || !receiverTypeArgumentType.isSubtypeOf(argumentType)) return null
@@ -102,6 +110,69 @@ open class UselessCallOnCollectionInspection : AbstractUselessCallInspection() {
                 isOnTheFly,
                 fix
             )
+        }
+    }
+
+    protected inner class UselessFilterOfBooleanConstantConversion(
+        override val targetCallableId: CallableId,
+    ) : QualifiedFunctionCallConversion {
+        private fun KtExpression.constantBoolean(): Boolean? = when {
+            KtPsiUtil.isTrueConstant(this) -> true
+            KtPsiUtil.isFalseConstant(this) -> false
+            else -> null
+        }
+
+        @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+        context(_: KaSession)
+        override fun createProblemDescriptor(
+            manager: InspectionManager,
+            expression: KtQualifiedExpression,
+            calleeExpression: KtExpression,
+            isOnTheFly: Boolean
+        ): ProblemDescriptor? {
+            val lambda = expression.callExpression?.lambda() ?: return null
+
+            val statement = lambda.singleStatementOrNull() ?: return null
+
+            val constantValue = when (statement) {
+                is KtReturnExpression -> {
+                    val returnExpression = statement.returnedExpression?.let(KtPsiUtil::safeDeparenthesize) ?: return null
+                    val constantValue = returnExpression.constantBoolean() ?: return null
+
+                    val label = statement.getTargetLabel() ?: return null
+                    val resolved = label.resolveSymbol()?.psi ?: return null
+                    if (!resolved.isEquivalentTo(lambda.functionLiteral))
+                        return null
+
+                    constantValue
+                }
+
+                else -> KtPsiUtil.safeDeparenthesize(statement).constantBoolean() ?: return null
+            }
+
+            val range = TextRange(
+                expression.operationTokenNode.startOffset - expression.startOffset,
+                expression.endOffset - expression.startOffset,
+            )
+
+            return when (constantValue) {
+                true -> manager.createProblemDescriptor(
+                    expression,
+                    range,
+                    KotlinBundle.message("redundant.call.on.collection.type"),
+                    ProblemHighlightType.LIKE_UNUSED_SYMBOL,
+                    isOnTheFly,
+                    RemoveUselessCallFix()
+                )
+
+                false -> manager.createProblemDescriptor(
+                    expression,
+                    range,
+                    KotlinBundle.message("filter.of.false.will.return.an.empty.collection"),
+                    ProblemHighlightType.WARNING,
+                    isOnTheFly,
+                )
+            }
         }
     }
 
@@ -138,7 +209,7 @@ open class UselessCallOnCollectionInspection : AbstractUselessCallInspection() {
 
             if (receiverTypeArgumentType.isNullable) return null
             // Check if there is a function argument
-            resolvedCall.argumentMapping.toList().lastOrNull()?.first?.let { lastArgument ->
+            resolvedCall.valueArgumentMapping.toList().lastOrNull()?.first?.let { lastArgument ->
                 // We do not have a problem if the lambda argument might return null
                 if (!lastArgument.isMethodReferenceReturningNotNull() && !lastArgument.isLambdaReturningNotNull()) return null
                 // Otherwise, the
@@ -162,13 +233,14 @@ open class UselessCallOnCollectionInspection : AbstractUselessCallInspection() {
         }
     }
 
+    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     private fun KtExpression.isLambdaReturningNotNull(): Boolean {
         val expression = if (this is KtLabeledExpression) this.baseExpression else this
         if (expression !is KtLambdaExpression) return false
         var labelledReturnReturnsNullable = false
         expression.bodyExpression?.forEachDescendantOfType<KtReturnExpression> { returnExpression ->
-            val targetExpression = returnExpression.targetSymbol?.psi?.parent
+            val targetExpression = returnExpression.resolveSymbol()?.psi?.parent
             if (targetExpression == expression) {
                 labelledReturnReturnsNullable = labelledReturnReturnsNullable ||
                         returnExpression.returnedExpression?.expressionType?.isNullable == true

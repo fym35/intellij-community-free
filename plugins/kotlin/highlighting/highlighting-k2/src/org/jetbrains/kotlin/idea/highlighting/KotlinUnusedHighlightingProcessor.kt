@@ -23,17 +23,20 @@ import com.intellij.refactoring.safeDelete.SafeDeleteHandler
 import org.jetbrains.annotations.Nls
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.KaCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaCompoundAccessCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitInvokeCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
-import org.jetbrains.kotlin.analysis.api.resolution.KaSimpleFunctionCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaSingleCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaContextParameterSymbol
@@ -46,7 +49,6 @@ import org.jetbrains.kotlin.idea.codeinsights.impl.base.isExplicitlyIgnoredByNam
 import org.jetbrains.kotlin.idea.highlighting.analyzers.isCalleeExpression
 import org.jetbrains.kotlin.idea.highlighting.analyzers.isConstructorCallReference
 import org.jetbrains.kotlin.idea.inspections.describe
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtAnnotated
 import org.jetbrains.kotlin.psi.KtArrayAccessExpression
@@ -59,6 +61,7 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtConstructor
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtEnumEntry
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtInstanceExpressionWithLabel
@@ -74,6 +77,7 @@ import org.jetbrains.kotlin.psi.KtSecondaryConstructor
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.KtValueArgumentName
 import org.jetbrains.kotlin.psi.KtVisitorVoid
+import org.jetbrains.kotlin.resolution.KtResolvableCall
 import org.jetbrains.kotlin.resolve.DataClassResolver
 
 internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
@@ -122,7 +126,7 @@ internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
         }
     }
 
-    @OptIn(KaExperimentalApi::class)
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     private fun registerLocalReferences(elements: List<PsiElement>) {
         val registerDeclarationAccessVisitor = object : KtVisitorVoid() {
@@ -137,7 +141,7 @@ internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
                     refHolder.registerLocalRef(((it as? KaImplicitReceiverValue)?.symbol as? KaContextParameterSymbol)?.psi)
                 }
 
-                val symbol = resolvedSymbol?.symbol ?: expression.mainReference.resolveToSymbol()
+                val symbol = resolvedSymbol?.symbol ?: expression.resolveSymbol()
                 if (symbol is KaLocalVariableSymbol || symbol is KaValueParameterSymbol || symbol is KaKotlinPropertySymbol || symbol is KaContextParameterSymbol) {
                     refHolder.registerLocalRef(symbol.psi)
                 }
@@ -149,7 +153,7 @@ internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
                         return
                     }
                     if (expression.isConstructorCallReference()) {
-                        refHolder.registerLocalRef((expression.mainReference.resolveToSymbol() as? KaConstructorSymbol)?.psi)
+                        refHolder.registerLocalRef((((expression as? KtResolvableCall)?.resolveCall() as? KaSingleCall<*, *>)?.symbol as? KaConstructorSymbol)?.psi)
                     }
                     else if (expression is KtOperationReferenceExpression) {
                         refHolder.registerLocalRef(symbol?.psi)
@@ -162,16 +166,16 @@ internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
 
             override fun visitBinaryExpression(expression: KtBinaryExpression) {
                 val call = expression.resolveToCall()?.successfulCallOrNull<KaCall>() ?: return
-                if (call is KaSimpleFunctionCall) {
+                if (call is KaFunctionCall<*>) {
                     refHolder.registerLocalRef(call.symbol.psi)
                 }
                 if (call is KaCompoundAccessCall) {
-                    refHolder.registerLocalRef(call.compoundOperation.operationPartiallyAppliedSymbol.symbol.psi)
+                    refHolder.registerLocalRef(call.operationCall.symbol.psi)
                 }
             }
 
             override fun visitCallableReferenceExpression(expression: KtCallableReferenceExpression) {
-                val symbol = expression.callableReference.mainReference.resolveToSymbol() ?: return
+                val symbol = expression.resolveSymbol() ?: return
                 refHolder.registerLocalRef(symbol.psi)
             }
 
@@ -179,9 +183,9 @@ internal class KotlinUnusedHighlightingProcessor(private val ktFile: KtFile) {
                 val callee = expression.calleeExpression ?: return
                 val call = expression.resolveToCall()?.singleCallOrNull<KaCall>() ?: return
                 if (callee is KtLambdaExpression || callee is KtCallExpression /* KT-16159 */) return
-                refHolder.registerLocalRef((call as? KaSimpleFunctionCall)?.symbol?.psi)
-                if (call is KaSimpleFunctionCall && call.isImplicitInvoke) {
-                    call.partiallyAppliedSymbol.contextArguments.forEach {
+                refHolder.registerLocalRef((call as? KaFunctionCall<*>)?.symbol?.psi)
+                if (call is KaImplicitInvokeCall) {
+                    call.contextArguments.forEach {
                         refHolder.registerLocalRef(((it as? KaImplicitReceiverValue)?.symbol as? KaContextParameterSymbol)?.psi)
                     }
                 }

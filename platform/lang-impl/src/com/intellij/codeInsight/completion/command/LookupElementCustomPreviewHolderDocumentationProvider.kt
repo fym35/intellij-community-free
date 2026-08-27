@@ -31,12 +31,12 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.AnActionListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.diff.DiffColors
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
+import com.intellij.openapi.editor.elf.Elf
 import com.intellij.openapi.editor.ex.EditorSettingsExternalizable
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.editor.richcopy.HtmlSyntaxInfoUtil
@@ -380,7 +380,7 @@ internal class CommandCompletionLookupMayHaveCustomPreviewProvider : LookupMayHa
       return false
     }
     val completionService = project.getService(CommandCompletionService::class.java)
-    return completionService.getFactory(psiFile.language) != null
+    return completionService.getSuffixProvider(psiFile.language) != null
   }
 }
 
@@ -445,7 +445,7 @@ fun installLookupIntentionPreviewMachinery(lookup: LookupImpl): Boolean {
     }
 
     fun stopPreview() {
-      runReadActionBlocking { previewHandler.close() }
+      Elf.getElf().runReadAction { previewHandler.close() }
       lookup.removeLookupListener(this)
     }
   }

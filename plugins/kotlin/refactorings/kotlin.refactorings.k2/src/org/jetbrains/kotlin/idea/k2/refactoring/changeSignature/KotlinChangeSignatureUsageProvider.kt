@@ -10,10 +10,13 @@ import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ChangeSignatureUsageProvider
 import com.intellij.refactoring.changeSignature.JavaChangeInfo
 import com.intellij.usageView.UsageInfo
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
 import org.jetbrains.kotlin.asJava.toLightMethods
 import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.usages.KotlinByConventionCallUsage
@@ -25,7 +28,6 @@ import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.usages.KotlinOve
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.usages.KotlinPropertyCallUsage
 import org.jetbrains.kotlin.idea.references.KtArrayAccessReference
 import org.jetbrains.kotlin.idea.references.KtInvokeFunctionReference
-import org.jetbrains.kotlin.idea.references.KtSimpleNameReference
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -33,6 +35,7 @@ import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtConstructorCalleeExpression
 import org.jetbrains.kotlin.psi.KtConstructorDelegationCall
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtImportDirective
 import org.jetbrains.kotlin.psi.KtParameter
@@ -66,6 +69,7 @@ class KotlinChangeSignatureUsageProvider : ChangeSignatureUsageProvider {
         return KotlinOverrideUsageInfo(unwrapped, baseMethod, isCaller(changeInfo, unwrapped))
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     override fun createUsageInfo(
         changeInfo: ChangeInfo,
         reference: PsiReference,
@@ -92,7 +96,7 @@ class KotlinChangeSignatureUsageProvider : ChangeSignatureUsageProvider {
                 when {
                     callElementParent != null -> {
                         val isCopyOfDataClass = analyze(element) {
-                            val functionSymbol = (reference as? KtSimpleNameReference)?.resolveToSymbol() as? KaNamedFunctionSymbol
+                            val functionSymbol = (reference.element as? KtSimpleNameExpression)?.resolveSymbol() as? KaNamedFunctionSymbol
                             functionSymbol?.origin == KaSymbolOrigin.SOURCE_MEMBER_GENERATED &&
                                     functionSymbol.name.asString() == "copy" && (functionSymbol.containingSymbol as? KaNamedClassSymbol)?.isData == true
                         }

@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.gradle.java.properties` start
 jvm_library(
@@ -20,7 +21,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//plugins/properties/properties-psi-api:psi",
         "//plugins/properties/properties-psi-impl:backend-psi",
         "//plugins/gradle/java",
@@ -35,6 +36,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":properties")
+
 jvm_library(
     name = "properties_test_lib",
     testonly = True,
@@ -47,6 +50,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":properties",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//plugins/properties/properties-psi-api:psi_test_lib",
         "//plugins/properties/properties-psi-impl:backend-psi_test_lib",
         "//plugins/gradle/java:java_test_lib",
@@ -66,6 +70,7 @@ jvm_library(
 exports_files(
     [
         "intellij.gradle.java.properties.iml",
+        "resources/intellij.gradle.java.properties.xml",
     ],
     visibility = ["//visibility:public"],
 )

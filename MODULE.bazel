@@ -31,6 +31,9 @@ single_version_override(
     patches = [
         "//:build/jvm-rules/rules-jvm-external-6.10-make-coursier-repo-targets-shell-free-and-hermetic.patch",
         "//:build/jvm-rules/rules-jvm-external-6.10-default-to-maven-resolver.patch",
+        "//:build/jvm-rules/rules-jvm-external-6.10-optional-source-jars.patch",
+        "//:build/jvm-rules/rules-jvm-external-6.10-coursier-optional-file-field.patch",
+        "//:build/jvm-rules/rules-jvm-external-6.10-fix-multi-repo-hash.patch",
     ],
     version = "6.10",
 )
@@ -69,7 +72,7 @@ local_path_override(
     path = "build/jvm-rules",
 )
 
-bazel_dep(name = "windows_support", version = "0.2.0")
+bazel_dep(name = "windows_support", version = "0.2.1")
 bazel_dep(name = "llvm", version = "0.8.9")
 single_version_override(
     module_name = "llvm",
@@ -77,6 +80,9 @@ single_version_override(
     patches = [
         "//:build/llvm_msvc.patch",  # TODO: remove that once merged to upstream
     ],
+    # Kept in sync with the `ultimate` root, which has to hold `llvm` at 0.8.9 because `llvm_msvc.patch` does not
+    # apply to the 0.8.18 that `rules_rs` asks for. `BazelProjectStructureTest` requires identical overrides.
+    version = "0.8.9",
 )
 
 register_toolchains(
@@ -111,6 +117,37 @@ REMOTE_JBR25_REPOS = ["remotejbr25_" + platform for platform in [
 
 [register_toolchains("@" + repo + "_toolchain_config_repo//:all") for repo in REMOTE_JBR25_REPOS]
 
+# The build dependencies a dev-mode assembly - and IDE Starter - downloads at launch time are Bazel
+# inputs, so a sandboxed or read-only-checkout run never downloads. The extension derives their URLs
+# from the pinned versions the checkout already owns; one repository per version key, and per platform
+# only where the artifact is, so a bump refetches only what it changed. MODULE files cannot load(), so
+# the platform list is repeated here - Bazel reports any drift from HOST_PLATFORMS.
+DEV_LAUNCH_HOST_PLATFORMS = [
+    "darwin_aarch64",
+    "darwin_x64",
+    "linux_aarch64",
+    "linux_x64",
+    "windows_aarch64",
+    "windows_x64",
+]
+
+dev_launch_deps_community = use_extension("@community//build:dev_launch_dependencies.bzl", "dev_launch_deps_community")
+use_repo(
+    dev_launch_deps_community,
+    "dev_launch_libghostty",
+    "dev_launch_libwebp",
+    "dev_launch_maven",
+    "dev_launch_restarter",
+)
+
+[use_repo(
+    dev_launch_deps_community,
+    "dev_launch_%s_%s" % (platform, group),
+) for platform in DEV_LAUNCH_HOST_PLATFORMS for group in [
+    "jbr",
+    "jcef",
+]]
+
 # Use custom remote_java_tools_windows with vc_redist .dll files due to https://github.com/bazelbuild/rules_java/issues/316
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -125,9 +162,83 @@ override_repo(
     remote_java_tools_windows = "remote_java_tools_windows_with_vc_redist",
 )
 
+# bun as a declared Bazel input, so a test that needs the JS runtime does not depend on
+# `tools/bun.cmd` having populated its per-user cache — the wrapper downloads on demand, which a
+# sandboxed test cannot do (`sandbox = True` implies `block-network`). See //build:bun for the
+# host-selected alias, and plugins/air/docs/decisions/0016-bazel-provided-bun.md for why the AIR
+# architecture gate needs it.
+#
+# The version and checksums must stay in sync with `tools/bun.cmd`; `BunToolConsistencyTest` enforces
+# that. The checksums are the upstream release archives', which is what `sha256` here wants too.
+BUN_VERSION = "1.3.14"
+
+# A mirror of the GitHub release, byte-identical: `bazel_downloader.cfg` routes github.com through
+# cache-redirector.jetbrains.com, and the redirector does not serve the `oven-sh/bun` repo.
+BUN_BASE_URL = "https://packages.jetbrains.team/files/p/ij/intellij-build-dependencies/bun"
+
+BUN_PLATFORMS = {
+    "linux_x64": "951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f",
+    "linux_aarch64": "a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b",
+    "windows_x64": "0a0620930b6675d7ba440e81f4e0e00d3cfbe096c4b140d3fff02205e9e18922",
+    "windows_aarch64": "89841f5a57f2348b67ec0839b718f4bf4ea7d07c371c9ba4b77b6c790f918953",
+    "darwin_x64": "4183df3374623e5bab315c547cfa0974533cd457d86b73b639f7a87974cd6633",
+    "darwin_aarch64": "d8b96221828ad6f97ac7ac0ab7e95872341af763001e8803e8267652c2652620",
+}
+
+[
+    http_archive(
+        name = "bun_%s" % platform,
+        build_file = "//build:BUILD.bun.bazel",
+        sha256 = sha256,
+        # the release zip nests everything under a directory named after the archive
+        strip_prefix = "bun-%s" % platform.replace("_", "-"),
+        url = "{base}/{version}/bun-{platform}.zip".format(
+            base = BUN_BASE_URL,
+            platform = platform.replace("_", "-"),
+            version = BUN_VERSION,
+        ),
+    )
+    for platform, sha256 in BUN_PLATFORMS.items()
+]
+
 # Register the extension that runs jps-to-bazel converter and provides target lists for dev-build.
 # This creates the @jps_dynamic_deps_community repository.
 use_repo(
     use_extension("//build:jps_dynamic_deps_community.bzl", "jps_dynamic_deps_community_extension"),
     "jps_dynamic_deps_community",
 )
+
+# Hermetic node/npm used by the KMP resolver (//fleet/build/rules:kmp.bzl) to resolve
+# the NPM dependencies declared by the `package.json` embedded in KMP klibs.
+bazel_dep(name = "rules_nodejs", version = "6.7.4")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+use_repo(
+    node,
+    "nodejs_darwin_amd64",
+    "nodejs_darwin_arm64",
+    "nodejs_linux_amd64",
+    "nodejs_linux_arm64",
+    "nodejs_windows_amd64",
+    "nodejs_windows_arm64",
+)
+
+# Go, for //build/content-module-packer - the tool behind `content_module_jar`, one static binary that Bazel runs as a
+# multiplex worker. It is the only Go in this module, and the SDK version tracks the `go` directive of its `go.mod`.
+bazel_dep(name = "rules_go", version = "0.63.0")
+bazel_dep(name = "gazelle", version = "0.53.0")
+
+# No `name` on the download: `rules_go` rejects one from a non-root module, and this module is not the root when the
+# ultimate repository builds it. Nothing here names the SDK repo, so it does not need one.
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(version = "1.27.0")
+
+# XXH3-64 keys the `__index__` of every jar the packer writes, and it has to be the reference algorithm bit for bit or
+# those jars differ from the ones `JarPackager` produces - which is what the 2 050 reference vectors in
+# //build/content-module-packer/internal/xxh3 hold it to. cpuid is its only dependency, for runtime CPU dispatch, and
+# both versions come from the packer's `go.mod`, which is also what the IDE and a plain `go build` read.
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//build/content-module-packer:go.mod")
+use_repo(go_deps, "com_github_zeebo_xxh3")
+
+include("//:fleet/kmp.MODULE.bazel")

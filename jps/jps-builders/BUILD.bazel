@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.jps.build` start
 jvm_library(
@@ -56,11 +57,11 @@ jvm_library(
         "//libraries/caffeine",
         "@lib//:kotlin-stdlib-provided",
         "//libraries/hash4j",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//libraries/mvstore",
         "//libraries/http-client",
         "//libraries/maven-resolver-provider",
-        "@lib//:netty-codec-protobuf",
+        "//libraries/netty/codec-protobuf:libraries-netty-codec-protobuf",
         "//libraries/netty/codec-http:libraries-netty-codec-http",
         "//libraries/netty/buffer",
         "@lib//:kotlin-metadata",
@@ -68,6 +69,16 @@ jvm_library(
         "//platform/eel",
         "//platform/eel-nioFs",
     ],
+)
+
+content_module_jar(
+    libraries = [
+        # do not sort,
+        "@lib//:platform-jps-build-qdox-java-parser",
+        "@lib//:jps-javac-extension",
+        "@lib//:kotlin-metadata",
+    ],
+    module = ":build",
 )
 
 jvm_library(
@@ -111,9 +122,11 @@ jvm_library(
         "//libraries/caffeine:caffeine_test_lib",
         "@lib//:kotlin-stdlib-provided",
         "//libraries/hash4j:hash4j_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/mvstore:mvstore_test_lib",
         "//libraries/http-client:http-client_test_lib",
         "//libraries/maven-resolver-provider:maven-resolver-provider_test_lib",
+        "//libraries/netty/codec-protobuf:libraries-netty-codec-protobuf_test_lib",
         "//libraries/netty/codec-http:libraries-netty-codec-http_test_lib",
         "//libraries/netty/buffer:buffer_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
@@ -127,6 +140,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.jps.build.iml",
+        "resources/intellij.platform.jps.build.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -213,7 +228,8 @@ jvm_library(
         "@lib//:platform-jps-build-tests-jqwik",
         "//libraries/mvstore",
         "//libraries/mvstore:mvstore_test_lib",
-        "@lib//:memoryfilesystem",
+        "//libraries/memoryfilesystem",
+        "//libraries/memoryfilesystem:memoryfilesystem_test_lib",
         "//jps/model-test-framework:model-testFramework",
         "//jps/model-test-framework:model-testFramework_test_lib",
         "//platform/util-ex",

@@ -43,7 +43,6 @@ import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
 import com.intellij.psi.JavaTokenType;
 import com.intellij.psi.LambdaUtil;
 import com.intellij.psi.PsiAnnotation;
-import com.intellij.psi.PsiAnnotationOwner;
 import com.intellij.psi.PsiAssertStatement;
 import com.intellij.psi.PsiAssignmentExpression;
 import com.intellij.psi.PsiCall;
@@ -100,6 +99,7 @@ import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.ArrayUtil;
+import com.intellij.util.JavaTypeNullabilityUtil;
 import com.intellij.util.NullableFunction;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.JBIterable;
@@ -211,13 +211,20 @@ public final class DfaPsiUtil {
       if (resultType != null && fromAnnotation.getNullability() != Nullability.NOT_NULL) {
         PsiType type = PsiUtil.getTypeByPsiElement(owner);
         if (type != null) {
-          PsiAnnotationOwner annotationOwner = fromAnnotation.getAnnotation().getOwner();
+          // The nullability comes from the type parameter bound or from the type parameter declaration itself,
+          // not from this use site.
           if (PsiUtil.resolveClassInClassTypeOnly(type) instanceof PsiTypeParameter tp &&
-              annotationOwner instanceof PsiType && annotationOwner != type &&
+              fromAnnotation.isExtendedBounds() &&
               !tp.equals(PsiUtil.resolveClassInClassTypeOnly(resultType))) {
             // Nullable/Unknown from type hierarchy: should check the instantiation, as it could be more concrete
             return getTypeNullability(resultType, forRead);
           }
+        }
+      }
+      if (fromAnnotation.getNullability() == Nullability.UNKNOWN) {
+        PsiType type = resultType != null ? resultType : PsiUtil.getTypeByPsiElement(owner);
+        if (type != null && JavaTypeNullabilityUtil.getValueNullability(type).nullability() == Nullability.NULLABLE) {
+          return Nullability.NULLABLE;
         }
       }
       return fromAnnotation.getNullability();
@@ -254,7 +261,7 @@ public final class DfaPsiUtil {
 
   private static @Nullable Nullability getNullabilityFromType(@Nullable PsiType resultType, @NotNull PsiModifierListOwner owner) {
     if (resultType == null) return null;
-    TypeNullability typeNullability = resultType.getNullability();
+    TypeNullability typeNullability = JavaTypeNullabilityUtil.getValueNullability(resultType);
     if (typeNullability.equals(TypeNullability.UNKNOWN)) return null;
     Nullability fromType = typeNullability.nullability();
     if (fromType == Nullability.NOT_NULL && hasNullContract(owner)) {
@@ -277,16 +284,27 @@ public final class DfaPsiUtil {
                                                                                   boolean ignoreParameterNullabilityInference) {
     NullableNotNullManager manager = NullableNotNullManager.getInstance(owner.getProject());
     NullabilityAnnotationInfo info = manager.findEffectiveNullabilityInfo(owner);
-    if (info == null || shouldIgnoreAnnotation(info.getAnnotation())) {
+    if (info != null && shouldIgnoreAnnotation(info.getAnnotation())) {
       return null;
     }
-    if (ignoreParameterNullabilityInference && owner instanceof PsiParameter && info.isInferred()) {
-      List<PsiParameter> supers = AnnotationUtil.getSuperAnnotationOwners((PsiParameter)owner);
-      return StreamEx.of(supers).map(param -> manager.findEffectiveNullabilityInfo(param))
-        .findFirst(i -> i != null && i.getInheritedFrom() == null && i.getNullability() == Nullability.NULLABLE)
-        .orElse(null);
+    if (ignoreParameterNullabilityInference && owner instanceof PsiParameter parameter &&
+        (info == null || info.isInferred())) {
+      // Nullability inferred from the method body is unreliable when the same body is analyzed,
+      // so rely on an explicit @Nullable on a super parameter instead (IDEA-228079).
+      // Note that the parameter may have no inferred annotation at all (e.g., if the inference bailed out),
+      // and the super annotation must be honored in this case as well.
+      return getNullableFromSuperParameter(manager, parameter);
     }
     return info;
+  }
+
+  private static @Nullable NullabilityAnnotationInfo getNullableFromSuperParameter(@NotNull NullableNotNullManager manager,
+                                                                                   @NotNull PsiParameter parameter) {
+    List<PsiParameter> supers = AnnotationUtil.getSuperAnnotationOwners(parameter);
+    return StreamEx.of(supers).map(param -> manager.findEffectiveNullabilityInfo(param))
+      .findFirst(i -> i != null && i.getInheritedFrom() == null && i.getNullability() == Nullability.NULLABLE &&
+                      !shouldIgnoreAnnotation(i.getAnnotation()))
+      .orElse(null);
   }
 
   private static boolean isMapMethodWithUnknownNullity(@NotNull PsiMethod method) {
@@ -345,7 +363,7 @@ public final class DfaPsiUtil {
         return nullability.nullability();
       }
     }
-    return type.getNullability().nullability();
+    return JavaTypeNullabilityUtil.getValueNullability(type).nullability();
   }
 
   public static @NotNull Nullability getTypeNullability(@Nullable PsiType type) {

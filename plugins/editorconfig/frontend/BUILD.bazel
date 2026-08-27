@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.editorconfig.frontend` start
 jvm_library(
@@ -34,6 +35,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":frontend")
+
 jvm_library(
     name = "frontend_test_lib",
     testonly = True,
@@ -66,6 +69,7 @@ jvm_library(
 exports_files(
     [
         "intellij.editorconfig.frontend.iml",
+        "resources/intellij.editorconfig.frontend.xml",
     ],
     visibility = ["//visibility:public"],
 )

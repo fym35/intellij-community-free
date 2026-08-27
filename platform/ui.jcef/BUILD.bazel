@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library", "kt_javac_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.ui.jcef` start
 kt_javac_options(
@@ -31,7 +32,7 @@ jvm_library(
     visibility = ["//visibility:public"],
     deps = [
         # do not sort,
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "@lib//:kotlin-stdlib",
         "//libraries/jcef",
         "//platform/credential-store",
@@ -51,9 +52,11 @@ jvm_library(
         "//platform/core-impl",
         "//libraries/jbr",
         "//platform/jbr",
-        "@lib//:jna",
+        "//libraries/jna",
     ],
 )
+
+content_module_jar(module = ":ui.jcef")
 
 jvm_library(
     name = "ui.jcef_test_lib",
@@ -68,6 +71,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":ui.jcef",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/jcef:jcef_test_lib",
         "//platform/credential-store:credential-store_test_lib",
         "//platform/projectModel-api:projectModel_test_lib",
@@ -86,6 +90,7 @@ jvm_library(
         "//platform/core-impl:core-impl_test_lib",
         "//libraries/jbr:jbr_test_lib",
         "//platform/jbr:jbr_test_lib",
+        "//libraries/jna:jna_test_lib",
     ],
 )
 ### auto-generated section `build intellij.platform.ui.jcef` end
@@ -94,6 +99,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.ui.jcef.iml",
+        "resources/intellij.platform.ui.jcef.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "javaFX-tests_test",
@@ -77,6 +78,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":javaFX")
+
 jvm_library(
     name = "javaFX_test_lib",
     testonly = True,
@@ -149,6 +152,8 @@ jvm_library(
 exports_files(
     [
         "intellij.javaFX.iml",
+        "resources/intellij.javaFX.xml",
+        "resources/org/jetbrains/plugins/javaFX/refactoring/migration/JavaFx8__9.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -216,6 +221,7 @@ jvm_library(
 exports_files(
     [
         "intellij.javaFX.properties.iml",
+        "properties/resources/intellij.javaFX.properties.xml",
     ],
     visibility = ["//visibility:public"],
 )

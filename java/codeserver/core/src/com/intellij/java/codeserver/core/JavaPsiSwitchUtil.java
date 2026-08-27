@@ -171,17 +171,17 @@ public final class JavaPsiSwitchUtil {
 
   /**
    * Checks if the given {@code switch} statement contains at least one case labeled
-   * with a representative primitive constant.
+   * with a special floating value. See {@link JavaPsiSwitchUtil#isFloatingPointSpecial(Object)}.
    *
    * @param statement the {@link PsiSwitchStatement} to be analyzed
-   * @return {@code true} if the switch statement contains a representative primitive constant, {@code false} otherwise
+   * @return {@code true} if the switch statement contains a special floating value, {@code false} otherwise
    */
-  public static boolean containsRepresentativePrimitive(@NotNull PsiSwitchStatement statement) {
+  public static boolean containsFloatingPointSpecial(@NotNull PsiSwitchStatement statement) {
     MultiMap<Object, PsiElement> labels = getValuesAndLabels(statement);
     for (PsiElement value : labels.values()) {
       if (value instanceof PsiExpression expression) {
         Object o = JavaConstantExpressionEvaluator.computeConstantExpression(expression, false);
-        if (isRepresentativePrimitive(o)) return true;
+        if (isFloatingPointSpecial(o)) return true;
       }
     }
     return false;
@@ -195,7 +195,7 @@ public final class JavaPsiSwitchUtil {
    * @return true if the object is a Float or Double instance representing a special primitive case,
    *         otherwise false
    */
-  public static boolean isRepresentativePrimitive(@Nullable Object o) {
+  public static boolean isFloatingPointSpecial(@Nullable Object o) {
     if (o instanceof Float f && (f.isNaN() || f.equals(+0.0f) || f.equals(-0.0f))) return true;
     if (o instanceof Double d && (d.isNaN() || d.equals(+0.0) || d.equals(-0.0))) return true;
     return false;

@@ -7,21 +7,27 @@ import com.intellij.codeInspection.util.IntentionFamilyName
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.components.returnType
 import org.jetbrains.kotlin.analysis.api.resolution.singleConstructorCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.util.CommentSaver
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtAnonymousInitializer
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtBlockExpression
@@ -102,7 +108,9 @@ internal class ConvertSecondaryConstructorToPrimaryInspection :
         return isReachableByDelegationFrom(delegatedConstructor, visited + constructor)
     }
 
-    override fun KaSession.prepareContext(element: KtSecondaryConstructor): SecondaryConstructorContext? {
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+    context(session: KaSession)
+    override fun prepareContext(element: KtSecondaryConstructor): SecondaryConstructorContext? {
         val klass = element.containingClassOrObject ?: return null
 
         for (constructorDescriptor in klass.secondaryConstructors) {
@@ -156,7 +164,7 @@ internal class ConvertSecondaryConstructorToPrimaryInspection :
 
         val classRefIdx = klass.superTypeListEntries.indexOfFirst {
             val classifierSymbol =
-                (it.typeReference?.typeElement as? KtUserType)?.referenceExpression?.mainReference?.resolveToSymbol() as? KaClassifierSymbol
+                (it.typeReference?.typeElement as? KtUserType)?.referenceExpression?.resolveSymbol() as? KaClassifierSymbol
 
             fun isClassSymbol(symbol: KaClassifierSymbol?): Boolean = symbol is KaClassSymbol && symbol.classKind == KaClassKind.CLASS
 

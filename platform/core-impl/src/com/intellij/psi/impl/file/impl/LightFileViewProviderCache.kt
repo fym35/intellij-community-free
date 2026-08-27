@@ -2,6 +2,7 @@
 package com.intellij.psi.impl.file.impl
 
 import com.intellij.codeInsight.multiverse.CodeInsightContext
+import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.codeInsight.multiverse.defaultContext
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.diagnostic.logger
@@ -121,6 +122,14 @@ internal class LightFileViewProviderCache(
 
     checkLightFileHasNoOtherPsi(vFile)
     return cacheOrGet(vFile, context, viewProvider)
+  }
+
+  override fun canViewProviderBeResurrected(viewProvider: AbstractFileViewProvider): Boolean {
+    return evaluator.canViewProviderBeResurrected(viewProvider)
+  }
+
+  override fun getRecreationFailureReason(viewProvider: AbstractFileViewProvider): String? {
+    return evaluator.getRecreationFailureReason(viewProvider.virtualFile, viewProvider, viewProvider.codeInsightContext)
   }
 
   private fun checkLightFileHasNoOtherPsi(vFile: VirtualFile) {

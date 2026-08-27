@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "smRunner-tests_test",
@@ -55,6 +56,8 @@ jvm_library(
         "//platform/code-style-api:codeStyle",
     ],
 )
+
+content_module_jar(module = ":smRunner")
 
 jvm_library(
     name = "smRunner_test_lib",
@@ -116,6 +119,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.smRunner.iml",
+        "resources/intellij.platform.smRunner.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

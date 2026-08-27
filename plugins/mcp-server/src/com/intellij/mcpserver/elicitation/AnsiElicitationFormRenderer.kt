@@ -11,6 +11,7 @@ import com.intellij.mcpserver.elicitation.ElicitationMessagePart.Text
 import com.intellij.mcpserver.elicitation.ElicitationMessagePart.TextColor.GREEN
 import com.intellij.mcpserver.elicitation.ElicitationMessagePart.TextColor.RED
 import com.intellij.mcpserver.elicitation.ElicitationMessagePart.TextColor.YELLOW
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsUtil
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory
@@ -18,6 +19,13 @@ import com.intellij.openapi.project.Project
 import java.awt.Color
 import java.awt.Font as AwtFont
 
+
+/**
+ * [ElicitationFormRenderer] emitting ANSI escapes, for clients that show the message as terminal text.
+ */
+object AnsiElicitationFormRenderer : ElicitationFormRenderer {
+  override fun render(parts: List<ElicitationMessagePart>, project: Project?): String = renderToAnsi(parts, project)
+}
 
 /**
  * Renders message [parts] into one ANSI string for a terminal.
@@ -47,6 +55,7 @@ fun renderToAnsi(parts: List<ElicitationMessagePart>, project: Project? = null):
  * `null`; the CLI path still passes it in case some other language needs it.
  */
 private fun highlightToAnsi(language: Language, code: CharSequence, project: Project? = null): String {
+  if (EditorColorsManager.getInstance() == null) return code.toString()
   val scheme = EditorColorsUtil.getGlobalOrDefaultColorScheme()
   val highlighter = SyntaxHighlighterFactory.getSyntaxHighlighter(language, project, null)
   val lexer = highlighter.highlightingLexer
@@ -58,7 +67,7 @@ private fun highlightToAnsi(language: Language, code: CharSequence, project: Pro
     val tokenText = text.substring(lexer.tokenStart, lexer.tokenEnd)
     // getTokenHighlights returns keys from least to most specific; merge them so the most specific wins
     // (mirrors the editor's LayeredTextAttributes). Taking only the first key would drop overrides.
-    val attributes = highlighter.getTokenHighlights(lexer.tokenType)
+    val attributes = highlighter.getTokenHighlights(lexer.tokenType!!)
       .fold(null as TextAttributes?) { acc, key ->
         val a = scheme.getAttributes(key) ?: return@fold acc
         if (acc == null) a else TextAttributes.merge(acc, a)

@@ -2,7 +2,6 @@
 package com.jetbrains.python
 
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.python.PyNames.TYPE_STRING_TYPES
 import com.jetbrains.python.psi.LanguageLevel
 import org.jetbrains.annotations.NonNls
 import java.util.regex.Pattern
@@ -45,7 +44,7 @@ object PyNames {
     const val ENUM_MEMBER: String = "enum.member"
     const val ENUM_NONMEMBER: String = "enum.nonmember"
     const val NONE_TYPE: String = "_typeshed.NoneType"
-    val NONES: List<String> = listOf("_typeshed.NoneType", NONE_TYPE)
+    val NONES: List<String> = listOf("types.NoneType", NONE_TYPE)
     const val FUNCTION_TYPE: String = "types.FunctionType"
     const val COROUTINE_TYPE: String = "types.CoroutineType"
     const val METHOD_TYPE: String = "types.UnboundMethodType"
@@ -150,8 +149,6 @@ object PyNames {
   const val PYTHON_SDK_ID_NAME: String = "Python SDK"
   const val VERBOSE_REG_EXP_LANGUAGE_ID: String = "PythonVerboseRegExp"
 
-  @NonNls
-  const val PYTHON_MODULE_ID: @NonNls String = "PYTHON_MODULE"
   const val TESTCASE_SETUP_NAME: String = "setUp"
   const val PY_DOCSTRING_ID: String = "Doctest"
   const val END_WILDCARD: String = ".*"
@@ -422,6 +419,14 @@ object PyNames {
    */
   @JvmField
   val STANDALONE_RIGHT_OPERATORS: Set<String> = setOf(CONTAINS)
+
+  /**
+   * Readable source text for compound operators spread across multiple sibling tokens, keyed by their
+   * concatenated token text, for operators
+   * whose PSI anchor spans only their first token - e.g. `not in` is anchored on its leading `not`.
+   */
+  @JvmField
+  val COMPOUND_OPERATOR_DISPLAY_TEXT: Map<String, String> = mapOf("notin" to "not in")
 
   private val onlySelfDescr = BuiltinDescription("(self)")
   private fun onlySelfDescr(returnType: String, vararg imports: String) = BuiltinDescription("(self) -> $returnType", *imports)
@@ -771,15 +776,8 @@ object PyNames {
   private val INPLACE_OPERATOR_PATTERN = "__i([a-z]+)__".toRegex()
 
   @JvmStatic
-  private fun isInplaceOperatorName(name: String?): Boolean {
+  fun isInplaceOperatorName(name: String?): Boolean {
     return name != null && (name.matches(INPLACE_OPERATOR_PATTERN))
-  }
-
-  @JvmStatic
-  fun isInplaceOperatorName(referencedName: String?, calleeName: String?): Boolean {
-    if (isInplaceOperatorName(calleeName)) return true
-
-    return referencedName != null && calleeName != null && calleeName == leftToRightComparisonOperatorName(referencedName)
   }
 
   @JvmStatic

@@ -1,4 +1,5 @@
 load("@community//build:tests-options.bzl", "jps_test")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 
 ### auto-generated section `build intellij.gradle.declarativeSync` start
@@ -23,7 +24,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//plugins/gradle",
         "//platform/core-api:core",
         "//platform/external-system-impl:externalSystem-impl",
@@ -51,6 +52,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":declarativeSync",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//plugins/gradle:gradle_test_lib",
         "//platform/core-api:core_test_lib",
         "//platform/external-system-impl:externalSystem-impl_test_lib",
@@ -71,6 +73,8 @@ jvm_library(
 exports_files(
     [
         "intellij.gradle.declarativeSync.iml",
+        "resources/META-INF/plugin.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

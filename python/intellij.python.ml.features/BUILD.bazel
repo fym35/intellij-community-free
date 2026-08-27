@@ -31,14 +31,13 @@ jvm_library(
         "//platform/platform-api:ide",
         "//platform/platform-impl:ide-impl",
         "//python:python-community-impl",
-        "//python/python-sdk:sdk",
+        "//python/python-sdk/backend",
         "//platform/util/concurrency",
         "//platform/core-ui",
         "//platform/platform-impl/codeinsight-inline:ide-codeinsight-inline",
         "//platform/ide-core",
         "@lib//:python-ml-features-jetbrains-ml-models-python-imports-ranking-model",
-        "@lib//:jetbrains-mlapi-catboost",
-        "@lib//:jetbrains-mlapi-catboost-shadow-need-slf4j",
+        "//libraries/mlapi/catboost",
     ],
 )
 
@@ -65,11 +64,12 @@ jvm_library(
         "//platform/platform-api:ide_test_lib",
         "//platform/platform-impl:ide-impl_test_lib",
         "//python:python-community-impl_test_lib",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend:backend_test_lib",
         "//platform/util/concurrency:concurrency_test_lib",
         "//platform/core-ui:core-ui_test_lib",
         "//platform/platform-impl/codeinsight-inline:ide-codeinsight-inline_test_lib",
         "//platform/ide-core:ide-core_test_lib",
+        "//libraries/mlapi/catboost:catboost_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.ml.features` end
@@ -78,6 +78,7 @@ jvm_library(
 exports_files(
     [
         "intellij.python.ml.features.iml",
+        "resources/intellij.python.ml.features.xml",
     ],
     visibility = ["//visibility:public"],
 )

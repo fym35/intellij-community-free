@@ -9,10 +9,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.createSmartPointer
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
@@ -21,6 +26,7 @@ import org.jetbrains.kotlin.idea.codeinsights.impl.base.applicators.Applicabilit
 import org.jetbrains.kotlin.idea.codeinsights.impl.base.hasUsages
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLabeledExpression
@@ -71,12 +77,13 @@ internal class ReplaceMapIndexedWithListGeneratorInspection :
     override fun getApplicableRanges(element: KtCallExpression): List<TextRange> =
         ApplicabilityRanges.calleeExpression(element)
 
-    override fun KaSession.prepareContext(element: KtCallExpression): Context? {
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+    context(session: KaSession)
+    override fun prepareContext(element: KtCallExpression): Context? {
         val resolvedCall = element.resolveToCall()?.successfulFunctionCallOrNull() ?: return null
         val symbol = resolvedCall.symbol as? KaNamedFunctionSymbol ?: return null
         if (symbol.importableFqName != StandardKotlinNames.Collections.mapIndexed) return null
-        val partiallyAppliedSymbol = resolvedCall.partiallyAppliedSymbol
-        val receiver = partiallyAppliedSymbol.dispatchReceiver ?: partiallyAppliedSymbol.extensionReceiver ?: return null
+        val receiver = resolvedCall.dispatchReceiver ?: resolvedCall.extensionReceiver ?: return null
 
         if (!receiver.type.isSubtypeOf(StandardClassIds.Collection)) return null
         val valueArgument = element.valueArguments.singleOrNull() ?: element.lambdaArguments.singleOrNull() ?: return null
@@ -86,8 +93,7 @@ internal class ReplaceMapIndexedWithListGeneratorInspection :
                 val functionLiteral = argumentExpression.functionLiteral
                 functionLiteral.collectDescendantsOfType<KtReturnExpression>().forEach {
                     val targetsMapIndexed = it.getTargetLabel()
-                        ?.mainReference
-                        ?.resolveToSymbol()
+                        ?.resolveSymbol()
                         ?.psi == functionLiteral
 
                     if (targetsMapIndexed) {

@@ -10,10 +10,11 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.createSmartPointer
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.asUnit
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
@@ -58,7 +59,8 @@ internal class RemoveRedundantSpreadOperatorInspection : KotlinApplicableInspect
         return listOf(TextRange(startOffset, endOffset))
     }
 
-    override fun KaSession.prepareContext(element: KtValueArgument): Unit? {
+    context(session: KaSession)
+    override fun prepareContext(element: KtValueArgument): Unit? {
         return when (val argumentExpression = element.getArgumentExpression()) {
             is KtCallExpression -> {
                 if (!argumentExpression.isArrayOfFunction()) return null

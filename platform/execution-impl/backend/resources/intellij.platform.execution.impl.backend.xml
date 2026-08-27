@@ -9,6 +9,8 @@
     <module name="intellij.platform.execution.impl"/>
     <module name="intellij.platform.kernel"/>
     <module name="intellij.platform.kernel.backend"/>
+    <module name="intellij.platform.project"/>
+    <module name="intellij.platform.rpc.backend"/>
     <module name="intellij.platform.util.coroutines"/>
   </dependencies>
   <!-- endregion -->

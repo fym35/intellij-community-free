@@ -19,6 +19,7 @@ jvm_library(
     visibility = ["//visibility:public"],
     deps = [
         # do not sort,
+        "//platform/kernel/rpc",
         "@lib//:kotlin-stdlib",
         "//platform/util/concurrency",
         "//platform/core-api:core",
@@ -60,6 +61,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":shared",
+        "//platform/kernel/rpc:rpc_test_lib",
         "//platform/util/concurrency:concurrency_test_lib",
         "//platform/core-api:core_test_lib",
         "//platform/editor-ui-api:editor-ui_test_lib",
@@ -93,6 +95,8 @@ jvm_library(
 exports_files(
     [
         "intellij.java.debugger.impl.shared.iml",
+        "resources/intellij.java.debugger.impl.shared.content.xml",
+        "resources/intellij.java.debugger.impl.shared.xml",
     ],
     visibility = ["//visibility:public"],
 )

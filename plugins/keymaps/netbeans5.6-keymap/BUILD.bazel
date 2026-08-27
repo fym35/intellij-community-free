@@ -32,6 +32,9 @@ jvm_library(
 exports_files(
     [
         "intellij.keymap.netbeans.iml",
+        "resources/META-INF/plugin.xml",
+        "resources/keymaps/NetBeans 6.5.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

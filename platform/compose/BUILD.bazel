@@ -1,6 +1,7 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "compose-tests_test",
@@ -47,7 +48,7 @@ jvm_library(
         "//platform/platform-impl:ide-impl",
         "//platform/ide-core",
         "//platform/analysis-api:analysis",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/compose-runtime-desktop",
         "//libraries/skiko",
@@ -55,6 +56,11 @@ jvm_library(
         "//platform/diagnostic/telemetry",
         "//platform/core-impl",
     ],
+)
+
+content_module_jar(
+    libraries = ["@lib//:jetbrains-compose-components-ui-tooling-preview-desktop"],
+    module = ":compose",
 )
 
 jvm_library(
@@ -88,6 +94,7 @@ jvm_library(
         "//platform/platform-impl:ide-impl_test_lib",
         "//platform/ide-core:ide-core_test_lib",
         "//platform/analysis-api:analysis_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/compose-runtime-desktop:compose-runtime-desktop_test_lib",
         "//libraries/skiko:skiko_test_lib",
@@ -105,6 +112,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.compose.iml",
+        "resources/intellij.platform.compose.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -179,7 +188,8 @@ jvm_library(
         "//platform/ide-core",
         "//platform/analysis-api:analysis",
         "//platform/analysis-api:analysis_test_lib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/compose-runtime-desktop",

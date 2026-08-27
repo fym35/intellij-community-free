@@ -22,18 +22,12 @@
 - name: lib/intellij.java.compiler.instrumentationUtil.java8.jar
   contentModules:
   - name: intellij.java.compiler.instrumentationUtil.java8
-- name: lib/intellij.java.debugger.impl.shared.jar
-  contentModules:
-  - name: intellij.java.debugger.impl.shared
 - name: lib/intellij.java.debugger.libraries.jb.jdi.jar
   contentModules:
   - name: intellij.java.debugger.libraries.jb.jdi
     libraries:
       jb-jdi:
       - name: $MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/jb-jdi/2/jb-jdi-2.jar
-- name: lib/intellij.java.execution.impl.shared.jar
-  contentModules:
-  - name: intellij.java.execution.impl.shared
 - name: lib/intellij.java.frontback.impl.jar
   contentModules:
   - name: intellij.java.frontback.impl
@@ -64,12 +58,10 @@
 - name: lib/java-impl.jar
   modules:
   - name: intellij.java.plugin
-  contentModules:
-  - name: intellij.java.bookmarks
 - name: lib/jps-javac-extension.jar
   library: jps-javac-extension
   files:
-  - name: $MAVEN_REPOSITORY$/org/jetbrains/jps/jps-javac-extension/10/jps-javac-extension-10.jar
+  - name: $MAVEN_REPOSITORY$/org/jetbrains/jps/jps-javac-extension/11/jps-javac-extension-11.jar
   reason: withProjectLibrary
 - name: lib/jps-launcher.jar
   modules:
@@ -85,6 +77,9 @@
 - name: lib/modules/intellij.debugger.jvm.advanced.java.logpoints.jar
   contentModules:
   - name: intellij.debugger.jvm.advanced.java.logpoints
+- name: lib/modules/intellij.debugger.jvm.advanced.mcpServer.jar
+  contentModules:
+  - name: intellij.debugger.jvm.advanced.mcpServer
 - name: lib/modules/intellij.debugger.logpoints.backend.jar
   contentModules:
   - name: intellij.debugger.logpoints.backend
@@ -112,6 +107,9 @@
 - name: lib/modules/intellij.java.backend.split.jar
   contentModules:
   - name: intellij.java.backend.split
+- name: lib/modules/intellij.java.bookmarks.jar
+  contentModules:
+  - name: intellij.java.bookmarks
 - name: lib/modules/intellij.java.codeserver.core.jar
   contentModules:
   - name: intellij.java.codeserver.core
@@ -136,6 +134,9 @@
 - name: lib/modules/intellij.java.debugger.impl.jar
   contentModules:
   - name: intellij.java.debugger.impl
+- name: lib/modules/intellij.java.debugger.impl.shared.jar
+  contentModules:
+  - name: intellij.java.debugger.impl.shared
 - name: lib/modules/intellij.java.debugger.jar
   contentModules:
   - name: intellij.java.debugger
@@ -160,6 +161,9 @@
 - name: lib/modules/intellij.java.execution.impl.jar
   contentModules:
   - name: intellij.java.execution.impl
+- name: lib/modules/intellij.java.execution.impl.shared.jar
+  contentModules:
+  - name: intellij.java.execution.impl.shared
 - name: lib/modules/intellij.java.execution.jar
   contentModules:
   - name: intellij.java.execution
@@ -169,6 +173,9 @@
 - name: lib/modules/intellij.java.frontend.jar
   contentModules:
   - name: intellij.java.frontend
+- name: lib/modules/intellij.java.frontend.split.base.jar
+  contentModules:
+  - name: intellij.java.frontend.split.base
 - name: lib/modules/intellij.java.frontend.split.jar
   contentModules:
   - name: intellij.java.frontend.split
@@ -178,9 +185,6 @@
 - name: lib/modules/intellij.java.impl.jar
   contentModules:
   - name: intellij.java.impl
-    libraries:
-      completion-ranking-java:
-      - name: $MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/completion/completion-ranking-java/0/completion-ranking-java-0.jar
 - name: lib/modules/intellij.java.impl.refactorings.jar
   contentModules:
   - name: intellij.java.impl.refactorings
@@ -190,6 +194,9 @@
 - name: lib/modules/intellij.java.indexing.jar
   contentModules:
   - name: intellij.java.indexing
+- name: lib/modules/intellij.java.indexing.serializers.jar
+  contentModules:
+  - name: intellij.java.indexing.serializers
 - name: lib/modules/intellij.java.jam.impl.jar
   contentModules:
   - name: intellij.java.jam.impl
@@ -277,6 +284,12 @@
 - name: lib/modules/intellij.jvm.analysis.refactoring.jar
   contentModules:
   - name: intellij.jvm.analysis.refactoring
+- name: lib/modules/intellij.libraries.completion.ranking.java.jar
+  contentModules:
+  - name: intellij.libraries.completion.ranking.java
+    libraries:
+      completion-ranking-java:
+      - name: $MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/completion/completion-ranking-java/0/completion-ranking-java-0.jar
 - name: lib/modules/intellij.platform.jps.build.dependencyGraph.jar
   contentModules:
   - name: intellij.platform.jps.build.dependencyGraph
@@ -299,14 +312,12 @@
       jmc-flightrecorder:
       - name: $MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/jmc-flightrecorder/8/jmc-flightrecorder-8.jar
       - name: $MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/jmc-common/8/jmc-common-8.jar
+- name: lib/modules/intellij.profiler.ultimate.vcs.jar
+  contentModules:
+  - name: intellij.profiler.ultimate.vcs
 - name: lib/modules/intellij.uiDesigner.jar
   contentModules:
   - name: intellij.uiDesigner
-- name: lib/netty-codec-protobuf.jar
-  library: netty-codec-protobuf
-  files:
-  - name: $MAVEN_REPOSITORY$/io/netty/netty-codec-protobuf/4/netty-codec-protobuf-4.jar
-  reason: withProjectLibrary
 - name: lib/rt/debugger-agent.jar
   library: debugger-agent
   module: intellij.java.debugger.agent.holder

@@ -5,20 +5,23 @@ import com.intellij.codeInspection.CleanupLocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.singleVariableAccessCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport.SearchUtils.isOverridable
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -62,7 +65,8 @@ internal class SelfAssignmentInspection : KotlinApplicableInspectionBase.Simple<
         }
     }
 
-    override fun KaSession.prepareContext(element: KtBinaryExpression): String? {
+    context(session: KaSession)
+    override fun prepareContext(element: KtBinaryExpression): String? {
         val left = element.left
         val right = element.right
 
@@ -78,7 +82,7 @@ internal class SelfAssignmentInspection : KotlinApplicableInspectionBase.Simple<
         if (!rightDeclaration.isVar) return null
         if (rightDeclaration is KtProperty) {
             if (rightDeclaration.isOverridable()) return null
-            if (rightDeclaration.accessors.any { !it.symbol.isDefault }) return null
+            if (rightDeclaration.accessors.any { it.symbol.isNotDefault }) return null
         }
 
         if (left.receiverSymbol() != right.receiverSymbol()) return null
@@ -102,11 +106,12 @@ internal class SelfAssignmentInspection : KotlinApplicableInspectionBase.Simple<
         else -> null
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     private fun KtExpression.receiverSymbol(): KaSymbol? {
         when (val receiverExpression = (this as? KtDotQualifiedExpression)?.receiverExpression) {
-            is KtThisExpression -> return receiverExpression.instanceReference.mainReference.resolveToSymbol()
-            is KtNameReferenceExpression -> return receiverExpression.mainReference.resolveToSymbol()
+            is KtThisExpression -> return receiverExpression.resolveSymbol()
+            is KtNameReferenceExpression -> return receiverExpression.resolveSymbol()
         }
 
         return getImplicitReceiverSymbolIfExists()
@@ -114,7 +119,7 @@ internal class SelfAssignmentInspection : KotlinApplicableInspectionBase.Simple<
 
     context(_: KaSession)
     private fun KtExpression.getImplicitReceiverSymbolIfExists(): KaSymbol? {
-        val implicitReceiver = this.resolveToCall()?.singleVariableAccessCall()?.partiallyAppliedSymbol?.let {
+        val implicitReceiver = this.resolveToCall()?.singleVariableAccessCall()?.let {
             it.dispatchReceiver ?: it.extensionReceiver
         }
 

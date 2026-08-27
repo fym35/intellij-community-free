@@ -81,7 +81,7 @@ open class IdeaCommunityProperties(private val communityHomeDir: Path) : JetBrai
       "intellij.platform.util.zip",
     )
     mavenArtifacts.validateForMavenCentralPublication = { module ->
-      JewelMavenArtifacts.isPublishedJewelModule(module)
+      JewelMavenArtifacts.isPublishedJewelModule(module) || JewelMavenArtifacts.isPublishedPlatformDependency(module)
     }
     mavenArtifacts.patchCoordinates = { module, coordinates ->
       when {
@@ -98,10 +98,12 @@ open class IdeaCommunityProperties(private val communityHomeDir: Path) : JetBrai
     mavenArtifacts.addPomMetadata = { module, model ->
       when {
         JewelMavenArtifacts.isPublishedJewelModule(module) -> JewelMavenArtifacts.addPomMetadata(module, model)
+        JewelMavenArtifacts.isPublishedPlatformDependency(module) -> JewelMavenArtifacts.addPlatformPomMetadata(module, model)
       }
     }
     mavenArtifacts.isJavadocJarRequired = {
-      JewelMavenArtifacts.isPublishedJewelModule(it) && it.name != "intellij.platform.jewel.intUi.decoratedWindow"
+      JewelMavenArtifacts.isPublishedPlatformDependency(it) ||
+      (JewelMavenArtifacts.isPublishedJewelModule(it) && it.name != "intellij.platform.jewel.intUi.decoratedWindow")
     }
     mavenArtifacts.validate = { context, artifacts ->
       JewelMavenArtifacts.validate(context, artifacts)
@@ -163,7 +165,7 @@ open class AndroidStudioProperties(communityHomeDir: Path) : IdeaCommunityProper
     productLayout.productImplementationModules += "intellij.idea.android.customization"
 
     val defaultBundledPlugins = IDEA_BUNDLED_PLUGINS
-      .removing("intellij.mcpserver")
+      .removing("intellij.mcpserver.plugin")
       .removing("intellij.featuresTrainer")
 
     productLayout.bundledPluginModules = defaultBundledPlugins + persistentListOf(
@@ -206,9 +208,13 @@ fun intellijCommunityBaseFragment(platformPrefix: String? = null): ProductModule
   module("intellij.platform.coverage")
   module("intellij.platform.coverage.agent")
   module("intellij.xml.xmlbeans")
+  module("intellij.libraries.log4j.to.slf4j")
+  module("intellij.libraries.xmlbeans")
   module("intellij.platform.ide.newUiOnboarding")
   module("intellij.platform.ide.newUsersOnboarding")
   module("intellij.ide.startup.importSettings")
+  // the sqlite JDBC driver `importSettings` needs; private, so plugins bundle their own copy of it
+  privateModule("intellij.libraries.sqlite")
   module("intellij.platform.customization.min")
   module("intellij.idea.customization.base")
   module("intellij.idea.customization.backend")
@@ -221,6 +227,10 @@ fun intellijCommunityBaseFragment(platformPrefix: String? = null): ProductModule
   moduleSet(CommunityModuleSets.rdCommon())
 
   deprecatedInclude("intellij.idea.community.customization", "META-INF/community-customization.xml")
+
+  module("intellij.platform.ide.nonModalWelcomeScreen")
+  module("intellij.platform.ide.nonModalWelcomeScreen.frontend")
+  module("intellij.platform.ide.nonModalWelcomeScreen.backend")
 }
 
 inline fun ideaCommunityWindowsCustomizer(

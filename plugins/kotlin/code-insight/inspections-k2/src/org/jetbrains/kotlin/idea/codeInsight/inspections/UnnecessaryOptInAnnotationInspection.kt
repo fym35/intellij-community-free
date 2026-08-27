@@ -11,16 +11,12 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotationValue
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.containingSymbol
-import org.jetbrains.kotlin.analysis.api.components.directlyOverriddenSymbols
-import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
-import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
-import org.jetbrains.kotlin.analysis.api.components.type
-import org.jetbrains.kotlin.analysis.api.components.varargArrayType
+import org.jetbrains.kotlin.analysis.api.components.isClassType
+import org.jetbrains.kotlin.analysis.api.evaluation.evaluateAsAnnotationValue
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbols
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
@@ -30,12 +26,18 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.directlyOverriddenSymbols
 import org.jetbrains.kotlin.analysis.api.symbols.findClass
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaAnnotatedSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.expandedSymbol
+import org.jetbrains.kotlin.analysis.api.types.type
+import org.jetbrains.kotlin.analysis.api.types.varargArrayType
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.psi.KotlinPsiHeuristics
@@ -44,8 +46,6 @@ import org.jetbrains.kotlin.idea.base.util.names.FqNames
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.ApplicabilityRange
 import org.jetbrains.kotlin.idea.codeinsights.impl.base.inspection.WasExperimentalOptInsNecessityChecker
-import org.jetbrains.kotlin.idea.references.KtReference
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.references.readWriteAccess
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.ClassId
@@ -55,6 +55,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClassLiteralExpression
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
@@ -91,7 +92,8 @@ internal class UnnecessaryOptInAnnotationInspection :
     override fun getApplicableRanges(element: KtAnnotationEntry): List<TextRange> = ApplicabilityRange.self(element)
 
     @OptIn(KaExperimentalApi::class)
-    override fun KaSession.prepareContext(element: KtAnnotationEntry): Context? {
+    context(session: KaSession)
+    override fun prepareContext(element: KtAnnotationEntry): Context? {
         val annotationType = element.typeReference?.type ?: return null
         val isOptIn = annotationType.isClassType(OptInNames.OPT_IN_CLASS_ID)
                 || annotationType.isClassType(OLD_USE_EXPERIMENTAL_CLASS_ID)
@@ -214,9 +216,10 @@ private class MarkerCollector(private val moduleApiVersion: ApiVersion) {
         }
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     fun collectMarkers(expression: KtReferenceExpression) {
-        val symbols = expression.mainReference.resolveToSymbols()
+        val symbols = expression.resolveSymbols()
         for (symbol in symbols) {
             (symbol as? KaAnnotatedSymbol)?.collectMarkers()
 
@@ -263,19 +266,10 @@ private class MarkerCollector(private val moduleApiVersion: ApiVersion) {
         }
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     context(_: KaSession)
     fun collectMarkers(delegate: KtPropertyDelegate) {
-        val expression = delegate.expression
-        if (expression is KtReferenceExpression) {
-            val symbols = expression.mainReference.resolveToSymbols()
-            symbols.forEach {(it as? KaAnnotatedSymbol)?.collectMarkers() }
-        }
-
-        delegate.references.filterIsInstance<KtReference>().forEach {
-            it.resolveToSymbols().forEach { symbol ->
-                (symbol as? KaAnnotatedSymbol)?.collectMarkers()
-            }
-        }
+        delegate.resolveSymbols().forEach { (it as? KaAnnotatedSymbol)?.collectMarkers() }
     }
 
     context(_: KaSession)

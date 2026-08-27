@@ -1,6 +1,8 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 
+### skip generation section `test intellij.kotlin.jvm.debugger.eval4j.tests`
+
 ### auto-generated section `build intellij.kotlin.jvm.debugger.eval4j` start
 jvm_library(
     name = "eval4j",
@@ -13,6 +15,10 @@ jvm_library(
         allow_empty = True,
     ),
     module_name = "intellij.kotlin.jvm.debugger.eval4j",
+    resource_strip_prefix = "resources",
+    resources = glob(
+        ["resources/**/*"],
+    ),
     visibility = ["//visibility:public"],
     runtime_deps = ["//platform/core-api:core"],
     deps = [
@@ -20,7 +26,7 @@ jvm_library(
         "//java/debugger/openapi:java-debugger",
         "@lib//:kotlin-stdlib",
         "//libraries/asm",
-        "@lib//:kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
         "//platform/util",
         "//java/debugger/impl",
     ],
@@ -43,6 +49,7 @@ jvm_library(
         "//libraries/asm:asm_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
         "//platform/util:util_test_lib",
         "//java/debugger/impl:impl_test_lib",
     ],
@@ -53,6 +60,7 @@ jvm_library(
 exports_files(
     [
         "intellij.kotlin.jvm.debugger.eval4j.iml",
+        "resources/intellij.kotlin.jvm.debugger.eval4j.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -100,7 +108,8 @@ jvm_library(
         "//libraries/asm:asm_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
-        "@lib//:kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
         "//platform/util",
         "//platform/util:util_test_lib",
         "//java/debugger/impl",
@@ -117,13 +126,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.kotlin.jvm.debugger.eval4j.tests` end
-
-### auto-generated section `test intellij.kotlin.jvm.debugger.eval4j.tests` start
-jps_test(
-    name = "kotlin-jvm-debugger-eval4j-tests_test",
-    runtime_deps = [
-        ":kotlin-jvm-debugger-eval4j-tests_test_lib",
-        "//:main_test_lib",
-    ],
-)
-### auto-generated section `test intellij.kotlin.jvm.debugger.eval4j.tests` end

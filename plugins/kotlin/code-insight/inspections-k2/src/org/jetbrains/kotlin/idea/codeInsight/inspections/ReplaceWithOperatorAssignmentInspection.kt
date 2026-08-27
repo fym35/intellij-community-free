@@ -10,9 +10,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.tree.IElementType
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.defaultType
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
@@ -21,6 +27,7 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtSingleValueToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
@@ -55,7 +62,9 @@ internal class ReplaceWithOperatorAssignmentInspection :
         return right.left != null && right.right != null
     }
 
-    override fun KaSession.prepareContext(element: KtBinaryExpression): Context? {
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+    context(session: KaSession)
+    override fun prepareContext(element: KtBinaryExpression): Context? {
         val left = element.left ?: return null
         val right = element.right as? KtBinaryExpression ?: return null
 
@@ -64,7 +73,7 @@ internal class ReplaceWithOperatorAssignmentInspection :
         val operatorAssignment = buildOperatorAssignment(element) ?: return null
 
         analyze(operatorAssignment) {
-            if (operatorAssignment.operationReference.mainReference.resolveToSymbol() == null) return null
+            if (operatorAssignment.operationReference.resolveSymbol() == null) return null
         }
 
         val problemHighlightType = getProblemHighlightType(element)
@@ -102,7 +111,8 @@ internal class ReplaceWithOperatorAssignmentInspection :
     }
 }
 
-private fun KaSession.getProblemHighlightType(element: KtBinaryExpression): ProblemHighlightType {
+context(session: KaSession)
+private fun getProblemHighlightType(element: KtBinaryExpression): ProblemHighlightType {
     val leftType = (element.left as? KtNameReferenceExpression)?.expressionType as? KaClassType
     return when {
         leftType?.isReadOnlyCollectionOrMap() == true -> ProblemHighlightType.INFORMATION
@@ -113,7 +123,8 @@ private fun KaSession.getProblemHighlightType(element: KtBinaryExpression): Prob
 private fun KaClassType.isReadOnlyCollectionOrMap(): Boolean =
     classId in listOf(StandardClassIds.List, StandardClassIds.Set, StandardClassIds.Map)
 
-private fun KaSession.checkExpressionRepeat(
+context(session: KaSession)
+private fun checkExpressionRepeat(
     variableExpression: KtExpression,
     expression: KtBinaryExpression,
 ): Boolean {
@@ -145,13 +156,14 @@ private fun KaSession.checkExpressionRepeat(
     }
 }
 
-private fun KaSession.isPrimitiveOperation(expression: KtBinaryExpression): Boolean {
+@OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+context(session: KaSession)
+private fun isPrimitiveOperation(expression: KtBinaryExpression): Boolean {
     val operationSymbol = expression.operationReference
-        .mainReference
-        .resolveToSymbol()
+        .resolveSymbol()
         ?.containingSymbol as? KaClassSymbol ?: return false
 
-    return operationSymbol.defaultType.isPrimitive
+    return operationSymbol.defaultType.classId in KaStandardTypeClassIds.PRIMITIVES
 }
 
 private fun isCommutative(operationToken: IElementType): Boolean =
@@ -164,7 +176,8 @@ private fun isArithmeticOperation(operationToken: IElementType): Boolean =
             operationToken == KtTokens.DIV ||
             operationToken == KtTokens.PERC
 
-private fun KaSession.buildOperatorAssignment(element: KtBinaryExpression): KtBinaryExpression? {
+context(session: KaSession)
+private fun buildOperatorAssignment(element: KtBinaryExpression): KtBinaryExpression? {
     val variableExpression = element.left ?: return null
     val assignedExpression = element.right as? KtBinaryExpression ?: return null
 
@@ -173,7 +186,8 @@ private fun KaSession.buildOperatorAssignment(element: KtBinaryExpression): KtBi
     return codeFragment.getContentElement() as? KtBinaryExpression
 }
 
-private tailrec fun KaSession.buildOperatorAssignmentText(
+context(session: KaSession)
+private tailrec fun buildOperatorAssignmentText(
     variableExpression: KtExpression,
     expression: KtBinaryExpression,
     tail: String,

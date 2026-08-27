@@ -36,6 +36,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.Ref
+import com.intellij.platform.ide.navigation.NavigationOptions
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -71,13 +72,13 @@ open class GotoDeclarationAction : BaseCodeInsightAction(), DumbAware, CtrlMouse
   }
 
   override fun getHandler(): CodeInsightActionHandler =
-    GotoDeclarationOrUsageHandler2(null)
+    getHandler(DataContext.EMPTY_CONTEXT)
 
   internal fun getReporter(dataContext: DataContext): GotoDeclarationReporter? =
     GO_TO_DECLARATION_REPORTER_DATA_KEY.getData(dataContext)
 
   override fun getHandler(dataContext: DataContext): CodeInsightActionHandler =
-    GotoDeclarationOrUsageHandler2(getReporter(dataContext))
+    GotoDeclarationOrUsageHandler2(getReporter(dataContext), NavigationOptions.fromContext(dataContext))
 
   override fun getCtrlMouseData(editor: Editor, file: PsiFile, offset: Int): CtrlMouseData? =
     GotoDeclarationOrUsageHandler2.getCtrlMouseData(editor, file, offset)
@@ -141,7 +142,6 @@ open class GotoDeclarationAction : BaseCodeInsightAction(), DumbAware, CtrlMouse
       LOG.trace {
         val project = event.project
         val baseEditor = event.getData(CommonDataKeys.EDITOR)
-        val psiInteractionAllowed = Elf.getElf().isPsiInteractionAllowed()
         val inElfScope = Elf.getElf().isInElfScope()
         val lookupActive = project != null && LookupManager.getInstance(project).activeLookup != null
         val document = baseEditor?.document
@@ -157,7 +157,7 @@ open class GotoDeclarationAction : BaseCodeInsightAction(), DumbAware, CtrlMouse
         // getPsiFileInEditor may THROW on an invalid file (ensureValid) — that is itself the disable cause:
         var psiInEditorError: String? = null
         val psiInEditor = try {
-          val f = if (project != null && baseEditor != null && psiInteractionAllowed) {
+          val f = if (project != null && baseEditor != null) {
             PsiUtilBase.getPsiFileInEditor(baseEditor, project)
           }
           else null
@@ -181,7 +181,6 @@ open class GotoDeclarationAction : BaseCodeInsightAction(), DumbAware, CtrlMouse
         ", document@$docId" +
         ", file=${vFile?.name ?: "null"}" +
         ", caretOffset=$caretOffset" +
-        ", psiInteractionAllowed=$psiInteractionAllowed" +
         ", inElfScope=$inElfScope" +
         ", lookupActive=$lookupActive" +
         ", documentCommitted=$committed" +

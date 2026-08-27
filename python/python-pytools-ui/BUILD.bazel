@@ -1,6 +1,16 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.python.pytools.ui` start
+create_kotlinc_options(
+    name = "custom_pytools-ui",
+    opt_in = [
+        "kotlin.time.ExperimentalTime",
+        "com.jetbrains.python.PyInternalExecApi",
+    ],
+)
+
 jvm_library(
     name = "pytools-ui",
     srcs = glob(
@@ -13,6 +23,7 @@ jvm_library(
         ],
         allow_empty = True,
     ),
+    kotlinc_opts = ":custom_pytools-ui",
     module_name = "intellij.python.pytools.ui",
     resource_strip_prefix = "resources",
     resources = glob(
@@ -45,9 +56,12 @@ jvm_library(
         "//python/python-exec-service:community-execService",
         "//python/python-exec-service/execService.python",
         "//python/python-uv/backend",
-        "//python/python-sdk:sdk",
+        "//python/python-sdk/backend",
+        "//python/python-pyproject:pyproject",
     ],
 )
+
+content_module_jar(module = ":pytools-ui")
 
 jvm_library(
     name = "pytools-ui_test_lib",
@@ -56,6 +70,7 @@ jvm_library(
         [],
         allow_empty = True,
     ),
+    kotlinc_opts = ":custom_pytools-ui",
     module_name = "intellij.python.pytools.ui",
     visibility = ["//visibility:public"],
     runtime_deps = [
@@ -84,7 +99,8 @@ jvm_library(
         "//python/python-exec-service:community-execService_test_lib",
         "//python/python-exec-service/execService.python:execService.python_test_lib",
         "//python/python-uv/backend:backend_test_lib",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend:backend_test_lib",
+        "//python/python-pyproject:pyproject_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.pytools.ui` end
@@ -93,6 +109,7 @@ jvm_library(
 exports_files(
     [
         "intellij.python.pytools.ui.iml",
+        "resources/intellij.python.pytools.ui.xml",
     ],
     visibility = ["//visibility:public"],
 )

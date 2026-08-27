@@ -13,7 +13,6 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.ShutDownTracker;
 import com.intellij.util.FlushingDaemon;
 import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.io.FilePageCacheLockFree;
 import com.intellij.util.ui.EDT;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.ApiStatus.Internal;
@@ -71,7 +70,7 @@ public final class ThreadLeakTracker {
   private static final Set<String> wellKnownOffenders;
 
   static {
-    @SuppressWarnings({"deprecation", "SpellCheckingInspection"}) List<String> offenders = List.of(
+    @SuppressWarnings("deprecation") List<String> offenders = List.of(
       "ApplicationImpl pooled thread ", // com.intellij.util.concurrency.AppScheduledExecutorService.POOLED_THREAD_PREFIX
       "AWT-EventQueue-",
       "AWT-Shutdown",
@@ -92,9 +91,9 @@ public final class ThreadLeakTracker {
       "embeddings-server",
       "EventQueueMonitor-ComponentEvtDispatch", // com.sun.java.accessibility.util.ComponentEvtDispatchThread
       "External compiler",
-      FilePageCacheLockFree.DEFAULT_HOUSEKEEPER_THREAD_NAME,
       "Finalizer",
       FlushingDaemon.NAME,
+      "FrontendToBackend",
       "grpc-default-worker-",  // grpc_netty_shaded
       "grpc-nio-worker-",
       "HttpClient-",  // JRE's HttpClient thread pool is not supposed to be disposed - to reuse connections
@@ -111,6 +110,10 @@ public final class ThreadLeakTracker {
       JVMResponsivenessMonitor.MONITOR_THREAD_NAME,
       "Keep-Alive-SocketCleaner", // Thread[Keep-Alive-SocketCleaner,8,InnocuousThreadGroup], JBR-11
       "Keep-Alive-Timer",
+      // com.intellij.remoteDev.tests.LambdaTestsConstants#protocolName - the rd wire to a lambda-framework IDE.
+      // That IDE is shared by every test class of a launch, so its sender and receiver outlive any one of them;
+      // the first class to run would otherwise report them as its own leak. Same case as "FrontendToBackend".
+      "LambdaTestProtocol",
       "LocalEventBusServerThread", // com.intellij.tools.ide.starter.bus.shared.server.LocalEventBusServer
       "main",
       "Monitor Ctrl-Break",
@@ -129,6 +132,8 @@ public final class ThreadLeakTracker {
       "rd throttler", // daemon thread created by com.jetbrains.rd.util.AdditionalApiKt.getTimer
       "Reference Handler",
       "Rider.Backend", // ignore process + io threads because backend follows application lifecycle and can be started during the test
+      "Rider.LightweightBackend", // same as Rider.Backend, but for the lightweight backend process
+      "RiderStub", // same as Rider.Backend, but for the single-file backend host, whose command line has no "Rider.Backend" in it
       "RMI GC Daemon",
       "RMI TCP ",
       "Save classpath indexes for file loader",

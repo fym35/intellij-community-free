@@ -14,6 +14,7 @@ import com.intellij.ide.plugins.marketplace.CheckErrorsResult
 import com.intellij.ide.plugins.marketplace.InstallPluginResult
 import com.intellij.ide.plugins.marketplace.PluginInstalledFromDiskResult
 import com.intellij.ide.plugins.marketplace.PrepareToUninstallResult
+import com.intellij.ide.plugins.marketplace.ResetPluginsStateResult
 import com.intellij.ide.plugins.marketplace.SetEnabledStateResult
 import com.intellij.ide.plugins.newui.DefaultUiPluginManagerController
 import com.intellij.ide.plugins.newui.PluginManagerSessionService
@@ -39,7 +40,7 @@ internal class BackendPluginInstallerApi : PluginInstallerApi {
     return PluginInstaller.unloadDynamicPlugin(pluginDescriptor)
   }
 
-  override suspend fun resetSession(sessionId: String, removeSession: Boolean): Map<PluginId, Boolean> {
+  override suspend fun resetSession(sessionId: String, removeSession: Boolean): ResetPluginsStateResult {
     return DefaultUiPluginManagerController.resetSession(sessionId, removeSession)
   }
 
@@ -55,9 +56,9 @@ internal class BackendPluginInstallerApi : PluginInstallerApi {
     return channelFlow {
       withContext(Dispatchers.EDT) {
         val project = projectId?.findProjectOrNull()
-        InstallFromDiskAction.installPluginFromDisk(null, project, InstalledPluginsTableModel(project), PluginEnabler.HEADLESS, null) {
+        InstallFromDiskAction.installPluginFromDisk(null, project, InstalledPluginsTableModel(project), PluginEnabler.HEADLESS, null, {
           trySend(PluginInstalledFromDiskResult(PluginDescriptorConverter.toPluginDto(it.pluginDescriptor), it.restartNeeded))
-        }
+        }, { _, _ -> })
       }
     }
   }

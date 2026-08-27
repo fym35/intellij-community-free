@@ -15,19 +15,23 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.createSmartPointer
 import org.jdom.Element
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.defaultType
-import org.jetbrains.kotlin.analysis.api.components.isNullable
-import org.jetbrains.kotlin.analysis.api.components.lowerBoundIfFlexible
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
-import org.jetbrains.kotlin.analysis.api.components.type
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.successfulConstructorCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
+import org.jetbrains.kotlin.analysis.api.types.defaultType
+import org.jetbrains.kotlin.analysis.api.types.isMarkedNullable
+import org.jetbrains.kotlin.analysis.api.types.isNullable
+import org.jetbrains.kotlin.analysis.api.types.lowerBoundIfFlexible
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinApplicableModCommandAction
@@ -37,6 +41,7 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.FqNameUnsafe
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtNullableType
@@ -126,7 +131,8 @@ internal class JavaCollectionWithNullableTypeArgumentInspection :
         }
     }
 
-    override fun KaSession.prepareContext(element: KtElement): Context? {
+    context(session: KaSession)
+    override fun prepareContext(element: KtElement): Context? {
         val typeArguments = element.getTypeArguments() ?: return null
 
         val canMakeNonNullable: Boolean
@@ -163,7 +169,8 @@ internal class JavaCollectionWithNullableTypeArgumentInspection :
     /**
      * Returns `null` if we should stop processing.
      */
-    private fun KaSession.canMakeNonNullable(typeArguments: List<KtTypeProjection>): Boolean? {
+    context(session: KaSession)
+    private fun canMakeNonNullable(typeArguments: List<KtTypeProjection>): Boolean? {
         return if (typeArguments.none { it.isExplicitlyNullable() }) {
             val implicitlyNullableTypes = typeArguments.filter { it.isImplicitlyNullable() }
             if (implicitlyNullableTypes.isEmpty()) return null
@@ -173,7 +180,8 @@ internal class JavaCollectionWithNullableTypeArgumentInspection :
         }
     }
 
-    private fun KaSession.constructorHasNullableParameters(constructorCall: KaFunctionCall<KaConstructorSymbol>): Boolean {
+    context(session: KaSession)
+    private fun constructorHasNullableParameters(constructorCall: KaFunctionCall<KaConstructorSymbol>): Boolean {
         val typeArgumentsMapping = constructorCall.typeArgumentsMapping
         if (typeArgumentsMapping.isEmpty()) return false
         val hasNullableTypes = typeArgumentsMapping.any { (_, typeArgument) ->
@@ -223,7 +231,8 @@ internal class JavaCollectionWithNullableTypeArgumentInspection :
             initialType.replace(definitelyNonNullableType)
         }
 
-        override fun KaSession.prepareContext(element: KtElement): Context {
+        context(session: KaSession)
+        override fun prepareContext(element: KtElement): Context {
             val typeArguments = element.getTypeArguments() ?: return Context(typesToMakeNonNullable = emptyMap())
 
             val typesAndRemoveNullabilityActions = mutableMapOf<SmartPsiElementPointer<KtTypeProjection>, RemoveNullabilityAction>()
@@ -299,10 +308,11 @@ private fun KtTypeProjection.isExplicitlyNullable(): Boolean {
  * This behavior of constructor type arguments being flexible is going to be changed in Kotlin 2.3 (KT-71718),
  * but we can't fix it here because we don't want different code for different language versions.
  */
+@OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
 context(_: KaSession)
 private fun KtTypeProjection.isImplicitlyNullable(): Boolean {
     val userType = typeReference?.typeElement as? KtUserType ?: return false
-    val symbol = userType.referenceExpression?.mainReference?.resolveToSymbol() as? KaClassifierSymbol ?: return false
+    val symbol = userType.referenceExpression?.resolveSymbol() as? KaClassifierSymbol ?: return false
     return symbol.defaultType.isNullable
 }
 

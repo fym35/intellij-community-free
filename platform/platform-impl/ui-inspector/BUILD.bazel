@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.ide.ui.inspector` start
 jvm_library(
@@ -33,6 +34,8 @@ jvm_library(
         "//platform/ide-core",
         "//libraries/miglayout-swing",
         "//libraries/guava",
+        "//libraries/kotlinx/serialization/core",
+        "//libraries/kotlinx/serialization/json",
         "//platform/projectModel-api:projectModel",
         "//platform/projectModel-impl",
         "//platform/editor-ui-ex:editor-ex",
@@ -41,6 +44,8 @@ jvm_library(
         "//platform/platform-frontend:frontend",
     ],
 )
+
+content_module_jar(module = ":ide-ui-inspector")
 
 jvm_library(
     name = "ide-ui-inspector_test_lib",
@@ -68,6 +73,8 @@ jvm_library(
         "//platform/ide-core:ide-core_test_lib",
         "//libraries/miglayout-swing:miglayout-swing_test_lib",
         "//libraries/guava:guava_test_lib",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
+        "//libraries/kotlinx/serialization/json:json_test_lib",
         "//platform/projectModel-api:projectModel_test_lib",
         "//platform/projectModel-impl:projectModel-impl_test_lib",
         "//platform/editor-ui-ex:editor-ex_test_lib",
@@ -82,6 +89,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.ide.ui.inspector.iml",
+        "resources/intellij.platform.ide.ui.inspector.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

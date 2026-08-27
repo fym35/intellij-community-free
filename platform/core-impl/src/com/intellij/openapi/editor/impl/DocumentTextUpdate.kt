@@ -4,6 +4,7 @@ package com.intellij.openapi.editor.impl
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.ex.DocumentSettings
+import com.intellij.openapi.progress.Cancellation
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.ShutDownTracker
 import kotlin.concurrent.Volatile
@@ -14,16 +15,16 @@ internal sealed class DocumentTextUpdate(
 ) {
   @Volatile private var isInTextUpdate: Boolean = false
 
-  protected abstract fun beforeDocumentChange(listener: DocumentListener, changeEvent: DocumentEvent)
-  protected abstract fun documentChanged(listener: DocumentListener, revertedEvent: DocumentEvent?, changeEvent: DocumentEvent)
+  protected abstract fun beforeDocumentChange(listener: DocumentListener, changeEvent: DocumentEvent, revertingEvent: DocumentEvent?)
+  protected abstract fun documentChanged(listener: DocumentListener, changeEvent: DocumentEvent, revertedEvent: DocumentEvent?)
 
   fun isInTextUpdate(): Boolean {
     return isInTextUpdate
   }
 
   fun <T> withFiringTextUpdate(
-    revertedEvent: DocumentEvent?,
     changeEvent: DocumentEvent,
+    revertedEvent: DocumentEvent?,
     action: () -> T,
   ): T {
     if (ShutDownTracker.isShutdownStarted()) {
@@ -32,12 +33,12 @@ internal sealed class DocumentTextUpdate(
     val exceptions = DocumentDelayedExceptions(isPceWarningEnabled())
     val listeners = getListeners()
     var result: T? = null
-    ProgressManager.getInstance().executeNonCancelableSection {
-      notifyBeforeTextChange(listeners, changeEvent, exceptions)
+    Cancellation.computeInNonCancelableSection<Unit, RuntimeException> {
+      notifyBeforeTextChange(listeners, changeEvent, revertedEvent, exceptions)
       isInTextUpdate = true
       try {
         result = action()
-        notifyTextChanged(listeners, revertedEvent, changeEvent, exceptions)
+        notifyTextChanged(listeners, changeEvent, revertedEvent, exceptions)
       } finally {
         isInTextUpdate = false
       }
@@ -51,11 +52,12 @@ internal sealed class DocumentTextUpdate(
   private fun notifyBeforeTextChange(
     listeners: Array<DocumentListener>,
     changeEvent: DocumentEvent,
+    revertedEvent: DocumentEvent?,
     exceptions: DocumentDelayedExceptions,
   ) {
     for (i in listeners.indices.reversed()) {
       try {
-        beforeDocumentChange(listeners[i], changeEvent)
+        beforeDocumentChange(listeners[i], changeEvent, revertedEvent)
       } catch (e: Throwable) {
         exceptions.register(e)
       }
@@ -64,13 +66,13 @@ internal sealed class DocumentTextUpdate(
 
   private fun notifyTextChanged(
     listeners: Array<DocumentListener>,
-    revertedEvent: DocumentEvent?,
     changeEvent: DocumentEvent,
+    revertedEvent: DocumentEvent?,
     exceptions: DocumentDelayedExceptions,
   ) {
     for (listener in listeners) {
       try {
-        documentChanged(listener, revertedEvent, changeEvent)
+        documentChanged(listener, changeEvent, revertedEvent)
       } catch (e: Throwable) {
         exceptions.register(e)
       }
@@ -89,15 +91,19 @@ internal sealed class DocumentTextUpdate(
     settings: DocumentSettings,
     listeners: LockFreeCOWSortedArray<DocumentListener>,
   ) : DocumentTextUpdate(settings, listeners) {
-    override fun beforeDocumentChange(listener: DocumentListener, changeEvent: DocumentEvent) {
-      listener.beforeElfDocumentChange(changeEvent)
+    override fun beforeDocumentChange(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertingEvent: DocumentEvent?,
+    ) {
+      listener.beforeElfDocumentChange(changeEvent, revertingEvent)
     }
-    override fun documentChanged(listener: DocumentListener, revertedEvent: DocumentEvent?, changeEvent: DocumentEvent) {
-      if (revertedEvent == null) {
-        listener.elfDocumentChanged(changeEvent)
-      } else {
-        listener.elfDocumentReverted(revertedEvent, changeEvent)
-      }
+    override fun documentChanged(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertedEvent: DocumentEvent?,
+    ) {
+      listener.elfDocumentChanged(changeEvent, revertedEvent)
     }
   }
 
@@ -105,10 +111,18 @@ internal sealed class DocumentTextUpdate(
     settings: DocumentSettings,
     listeners: LockFreeCOWSortedArray<DocumentListener>,
   ) : DocumentTextUpdate(settings, listeners) {
-    override fun beforeDocumentChange(listener: DocumentListener, changeEvent: DocumentEvent) {
+    override fun beforeDocumentChange(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertingEvent: DocumentEvent?,
+    ) {
       listener.beforeDocumentChange(changeEvent)
     }
-    override fun documentChanged(listener: DocumentListener, revertedEvent: DocumentEvent?, changeEvent: DocumentEvent) {
+    override fun documentChanged(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertedEvent: DocumentEvent?,
+    ) {
       listener.documentChanged(changeEvent)
     }
   }
@@ -117,12 +131,20 @@ internal sealed class DocumentTextUpdate(
     settings: DocumentSettings,
     listeners: LockFreeCOWSortedArray<DocumentListener>,
   ) : DocumentTextUpdate(settings, listeners) {
-    override fun beforeDocumentChange(listener: DocumentListener, changeEvent: DocumentEvent) {
+    override fun beforeDocumentChange(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertingEvent: DocumentEvent?,
+    ) {
       listener.beforeDocumentChange(changeEvent)
-      listener.beforeElfDocumentChange(changeEvent)
+      listener.beforeElfDocumentChange(changeEvent, revertingEvent)
     }
-    override fun documentChanged(listener: DocumentListener, revertedEvent: DocumentEvent?, changeEvent: DocumentEvent) {
-      listener.elfDocumentChanged(changeEvent)
+    override fun documentChanged(
+      listener: DocumentListener,
+      changeEvent: DocumentEvent,
+      revertedEvent: DocumentEvent?,
+    ) {
+      listener.elfDocumentChanged(changeEvent, revertedEvent)
       listener.documentChanged(changeEvent)
     }
   }

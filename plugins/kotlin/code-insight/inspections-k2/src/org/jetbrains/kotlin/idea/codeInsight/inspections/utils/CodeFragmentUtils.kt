@@ -1,23 +1,29 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-
 package org.jetbrains.kotlin.idea.codeInsight.inspections.utils
 
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
 import org.jetbrains.kotlin.analysis.api.resolution.KaCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaSingleCall
+import org.jetbrains.kotlin.analysis.api.resolution.collectCallCandidates
+import org.jetbrains.kotlin.analysis.api.resolution.resolveCall
 import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.restore
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
+import org.jetbrains.kotlin.idea.codeinsight.utils.callExpression
 import org.jetbrains.kotlin.idea.k2.refactoring.util.findContextToAnalyze
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCollectionLiteralExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtExpressionCodeFragment
 import org.jetbrains.kotlin.psi.KtLambdaExpression
@@ -89,6 +95,7 @@ internal fun createFragmentToWithFunction(
  * @param name The name of the counterpart function
  * @return True if the counterpart name resolves to a standard library function
  */
+@OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
 internal fun nameResolvesToStdlib(expression: KtCallExpression, calleeName: String, name: String): Boolean {
     val factory = KtPsiFactory(expression.project)
 
@@ -118,13 +125,12 @@ internal fun nameResolvesToStdlib(expression: KtCallExpression, calleeName: Stri
         val callableSymbol: KaCallableSymbol? = when (val fragmentExpression: KtExpression? = fragment.getContentElement()) {
             is KtDotQualifiedExpression -> {
                 // Handle qualified expressions like "receiver.function()"
-                val callExpression = fragmentExpression.selectorExpression as? KtCallExpression
-                callExpression?.calleeExpression?.mainReference?.resolveToSymbol() as? KaCallableSymbol
+                (fragmentExpression.collectCallCandidates().singleOrNull()?.candidate as? KaSingleCall<*, *>)?.signature?.symbol
             }
             else -> {
                 // Handle other expressions
                 val resolvedFragmentCall = fragmentExpression?.resolveToCall()?.successfulCallOrNull<KaCall>()
-                (resolvedFragmentCall as? KaCallableMemberCall<*, *>)?.partiallyAppliedSymbol?.symbol
+                (resolvedFragmentCall as? KaCallableMemberCall<*, *>)?.symbol
             }
         }
 
@@ -136,22 +142,26 @@ internal fun nameResolvesToStdlib(expression: KtCallExpression, calleeName: Stri
 }
 
 internal fun buildCodeFragmentWithCollectionLiteral(
-    element: KtCallExpression,
+    element: KtExpression,
     context: KtExpression,
 ): KtCollectionLiteralExpression? {
     val elementRange = element.textRange
     val contextStartOffset = context.textRange.startOffset
     val startIndex = elementRange.startOffset - contextStartOffset
     val endIndex = elementRange.endOffset - contextStartOffset
-    val literalText = element.toCollectionLiteralString() ?: return null
-    val textWithLiteral = context.text.replaceRange(startIndex, endIndex, literalText)
+    val literalText = when(element) {
+        is KtDotQualifiedExpression -> element.callExpression?.toCollectionLiteralString()
+        is KtCallExpression -> element.toCollectionLiteralString()
+        else -> null
+    }
+    val textWithLiteral = context.text.replaceRange(startIndex, endIndex, literalText ?: return null)
     val codeFragment = KtPsiFactory(element.project).createBlockCodeFragment(textWithLiteral, context)
     return codeFragment.findElementAt(startIndex)?.parentOfType()
 }
 
-@OptIn(KaExperimentalApi::class, KaImplementationDetail::class)
+@OptIn(KaExperimentalApi::class)
 internal fun isCollectionLiteralSafeAsArgument(
-    element: KtCallExpression,
+    element: KtExpression,
     expressionType: KaType,
 ): Boolean {
     val context = element.findContextToAnalyze() ?: return false
@@ -160,7 +170,7 @@ internal fun isCollectionLiteralSafeAsArgument(
 
     val expressionTypePointer = expressionType.createPointer()
     return analyze(literal) {
-        val restoredType = expressionTypePointer.restore(this) ?: return false
+        val restoredType = expressionTypePointer.restore() ?: return false
         val literalType = literal.expressionType ?: return false
         if (!literalType.semanticallyEquals(restoredType)) return false
         val outerCall = literal.getParentOfType<KtCallExpression>(strict = true) ?: return true

@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.python.pyrefly` start
 jvm_library(
@@ -25,7 +26,7 @@ jvm_library(
         "//platform/lang-impl",
         "//platform/analysis-api:analysis",
         "//python:python-community-impl",
-        "//python/python-sdk:sdk",
+        "//python/python-sdk/backend",
         "//python/python-core-impl:community-core-impl",
         "//platform/code-style-impl:codeStyle-impl",
         "//platform/editor-ui-ex:editor-ex",
@@ -53,6 +54,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":pyrefly")
+
 jvm_library(
     name = "pyrefly_test_lib",
     testonly = True,
@@ -69,7 +72,7 @@ jvm_library(
         "//platform/lang-impl:lang-impl_test_lib",
         "//platform/analysis-api:analysis_test_lib",
         "//python:python-community-impl_test_lib",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend:backend_test_lib",
         "//python/python-core-impl:community-core-impl_test_lib",
         "//platform/code-style-impl:codeStyle-impl_test_lib",
         "//platform/editor-ui-ex:editor-ex_test_lib",
@@ -106,6 +109,7 @@ jvm_library(
 exports_files(
     [
         "intellij.python.pyrefly.iml",
+        "resources/intellij.python.pyrefly.xml",
     ],
     visibility = ["//visibility:public"],
 )

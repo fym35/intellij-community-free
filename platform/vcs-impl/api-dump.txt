@@ -26,6 +26,8 @@ c:com.intellij.diff.Block
 - s:tokenize(java.lang.String):java.lang.String[]
 f:com.intellij.diff.DiffVcsDataKeys
 - sf:INSTANCE:com.intellij.diff.DiffVcsDataKeys
+- sf:LOCAL_FILE:com.intellij.openapi.util.Key
+- sf:PATCH_BASE_INFO:com.intellij.openapi.util.Key
 - sf:REVISION_INFO:com.intellij.openapi.util.Key
 a:com.intellij.execution.ExecutableValidator
 - sf:TIMEOUT_MS:I
@@ -195,10 +197,8 @@ a:com.intellij.openapi.vcs.CodeSmellDetector
 - s:getInstance(com.intellij.openapi.project.Project):com.intellij.openapi.vcs.CodeSmellDetector
 - a:showCodeSmellErrors(java.util.List):V
 c:com.intellij.openapi.vcs.VcsNotifier
-- sf:IMPORTANT_ERROR_NOTIFICATION:com.intellij.notification.NotificationGroup
-- sf:STANDARD_NOTIFICATION:com.intellij.notification.NotificationGroup
+- sf:IMPORTANT_NOTIFICATION_GROUP_ID:java.lang.String
 - pf:myProject:com.intellij.openapi.project.Project
-- <init>(com.intellij.openapi.project.Project):V
 - s:addShowDetailsAction(com.intellij.openapi.project.Project,com.intellij.notification.Notification):V
 - s:getInstance(com.intellij.openapi.project.Project):com.intellij.openapi.vcs.VcsNotifier
 - hideAllNotificationsById(java.lang.String):V
@@ -308,13 +308,11 @@ c:com.intellij.openapi.vcs.actions.AnnotateActionGroup
 f:com.intellij.openapi.vcs.actions.AnnotateToggleAction
 - com.intellij.openapi.actionSystem.ToggleAction
 - com.intellij.openapi.project.DumbAware
-- com.intellij.platform.ide.core.permissions.RequiresPermissions
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
 - <init>():V
 - s:doAnnotate(com.intellij.openapi.editor.Editor,com.intellij.openapi.project.Project,com.intellij.openapi.vcs.annotate.FileAnnotation,com.intellij.openapi.vcs.AbstractVcs):V
 - s:doAnnotate(com.intellij.openapi.editor.Editor,com.intellij.openapi.project.Project,com.intellij.openapi.vcs.annotate.FileAnnotation,com.intellij.openapi.vcs.AbstractVcs,com.intellij.openapi.localVcs.UpToDateLineNumberProvider):V
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
-- getRequiredPermissions():java.util.Collection
 - isSelected(com.intellij.openapi.actionSystem.AnActionEvent):Z
 - setSelected(com.intellij.openapi.actionSystem.AnActionEvent,Z):V
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
@@ -513,6 +511,7 @@ a:com.intellij.openapi.vcs.actions.commit.AbstractCommitChangesAction
 - actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
 - pa:getExecutor(com.intellij.openapi.project.Project):com.intellij.openapi.vcs.changes.CommitExecutor
+- getSaveCommentOnCancel():Z
 - p:isActionEnabled(com.intellij.openapi.vcs.changes.ChangeListManager,com.intellij.openapi.vcs.changes.Change):Z
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 f:com.intellij.openapi.vcs.actions.commit.CommonCheckinProjectAction
@@ -2096,6 +2095,7 @@ c:com.intellij.openapi.vcs.changes.ui.ChangeListChooser
 - setChangeLists(java.util.Collection):V
 - setDefaultSelection(com.intellij.openapi.vcs.changes.ChangeList):V
 - setSuggestedName(java.lang.String):V
+- setSuggestedName(java.lang.String,java.lang.String,Z):V
 - setSuggestedName(java.lang.String,Z):V
 f:com.intellij.openapi.vcs.changes.ui.ChangeListChooserPanel
 - javax.swing.JPanel
@@ -2294,7 +2294,7 @@ a:com.intellij.openapi.vcs.changes.ui.CommitChangeListDialog
 - p:afterInit():V
 - s:commitChanges(com.intellij.openapi.project.Project,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,com.intellij.openapi.vcs.changes.CommitExecutor,java.lang.String):Z
 - s:commitVcsChanges(com.intellij.openapi.project.Project,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,java.lang.String,com.intellij.openapi.vcs.changes.CommitResultHandler):Z
-- s:commitWithExecutor(com.intellij.openapi.project.Project,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,com.intellij.openapi.vcs.changes.CommitExecutor,java.lang.String,com.intellij.openapi.vcs.changes.CommitResultHandler):Z
+- s:commitWithExecutor(com.intellij.openapi.project.Project,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,com.intellij.openapi.vcs.changes.CommitExecutor,java.lang.String,java.lang.Boolean,com.intellij.openapi.vcs.changes.CommitResultHandler):Z
 - confirmCommitWithEmptyMessage():Z
 - p:createActions():javax.swing.Action[]
 - p:createCenterPanel():javax.swing.JComponent
@@ -2325,7 +2325,7 @@ a:com.intellij.openapi.vcs.changes.ui.CommitChangeListDialog
 - isDefaultCommitEnabled():Z
 - refreshDataBeforeCommit():V
 - setDefaultCommitActionName(java.lang.String):V
-- s:showCommitDialog(com.intellij.openapi.project.Project,java.util.Set,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,java.util.List,Z,java.lang.String,com.intellij.openapi.vcs.changes.CommitResultHandler):Z
+- s:showCommitDialog(com.intellij.openapi.project.Project,java.util.Set,java.util.Collection,com.intellij.openapi.vcs.changes.LocalChangeList,java.util.List,Z,java.lang.String,java.lang.Boolean,com.intellij.openapi.vcs.changes.CommitResultHandler):Z
 - s:showNothingToCommitMessage(com.intellij.openapi.project.Project):V
 - startBeforeCommitChecks():V
 - uiDataSnapshot(com.intellij.openapi.actionSystem.DataSink):V
@@ -3047,9 +3047,6 @@ f:com.intellij.openapi.vcs.impl.ProjectLevelVcsManagerImpl
 - sf:Companion:com.intellij.openapi.vcs.impl.ProjectLevelVcsManagerImpl$Companion
 - <init>(com.intellij.openapi.project.Project,kotlinx.coroutines.CoroutineScope):V
 - f:addInitializationRequest(com.intellij.openapi.vcs.impl.VcsInitObject,java.lang.Runnable):V
-- addMessageToConsoleWindow(com.intellij.openapi.vcs.VcsConsoleLine):V
-- addMessageToConsoleWindow(java.lang.String,com.intellij.execution.ui.ConsoleViewContentType):V
-- addMessageToConsoleWindow(java.lang.String,com.intellij.openapi.editor.markup.TextAttributes):V
 - areVcsesActivated():Z
 - awaitInitialization(kotlin.coroutines.Continuation):java.lang.Object
 - checkAllFilesAreUnder(com.intellij.openapi.vcs.AbstractVcs,com.intellij.openapi.vfs.VirtualFile[]):Z
@@ -3113,11 +3110,9 @@ f:com.intellij.openapi.vcs.impl.ProjectLevelVcsManagerImpl
 - f:removeDirectoryMapping(com.intellij.openapi.vcs.VcsDirectoryMapping):V
 - runAfterInitialization(java.lang.Runnable):V
 - scheduleMappedRootsUpdate():V
-- scrollConsoleToTheEnd():V
 - f:setAutoDirectoryMappings(java.util.List):V
 - setDirectoryMapping(java.lang.String,java.lang.String):V
 - setDirectoryMappings(java.util.List):V
-- showConsole(java.lang.Runnable):V
 - showUpdateProjectInfo(com.intellij.openapi.vcs.update.UpdatedFiles,java.lang.String,com.intellij.openapi.vcs.update.ActionInfo,Z):com.intellij.openapi.vcs.update.UpdateInfoTree
 - f:startBackgroundTask(java.lang.Object[]):V
 - startBackgroundVcsOperation():V
@@ -3271,6 +3266,7 @@ c:com.intellij.openapi.vcs.ui.CommitMessage
 - <init>(com.intellij.openapi.project.Project):V
 - <init>(com.intellij.openapi.project.Project,Z,Z,Z):V
 - <init>(com.intellij.openapi.project.Project,Z,Z,Z,java.lang.String):V
+- addCommitMessageListener(com.intellij.vcs.commit.CommitMessageListener):V
 - createToolbar(Z):javax.swing.JComponent
 - dispose():V
 - focus():V
@@ -4166,12 +4162,11 @@ f:com.intellij.vcs.commit.SingleChangeListCommitWorkflowHandler
 - com.intellij.vcs.commit.AbstractCommitWorkflowHandler
 - com.intellij.vcs.commit.CommitWorkflowUiStateListener
 - com.intellij.vcs.commit.SingleChangeListCommitWorkflowUi$ChangeListListener
-- <init>(com.intellij.vcs.commit.CommitChangeListDialogWorkflow,com.intellij.vcs.commit.SingleChangeListCommitWorkflowUi,java.lang.String,java.util.Collection):V
+- <init>(com.intellij.vcs.commit.CommitChangeListDialogWorkflow,com.intellij.vcs.commit.SingleChangeListCommitWorkflowUi,java.lang.String,java.util.Collection,Z):V
 - f:activate():Z
 - beforeCommitChecksEnded(com.intellij.vcs.commit.CommitSessionInfo,com.intellij.vcs.commit.CommitChecksResult):V
 - cancelled():V
 - changeListChanged(com.intellij.openapi.vcs.changes.LocalChangeList,com.intellij.openapi.vcs.changes.LocalChangeList):V
-- f:getInitiallyIncluded():java.util.Collection
 - getUi():com.intellij.vcs.commit.SingleChangeListCommitWorkflowUi
 - getWorkflow():com.intellij.vcs.commit.CommitChangeListDialogWorkflow
 - isExecutorEnabled(com.intellij.openapi.vcs.changes.CommitExecutor):Z

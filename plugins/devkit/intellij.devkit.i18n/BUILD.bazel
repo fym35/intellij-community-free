@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "i18n-tests_test",
@@ -54,6 +55,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":i18n")
+
 jvm_library(
     name = "i18n_test_lib",
     testonly = True,
@@ -104,6 +107,7 @@ jvm_library(
 exports_files(
     [
         "intellij.devkit.i18n.iml",
+        "resources/intellij.devkit.i18n.xml",
     ],
     visibility = ["//visibility:public"],
 )

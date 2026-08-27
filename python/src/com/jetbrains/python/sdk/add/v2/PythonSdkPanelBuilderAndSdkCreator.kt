@@ -193,7 +193,8 @@ internal class PythonSdkPanelBuilderAndSdkCreator(
   override suspend fun createPythonModuleStructure(module: Module): PyResult<Unit> {
     return when (selectedMode.get()) {
       CUSTOM -> custom.currentSdkManager.createPythonModuleStructure(module)
-      else -> Result.success(Unit)
+      PROJECT_UV -> uvSection.getUvCreator().createPythonModuleStructure(module)
+      PROJECT_VENV, BASE_CONDA -> Result.success(Unit)
     }
   }
 
@@ -230,7 +231,8 @@ internal class PythonSdkPanelBuilderAndSdkCreator(
     PROJECT_UV -> InterpreterStatisticsInfo(
       type = InterpreterType.UV,
       target = InterpreterTarget.LOCAL,
-      globalSitePackage = false,
+      // The uv page shows the "inherit packages" checkbox in this flow too, so report the real value.
+      globalSitePackage = model.uvViewModel.inheritSitePackages.get(),
       makeAvailableToAllProjects = false,
       previouslyConfigured = false,
       isWSLContext = false,

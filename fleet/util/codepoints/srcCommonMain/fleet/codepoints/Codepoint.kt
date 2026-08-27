@@ -77,6 +77,12 @@ value class Codepoint(val codepoint: Int) {
   fun getUnicodeScript(): UnicodeScript = getUnicodeScript(codepoint)
 
   /**
+   * Returns the Unicode general category of this codepoint (e.g. [Category.UPPERCASE_LETTER]).
+   * Unassigned codepoints and values outside the Unicode range return [Category.UNASSIGNED].
+   */
+  fun getCategory(): Category = getCategory(codepoint)
+
+  /**
    * Returns true if this codepoint should be ignored in identifiers.
    * This includes format characters (Cf) and zero-width characters.
    */
@@ -107,6 +113,16 @@ value class Codepoint(val codepoint: Int) {
    * Returns true if this codepoint is a Unicode control character (category Cc).
    */
   fun isISOControl(): Boolean = isISOControl(codepoint)
+
+  /**
+   * Returns true if this codepoint is a reserved for private use character (category Co).
+   */
+  fun isPrivateUse(): Boolean = isPrivateUse(codepoint)
+
+  /**
+   * Returns true if this codepoint is assigned to any category
+   */
+  fun isDefined(): Boolean = isDefined(codepoint)
 
   fun asString(): String {
     return if (codepoint ushr 16 == 0) {

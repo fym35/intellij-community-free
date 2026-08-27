@@ -55,6 +55,7 @@ import com.intellij.openapi.progress.impl.ProgressRunner;
 import com.intellij.openapi.progress.util.PotemkinProgress;
 import com.intellij.openapi.progress.util.ProgressWindow;
 import com.intellij.openapi.progress.util.SuvorovProgress;
+import com.intellij.openapi.progress.util.UtilKt;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.project.ex.ProjectManagerEx;
@@ -66,6 +67,7 @@ import com.intellij.openapi.util.Condition;
 import com.intellij.openapi.util.Conditions;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.NlsContexts;
+import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.ShutDownTracker;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -87,6 +89,7 @@ import com.intellij.util.BitUtil;
 import com.intellij.util.EventDispatcher;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.Restarter;
+import com.intellij.util.Suppressions;
 import com.intellij.util.SystemProperties;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.concurrency.AppScheduledExecutorService;
@@ -326,10 +329,10 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
     var coroutineContext = ThreadContext.currentThreadContext();
     try (var ignored = Cancellation.withNonCancelableSection()) {
       cancelAndJoinBlocking(this, coroutineContext);
-      runWriteAction(() -> {
-        startDispose();
-        Disposer.dispose(this);
-      });
+      runWriteAction(() -> Suppressions.runSuppressing(
+        this::startDispose,
+        () -> Disposer.dispose(this)
+      ));
       Disposer.assertIsEmpty();
     }
     catch (Throwable t) {
@@ -487,36 +490,36 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
 
   @Override
   public void dispose() {
-    lock.removeErrorHandler();
-    lock.removeLegacyIndicatorProvider(myLegacyIndicatorProvider);
-    lock.removeWriteActionListener(appListenerDispatcherWrapper);
-    lock.removeReadActionListener(customReadActionListener);
-
-    //noinspection deprecation
-    myDispatcher.getMulticaster().applicationExiting();
-
     var componentStore = componentStoreValue.getValueIfInitialized();
-    super.dispose();
-    if (componentStore != null) {
-      try {
-        componentStore.release();
-      }
-      catch (Exception e) {
-        getLogger().error(e);
-      }
-    }
-
-    // FileBasedIndexImpl can schedule some more activities to execute, so, shutdown executor only after service disposing
-    AppExecutorUtil.shutdownApplicationScheduledExecutorService();
-
-    if (myLastDisposable == null) {
-      ApplicationManager.setApplication(null);
-    }
-    else {
-      Disposer.dispose(myLastDisposable);
-    }
-
-    otelMonitor.get().close();
+    Suppressions.runSuppressing(
+      () -> {
+        lock.removeErrorHandler();
+        lock.removeLegacyIndicatorProvider(myLegacyIndicatorProvider);
+        lock.removeWriteActionListener(appListenerDispatcherWrapper);
+        lock.removeReadActionListener(customReadActionListener);
+      },
+      () -> {
+        //noinspection deprecation
+        myDispatcher.getMulticaster().applicationExiting();
+      },
+      () -> super.dispose(),
+      () -> {
+        if (componentStore != null) {
+          componentStore.release();
+        }
+      },
+      // FileBasedIndexImpl can schedule some more activities to execute, so, shutdown executor only after service disposing
+      AppExecutorUtil::shutdownApplicationScheduledExecutorService,
+      () -> {
+        if (myLastDisposable == null) {
+          ApplicationManager.setApplication(null);
+        }
+        else {
+          Disposer.dispose(myLastDisposable);
+        }
+      },
+      () -> otelMonitor.get().close()
+    );
   }
 
   @Override
@@ -624,10 +627,20 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
     final var guarded = myTransactionGuard.wrapLaterInvocation(runnable, state);
     // Middle layer: lock and modality
     final var locked = wrapWithRunIntendedWriteActionAndModality(guarded, false, ctxAware ? null : state);
-    // Outer layer context capture & reset
-    final var finalRunnable = AppImplKt.rethrowExceptions(AppScheduledExecutorService::captureContextCancellationForRunnableThatDoesNotOutliveContextScope, locked);
+    // Outer layer context capture & reset.
+    // The captured child job is completed by executing the runnable, so if `LaterInvocator.invokeAndWait` stops waiting and
+    // abandons the runnable, that job has to be cancelled explicitly - otherwise it hangs around forever and prevents completion
+    // of its parent, e.g. of the coroutine of a background task whose progress indicator got cancelled while it was waiting here.
+    final var contextCleanup = new Ref<Runnable>();
+    final var finalRunnable = AppImplKt.rethrowExceptions(r -> {
+      var captured = AppScheduledExecutorService.captureContextCancellationForDiscardableRunnable(r);
+      contextCleanup.set(captured.getSecond());
+      return captured.getFirst();
+    }, locked);
 
-    LaterInvocator.invokeAndWait(state, wrapWithLocks, finalRunnable);
+    UtilKt.waitWithParallelismCompensation(() -> {
+      LaterInvocator.invokeAndWait(state, wrapWithLocks, finalRunnable, Objects.requireNonNull(contextCleanup.get()));
+    });
   }
 
   private @NotNull Runnable wrapWithRunIntendedWriteActionAndModality(@NotNull Runnable runnable,
@@ -1459,6 +1472,7 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
     app.lock.addWriteActionListener(app.appListenerDispatcherWrapper);
     app.lock.setLegacyIndicatorProvider(myLegacyIndicatorProvider);
     app.lock.setErrorHandler(lockingErrorHandler);
+    app.lock.setAllowanceForReadActions(() -> !EDT.isCurrentThreadEdt());
     SwingUtilities.invokeLater(() -> {
       SuvorovProgress.INSTANCE.init(app);
       app.lock.setLockAcquisitionInterceptor((deferred) -> {
@@ -1495,8 +1509,11 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
   }
 
   @Override
-  public <T> T withLocksSoftlyProhibited(@NotNull String advice, @NotNull Supplier<T> action) {
-    return getThreadingSupport().withLocksSoftlyProhibited(advice, () -> action.get());
+  public <T> T withLocksSoftlyProhibited(@NotNull String advice, @NotNull Consumer<@NotNull Throwable> logger, @NotNull Supplier<T> action) {
+    return getThreadingSupport().withLocksSoftlyProhibited(advice, (t) -> {
+      logger.accept(t);
+      return Unit.INSTANCE;
+      }, () -> action.get());
   }
 
   @Override

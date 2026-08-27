@@ -17,21 +17,12 @@ import org.jetbrains.annotations.ApiStatus
  * Serves as a customization point for enhancing code completion workflows.
  *
  * Should implement DumbAware to support dumb mode
+ *
+ * The suffixes are declared in [CommandCompletionSuffixProvider], because the frontend needs them
+ * without the PSI-based part of this factory.
  */
 @ApiStatus.Experimental
-interface CommandCompletionFactory : PossiblyDumbAware {
-  /**
-   * Provides the default character suffix. After that, suffix command completion will be enabled
-   *
-   * @return The character suffix, which is '.'.
-   */
-  fun suffix(): Char = '.'
-
-  /**
-   * Determines the character suffix to filter only command lookup
-   */
-  fun filterSuffix(): Char? = '.'
-
+interface CommandCompletionFactory : CommandCompletionSuffixProvider, PossiblyDumbAware {
   /**
    * Retrieves a list of command providers responsible for supplying completion commands.
    * The default implementation returns a set of providers.
@@ -79,24 +70,6 @@ interface CommandCompletionFactory : PossiblyDumbAware {
    *
    */
   fun createFile(originalFile: PsiFile, text: String): PsiFile? = null
-
-  /**
-   * Determines whether the functionality supports filtering with a double prefix.
-   * If it doesn't support other items (non-command completion) will be not filtered out.
-   *
-   * @return true if double prefix filtering is supported, false otherwise
-   */
-  fun supportFiltersWithDoublePrefix(): Boolean = true
-
-  /**
-   * Adjust the caret position after GoTo command completion.
-   * @return the new caret position or null if no adjustment is needed
-   */
-  fun adjustCaret(psiFile: PsiFile, offset: Int): Int? {
-    val element = psiFile.findElementAt(offset) ?: return null
-    if (element.textRange.startOffset != offset) return null
-    return element.textRange.endOffset
-  }
 }
 
 private val EP_NAME = LanguageExtension<CommandProvider>("com.intellij.codeInsight.completion.command.provider")

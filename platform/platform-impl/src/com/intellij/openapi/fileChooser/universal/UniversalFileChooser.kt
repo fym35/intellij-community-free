@@ -28,6 +28,7 @@ import com.intellij.openapi.observable.util.whenDisposed
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -39,9 +40,9 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
-import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.util.coroutines.childScope
@@ -62,6 +63,8 @@ import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
 import com.intellij.util.SystemProperties
 import com.intellij.util.containers.toArray
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,6 +113,13 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val leftPanel: Boolean = false
 
+/**
+ * The size of the browser panel when nothing is stored in the dimension service yet.
+ * A half of the screen is used only when the screen is too small to fit these values.
+ */
+private const val defaultWidth: Int = 700
+private const val defaultHeight: Int = 500
+
 @ApiStatus.Internal
 object UniversalFileChooser {
   @JvmStatic
@@ -132,6 +142,8 @@ object UniversalFileChooser {
     parent: Component? = null,
     private val descriptor: FileChooserDescriptor,
     private val contributors: Collection<UniversalFileChooserContributor> = UniversalFileChooserContributor.EP_NAME.extensionList,
+    private val persistLocation: Boolean = true,
+    private val preselectPath: Path? = null
   ) : DialogWrapper(project, parent, true, IdeModalityType.IDE), FileChooserDialog, PathChooserDialog {
     private lateinit var mainPanel: Panel
 
@@ -140,13 +152,13 @@ object UniversalFileChooser {
       title = descriptor.title ?: UIBundle.message("file.chooser.default.title")
     }
 
-    override fun getDimensionServiceKey(): String = "UniversalFileChooserDialog"
+    override fun getDimensionServiceKey(): String? = if (persistLocation) "UniversalFileChooserDialog" else null
 
     override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
       val explicit = toSelect.firstOrNull()?.let { runCatching { it.toNioPath() }.getOrNull() }
       mainPanel.preselect(explicit)
       if (this.showAndGet()) {
-        return toVirtualFiles(mainPanel.getSelectedFiles()).toArray(VirtualFile.EMPTY_ARRAY)
+        return toVirtualFiles(descriptor, mainPanel.getSelectedFiles()).toArray(VirtualFile.EMPTY_ARRAY)
       }
       return emptyArray()
     }
@@ -156,30 +168,43 @@ object UniversalFileChooser {
       mainPanel.preselect(explicit)
       if (showAndGet()) {
         val mutableList = mutableListOf<VirtualFile>()
-        mutableList.addAll(toVirtualFiles(mainPanel.getSelectedFiles()).filterNotNull())
+        mutableList.addAll(toVirtualFiles(descriptor, mainPanel.getSelectedFiles()))
         callback.consume(mutableList)
       }
     }
 
     override fun createCenterPanel(): JComponent {
-      mainPanel = Panel(this.disposable, descriptor, project, ::doOKAction, ::setOKActionEnabled, contributors)
+      mainPanel = Panel(this.disposable, descriptor, project, ::doOKAction, ::setOKActionEnabled, contributors, preselectPath = preselectPath)
       return mainPanel
     }
+
+    override fun getPreferredFocusedComponent(): JComponent? =
+      if (::mainPanel.isInitialized) mainPanel.getPreferredFocusedComponent() else null
 
     fun getSelectedFiles(): List<Path> = mainPanel.getSelectedFiles()
 
     override fun doOKAction() {
-      getSelectedFiles().firstOrNull()?.let { lastSelected ->
-        FileChooserUtil.setLastOpenedFile(project, lastSelected)
+      // Before confirming, resolve the path typed in the text field when it diverges from the tree selection
+      mainPanel.confirmOk {
+        getSelectedFiles().firstOrNull()?.let { lastSelected ->
+          FileChooserUtil.setLastOpenedFile(project, lastSelected)
+        }
+        performOkAction()
       }
+    }
+
+    private fun performOkAction() {
       super.doOKAction()
     }
   }
 
-  private fun toVirtualFiles(paths: List<Path>): List<VirtualFile?> {
-    return paths.map { path ->
-      VfsUtil.findFile(path, true)
-    }
+  private fun toVirtualFiles(descriptor: FileChooserDescriptor, paths: List<Path>): List<VirtualFile> {
+    // Mirror FileChooserDialogImpl.doOKAction: after resolving NIO paths to VirtualFiles, run each
+    // result through `descriptor.getFileToSelect(...)` (via FileChooserUtil.getChosenFiles) so that,
+    // e.g., an archive file is returned as its `jar://…!/` JarFileSystem VirtualFile when the
+    // descriptor has `isChooseJarContents = true` (see IJPL-250874).
+    val resolved = paths.mapNotNull { path -> VfsUtil.findFile(path, true) }
+    return FileChooserUtil.getChosenFiles(descriptor, resolved)
   }
 
   class Panel @JvmOverloads constructor(
@@ -188,9 +213,10 @@ object UniversalFileChooser {
     private val project: Project,
     okAction: Runnable,
     private val okEnabledUpdater: (Boolean) -> Unit = {},
-    contributors: Collection<UniversalFileChooserContributor> = UniversalFileChooserContributor.EP_NAME.extensionList,
+    private val contributors: Collection<UniversalFileChooserContributor> = UniversalFileChooserContributor.EP_NAME.extensionList,
     private val extraToolbarActions: ActionGroup = DefaultActionGroup(),
-    private val extraPopupActions: ActionGroup = DefaultActionGroup()
+    private val extraPopupActions: ActionGroup = DefaultActionGroup(),
+    preselectPath: Path? = null
   ) : JPanel(), FileBrowserPanel {
 
     companion object {
@@ -209,6 +235,7 @@ object UniversalFileChooser {
     private val topToolbar: ActionToolbar
     private val toolbarActionGroup: DefaultActionGroup
     private val popupActionGroup: DefaultActionGroup
+    private val effectiveContributors: Collection<UniversalFileChooserContributor>
 
     init {
       layout = BorderLayout()
@@ -221,16 +248,33 @@ object UniversalFileChooser {
       toolbarActionGroup = group
       popupActionGroup = DefaultActionGroup(toolbarActionGroup, Separator.getInstance(), extraPopupActions)
       val screenSize = Toolkit.getDefaultToolkit().screenSize
-      preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
+      preferredSize = Dimension(
+        minOf(screenSize.width / 2, JBUI.scale(defaultWidth)),
+        minOf(screenSize.height / 2, JBUI.scale(defaultHeight)),
+      )
       tabbedPane = JBTabbedPane()
-      val effectiveContributors = if (descriptor.isEnvironmentRestricted) {
-        projectContributor(project)?.let { listOf(it) } ?: contributors
+      val projectContrib = projectContributor(project, contributors)
+      val localContrib = localContributor(contributors)
+      val restrictedContributors: Set<UniversalFileChooserContributor>
+      effectiveContributors = if (descriptor.isEnvironmentRestricted) {
+        val restricted = projectContrib ?: localContrib
+        val primary = restricted?.let { listOf(it) } ?: contributors
+        if (descriptor.isLocalFileSystem && localContrib != null && localContrib !in primary) {
+          restrictedContributors = primary.toSet()
+          primary + localContrib
+        }
+        else {
+          restrictedContributors = primary.toSet()
+          primary
+        }
       }
       else {
+        restrictedContributors = emptySet()
         contributors
       }
       for (contributor in effectiveContributors) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, topToolbar, popupActionGroup, ::updateOkEnabled)
+        val restrictRoots = contributor in restrictedContributors
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, topToolbar, popupActionGroup, ::updateOkEnabled, restrictRoots)
         fileViews.add(fileView)
       }
       // If there is a single tab available, don't show the tab itself, only its content panel.
@@ -245,7 +289,7 @@ object UniversalFileChooser {
         tabbedPane
       }
 
-      preselect(null)
+      preselect(preselectPath)
       updateOkEnabled()
 
       if (leftPanel) {
@@ -255,7 +299,16 @@ object UniversalFileChooser {
         add(splitter, BorderLayout.CENTER)
       }
       else {
+        val description = descriptor.description?.takeIf { it.isNotBlank() }
         val topPanel = panel {
+          if (description != null) {
+            row {
+              cell(JBLabel(description).apply {
+                foreground = UIUtil.getContextHelpForeground()
+              }).align(AlignX.FILL)
+            }
+            separator()
+          }
           row {
             cell(topToolbar.component).align(AlignX.LEFT)
           }
@@ -304,7 +357,9 @@ object UniversalFileChooser {
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
         override fun update(e: AnActionEvent) {
-          e.presentation.isVisible = fileViews.any { it.contributor.getDesktopPath() != null }
+          // Use the cached Desktop path resolved on Dispatchers.IO in FileView.init to avoid calling
+          // read-lock-forbidden native lookups from the EDT (see IJPL-252593).
+          e.presentation.isVisible = fileViews.any { it.desktopPath != null }
           e.presentation.isEnabled = true
         }
 
@@ -420,15 +475,27 @@ object UniversalFileChooser {
       return toolbar to actionGroup
     }
 
-    private fun projectContributor(project: Project): UniversalFileChooserContributor? {
-      if (project.isDefault) return null
-      val basePath = project.basePath ?: project.projectFilePath ?: return null
-      return UniversalFileChooserContributor.findOwner(Path.of(basePath))
+    private fun projectContributor(
+      project: Project,
+      contributors: Collection<UniversalFileChooserContributor> = this.contributors,
+    ): UniversalFileChooserContributor? {
+      val projectPath = project.guessedProjectPath() ?: return null
+      return contributors.findOwner(projectPath)
+    }
+
+    private fun Project.guessedProjectPath(): Path? {
+      if (this.isDefault) return null
+      return this.guessProjectDir()?.toNioPathOrNull()
+    }
+
+    private fun localContributor(contributors: Collection<UniversalFileChooserContributor>): UniversalFileChooserContributor? {
+      val localHome = runCatching { Path.of(SystemProperties.getUserHome()) }.getOrNull() ?: return null
+      return contributors.firstOrNull { it.ownsPath(localHome) }
     }
 
     private fun preselectProjectTab(project: Project) {
       if (fileViews.size <= 1) return
-      val projectContributor = projectContributor(project)
+      val projectContributor = projectContributor(project, contributors)
       projectContributor?.let { contributor ->
         tabbedPane.indexOfTab(contributor.tabTitle)
           .takeIf { it >= 0 }?.let { tabbedPane.selectedIndex = it }
@@ -446,7 +513,7 @@ object UniversalFileChooser {
             target
           }
           runOnEdt {
-            navigateToFile(effective)
+            navigateToFile(effective, preselectPathText = true)
             if (toSelect == null) {
               preselectProjectTab(project)
             }
@@ -455,7 +522,7 @@ object UniversalFileChooser {
       }
     }
 
-    private suspend fun pathToSelect(toSelect: Path?): Path {
+    private fun pathToSelect(toSelect: Path?): Path {
       val last = NioFileChooserUtil.getLastOpenedPath(project)
       if (last != null && (toSelect == null || descriptor.getUserData(PathChooserDialog.PREFER_LAST_OVER_EXPLICIT) == true)) {
         return last
@@ -464,10 +531,9 @@ object UniversalFileChooser {
         return toSelect
       }
       if (!project.isDefault) {
-        val eelDescriptor = project.getEelDescriptor()
-        val basePath = project.basePath ?: project.projectFilePath
-        if (basePath != null) {
-          return runCatching { Path.of(basePath) }.getOrNull() ?: eelDescriptor.toEelApi().userInfo.home.asNioPath()
+        val projectPath = project.guessedProjectPath()
+        if (projectPath != null) {
+          return projectPath
         }
       }
       return Path.of(SystemProperties.getUserHome())
@@ -479,16 +545,35 @@ object UniversalFileChooser {
       return fileView?.getSelectedFiles() ?: emptyList()
     }
 
-    fun navigateToFile(file: Path) {
+    /**
+     * Confirms the current selection on OK. Delegates to the active [FileView], which resolves the
+     * path typed in the text field when it diverges from the tree selection and only then runs
+     * [proceed] (see [FileView.confirmSelection]).
+     */
+    fun confirmOk(proceed: () -> Unit) {
+      val activeView = getActiveFileView()
+      if (activeView == null) {
+        proceed()
+        return
+      }
+      activeView.confirmSelection(proceed)
+    }
+
+    fun navigateToFile(file: Path, preselectPathText: Boolean = false) {
       val index = fileViews.indexOfFirst { it.contributor.ownsPath(file) }
       if (index < 0) return
       if (fileViews.size > 1) {
         tabbedPane.selectedIndex = index
       }
       val targetView = fileViews[index]
+      if (preselectPathText) {
+        targetView.requestPathTextPreselection()
+      }
       targetView.fileToSelect = file
       targetView.fileTree.select(file) { targetView.fileTree.expand(file, null) }
     }
+
+    fun getPreferredFocusedComponent(): JComponent? = getActiveFileView()?.pathTextField
 
     private fun getActiveFileView(): FileView? {
       if (fileViews.size == 1) return fileViews[0]
@@ -562,8 +647,8 @@ object UniversalFileChooser {
       activeView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
       scope.launch {
         withContext(Dispatchers.IO) {
-          val basePath = project.basePath?.let { Path.of(it) }
-                         ?: Path.of(SystemProperties.getUserHome())
+          val basePath = project.guessedProjectPath()
+                         ?: findNonProjectBasePath()
                          ?: return@withContext
           val homePath = basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
           runOnEdt {
@@ -574,29 +659,42 @@ object UniversalFileChooser {
       }
     }
 
+    private fun findNonProjectBasePath(): Path? {
+      val localHome = Path.of(SystemProperties.getUserHome())
+      if (effectiveContributors.find { c -> c.ownsPath(localHome) } != null) return localHome
+      val activeView = getActiveFileView() ?: return null
+      return activeView.roots.asSequence()
+        .mapNotNull { runCatching { Path.of(it) }.getOrNull() }
+        .firstOrNull()
+    }
+
     private fun navigateToProject() {
-      val basePath = project.basePath ?: return
       scope.launch {
         withContext(Dispatchers.IO) {
+          val projectPath = project.guessedProjectPath() ?: return@withContext
           runOnEdt {
-            navigateToFile(Path.of(basePath))
+            navigateToFile(projectPath)
           }
         }
       }
     }
 
     private fun navigateToDesktop() {
-      val targetView = getActiveFileView()?.takeIf { it.contributor.getDesktopPath() != null }
-                       ?: fileViews.firstOrNull { it.contributor.getDesktopPath() != null }
+      val targetView = getActiveFileView()?.takeIf { it.desktopPath != null }
+                       ?: fileViews.firstOrNull { it.desktopPath != null }
                        ?: return
       targetView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
       scope.launch {
         withContext(Dispatchers.IO) {
-          targetView.contributor.getDesktopPath()?.let { desktopPath ->
+          val desktopPath = targetView.desktopPath ?: targetView.contributor.getDesktopPath()
+          if (desktopPath != null) {
             runOnEdt {
               targetView.topComponent.cursor = Cursor.getDefaultCursor()
               navigateToFile(desktopPath)
             }
+          }
+          else {
+            runOnEdt { targetView.topComponent.cursor = Cursor.getDefaultCursor() }
           }
         }
       }
@@ -613,14 +711,29 @@ object UniversalFileChooser {
       private val topToolbar: ActionToolbar,
       popupActionGroup: ActionGroup,
       private val okEnabledUpdater: () -> Unit = {},
+      restrictRootsToProjectEnvironment: Boolean = descriptor.isEnvironmentRestricted,
     ) {
       val topComponent: JComponent
       val fileTree: NioFileSystemTree
       val roots: MutableList<String> = mutableListOf()
-      private val environmentRestricted: Boolean = descriptor.isEnvironmentRestricted
+      private val environmentRestricted: Boolean = restrictRootsToProjectEnvironment
+      private val hasExtensionFilter: Boolean = descriptor.extensionFilter != null
+      private val chooseFiles: Boolean = descriptor.isChooseFiles || descriptor.isChooseJarContents
+      private val chooseFolders: Boolean = descriptor.isChooseFolders
 
       var fileToSelect: Path? = null
-      private val pathTextField: NioPathTextField = NioPathTextField(scope, descriptor.isChooseFiles)
+      internal val pathTextField: NioPathTextField = NioPathTextField(scope, descriptor.isChooseFiles, descriptor.isChooseJarContents)
+
+      /**
+       * One-shot flag (EDT only): when set, the next non-empty path-field update selects the whole
+       * text so the user can type over the preselected path. Consumed on first apply. See IJPL-247112.
+       */
+      private var preselectPathText: Boolean = false
+
+      /** Requests that the path field text be preselected on its next (initial) update. */
+      fun requestPathTextPreselection() {
+        preselectPathText = true
+      }
 
       @Volatile
       private var pathTextFieldInvalid: Boolean = false
@@ -642,8 +755,21 @@ object UniversalFileChooser {
       @Volatile
       var isMountActionInProgress: Boolean = false
 
+      /**
+       * Cached Desktop directory path for the contributor.
+       */
+      @Volatile
+      var desktopPath: Path? = null
+        private set
+
       init {
         val descriptorCopy = FileChooserDescriptor(descriptor)
+
+        // Resolve the Desktop directory eagerly on a background thread so that EDT action updates
+        // never call into the read-lock-forbidden native lookup.
+        scope.launch(Dispatchers.IO) {
+          desktopPath = runCatching { contributor.getDesktopPath() }.getOrNull()
+        }
 
         tree.isRootVisible = false
         tree.showsRootHandles = true
@@ -680,6 +806,7 @@ object UniversalFileChooser {
         val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.getTree())
 
         pathTextField.showHiddenSupplier = BooleanSupplier { fileTree.areHiddensShown() }
+        pathTextField.pathParser = contributor::parsePresentablePath
         ComponentValidator(disposable)
           .withValidator(Supplier<ValidationInfo?> {
             if (pathTextFieldInvalid)
@@ -759,7 +886,7 @@ object UniversalFileChooser {
         scope.launch {
           withContext(Dispatchers.IO) {
             val allRoots = if (environmentRestricted && !project.isDefault) {
-              val basePath = project.basePath?.let { Path.of(it) }
+              val basePath = project.guessProjectDir()?.toNioPathOrNull()
               if (basePath != null) contributor.getFilteredRoots(basePath) else contributor.getRoots()
             }
             else {
@@ -788,7 +915,9 @@ object UniversalFileChooser {
               cardLayout.show(contentPanel, TREE_CARD)
               fileToSelect?.let {
                 val selection = if (it.root == it) {
-                  fileTree.matchRoot(it)
+                  allRoots.firstOrNull { root ->
+                    root.path?.invariantSeparatorsPathString == it.invariantSeparatorsPathString
+                  }?.path
                 } else it
                 if (selection != null) {
                   fileTree.select(selection) { fileTree.expand(selection, null) }
@@ -852,9 +981,21 @@ object UniversalFileChooser {
       }
 
       fun isOkEnabled(): Boolean {
+        // The path typed in the text field failed validation on the last OK attempt: keep OK
+        // disabled until the user edits the field (see IJPL-253095 and setPathTextFieldError).
+        if (pathTextFieldInvalid) return false
         val selected = getSelectedFiles()
         return selected.isNotEmpty() && selected.all { file ->
-          file.parent != null
+          if (file.parent == null) return@all false
+          val isDir = Files.isDirectory(file)
+          if (isDir) {
+            if (!chooseFolders) return@all false
+            if (hasExtensionFilter) return@all false
+          }
+          else {
+            if (!chooseFiles) return@all false
+          }
+          true
         }
       }
 
@@ -961,6 +1102,39 @@ object UniversalFileChooser {
         pathTextField.selectAll()
       }
 
+      /**
+       * Confirms the current selection when the user clicks OK.
+       */
+      fun confirmSelection(proceed: () -> Unit) {
+        val text = pathTextField.text.trim()
+        val selectedPresentable = fileTree.getSelectedFile()?.let { contributor.getPresentablePath(it) }
+        if (text.isEmpty() || text == selectedPresentable) {
+          proceed()
+          return
+        }
+        scope.launch {
+          withContext(Dispatchers.IO) {
+            val path = contributor.parsePresentablePath(text)
+            val exists = path != null && runCatching { Files.exists(path) }.getOrDefault(false)
+            runOnEdt {
+              if (path == null || !exists) {
+                setPathTextFieldError(true)
+                if (pathTextField.isShowing) {
+                  pathTextField.requestFocusInWindow()
+                }
+              }
+              else {
+                setPathTextFieldError(false)
+                fileTree.select(path) {
+                  fileTree.expand(path, null)
+                  proceed()
+                }
+              }
+            }
+          }
+        }
+      }
+
       private fun navigateToTextFieldPath() {
         val text = pathTextField.text.trim()
         if (text.isEmpty()) {
@@ -971,7 +1145,7 @@ object UniversalFileChooser {
         }
         scope.launch {
           withContext(Dispatchers.IO) {
-            val path = runCatching { Path.of(text) }.getOrNull()
+            val path = contributor.parsePresentablePath(text)
             val exists = path != null && runCatching { Files.exists(path) }.getOrDefault(false)
             if (path == null || !exists) {
               runOnEdt {
@@ -1001,6 +1175,9 @@ object UniversalFileChooser {
         if (pathTextFieldInvalid == isError) return
         pathTextFieldInvalid = isError
         ComponentValidator.getInstance(pathTextField).ifPresent { it.revalidate() }
+        // Reflect the new validity in the OK button: disable it while the path is invalid, and
+        // re-enable it (subject to the tree selection) once the user edits the field.
+        okEnabledUpdater()
       }
 
       private fun hasHiddenSegment(path: Path): Boolean {
@@ -1016,8 +1193,19 @@ object UniversalFileChooser {
 
       private fun updatePathField(selection: List<Path?>) {
         val file = selection.firstOrNull()
-        pathTextField.text = file?.toString() ?: ""
-        pathTextField.caretPosition = pathTextField.text.length
+        val text = file?.let { contributor.getPresentablePath(it) } ?: ""
+        pathTextField.text = text
+        // On the initial preselection, select the whole text so the user can immediately type over
+        // it (the field also receives the focus on dialog open, see IJPL-247112). The text is filled
+        // asynchronously after navigation, so the selection is applied here, once, on the first
+        // non-empty update rather than eagerly in getPreferredFocusedComponent().
+        if (preselectPathText && text.isNotEmpty()) {
+          preselectPathText = false
+          pathTextField.selectAll()
+        }
+        else {
+          pathTextField.caretPosition = text.length
+        }
       }
 
       fun mountVirtualRootAndReload(virtualRoot: UniversalFileChooserContributor.Root) {
@@ -1101,7 +1289,8 @@ object FileBrowser {
    *
    * Typical usage:
    * ```
-   * val panel = FileBrowser.builder(project, descriptor, parentDisposable)
+   * val panel = FileBrowser.builder(descriptor, parentDisposable)
+   *   .forProject(myProject)
    *   .contributors(listOf(myContributor))
    *   .onDefaultAction { openSelected() }
    *   .toolbarActions(myToolbarGroup)
@@ -1109,15 +1298,13 @@ object FileBrowser {
    *   .build()
    * ```
    *
-   * @param project           project context used by the browser.
-   *                          Use [ProjectManager.getDefaultProject] for a global context.
    * @param descriptor        file chooser descriptor
    * @param parentDisposable  disposable owning the returned panel
    */
   @ApiStatus.Experimental
   @JvmStatic
-  fun builder(project: Project, descriptor: FileChooserDescriptor, parentDisposable: Disposable): Builder =
-    Builder(project, descriptor, parentDisposable)
+  fun builder(descriptor: FileChooserDescriptor, parentDisposable: Disposable): Builder =
+    Builder(descriptor, parentDisposable)
 
   /**
    * Fluent builder for an embeddable [FileBrowserPanel].
@@ -1130,7 +1317,6 @@ object FileBrowser {
    */
   @ApiStatus.Experimental
   class Builder internal constructor(
-    private val project: Project,
     private val descriptor: FileChooserDescriptor,
     private val parentDisposable: Disposable,
   ) {
@@ -1138,6 +1324,16 @@ object FileBrowser {
     private var onDefaultAction: Runnable = Runnable {}
     private var toolbarActions: ActionGroup = DefaultActionGroup()
     private var popupActions: ActionGroup = DefaultActionGroup()
+    private var project: Project = ProjectManager.getInstance().defaultProject
+
+    /**
+     * Sets the project for the builder.
+     *
+     * @param project the project to be associated with the builder, defaults to `ProjectManager.getInstance().defaultProject`
+     */
+    fun forProject(project: Project) {
+      this.project = project
+    }
 
     /**
      * Restricts the tabs shown in the panel to the given [contributors]. By default all registered
@@ -1153,7 +1349,7 @@ object FileBrowser {
      * in that case the builder is left unchanged so callers can decide how to react.
      */
     fun root(root: Path): Boolean {
-      val contributor = UniversalFileChooserContributor.findOwner(root) ?: return false
+      val contributor = contributors.findOwner(root) ?: return false
       this.contributors = listOf(SingleRootContributor(contributor, root))
       return true
     }

@@ -1,6 +1,15 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+jps_test(
+    name = "debugger-impl-tests_test",
+    timeout = "moderate",
+    tags = ["community-aggregator"],
+    runtime_deps = [":debugger-impl-tests_test_lib"],
+)
+### skip generation section `test intellij.platform.debugger.impl.tests`
 
 ### auto-generated section `build intellij.platform.debugger.impl` start
 create_kotlinc_options(
@@ -78,7 +87,6 @@ jvm_library(
         "//libraries/jackson/databind",
         "//platform/kernel/shared:kernel",
         "//platform/forms_rt:java-guiForms-rt",
-        "//platform/platform-impl/internal",
         "//libraries/kotlinx/serialization/core",
         "//libraries/kotlinx/serialization/json",
         "//platform/project/shared:project",
@@ -93,6 +101,8 @@ jvm_library(
         "//fleet/rhizomedb",
     ],
 )
+
+content_module_jar(module = ":debugger-impl")
 
 jvm_library(
     name = "debugger-impl_test_lib",
@@ -147,7 +157,6 @@ jvm_library(
         "//libraries/jackson/databind:databind_test_lib",
         "//platform/kernel/shared:kernel_test_lib",
         "//platform/forms_rt:java-guiForms-rt_test_lib",
-        "//platform/platform-impl/internal:internal_test_lib",
         "//libraries/kotlinx/serialization/core:core_test_lib",
         "//libraries/kotlinx/serialization/json:json_test_lib",
         "//platform/project/shared:project_test_lib",
@@ -168,6 +177,10 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.debugger.impl.iml",
+        "resources/intellij.platform.debugger.impl.actions.xml",
+        "resources/intellij.platform.debugger.impl.content.xml",
+        "resources/intellij.platform.debugger.impl.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -346,10 +359,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.platform.debugger.impl.tests` end
-
-### auto-generated section `test intellij.platform.debugger.impl.tests` start
-jps_test(
-    name = "debugger-impl-tests_test",
-    runtime_deps = [":debugger-impl-tests_test_lib"],
-)
-### auto-generated section `test intellij.platform.debugger.impl.tests` end

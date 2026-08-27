@@ -20,6 +20,7 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.python.venv.sdk.flavors.VirtualEnvSdkFlavor
 import com.intellij.testFramework.ApplicationRule
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.PlatformTestUtil
@@ -31,6 +32,8 @@ import com.jetbrains.python.PythonMockSdk
 import com.jetbrains.python.PythonPluginDisposable
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.psi.PyUtil
+import com.jetbrains.python.sdk.flavors.PyFlavorAndData
+import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import org.jdom.Element
 import org.jetbrains.annotations.NotNull
@@ -41,7 +44,7 @@ import org.junit.Test
 
 @Subsystems.Interpreters
 @Layers.Functional
-internal class PySdkPathsTest {
+class PySdkPathsTest {
 
   companion object {
     @JvmField
@@ -111,6 +114,7 @@ internal class PySdkPathsTest {
     sdk.putUserData(PythonSdkType.MOCK_SYS_PATH_KEY, listOf(sdk.homePath, moduleRoot.path))
 
     mockPythonPluginDisposable()
+    sdk.associateWith(moduleRoot)
     updateSdkPaths(sdk)
 
     checkRoots(sdk, module, listOf(moduleRoot), emptyList())
@@ -136,7 +140,10 @@ internal class PySdkPathsTest {
       sdk.pySdkAdditionalData
 
       sdk.sdkModificator.apply {
-        (sdkAdditionalData as PythonSdkAdditionalData).setAddedPathsFromVirtualFiles(setOf(userAddedPath))
+        (sdkAdditionalData as PythonSdkAdditionalData).apply {
+          associatedModulePath = moduleRoot.path
+          setAddedPathsFromVirtualFiles(setOf(userAddedPath))
+        }
         commitChanges()
       }
     }
@@ -170,6 +177,7 @@ internal class PySdkPathsTest {
     sdk.putUserData(PythonSdkType.MOCK_SYS_PATH_KEY, listOf(sdk.homePath, entryPath.path))
 
     mockPythonPluginDisposable()
+    sdk.associateWith(moduleRoot)
     updateSdkPaths(sdk)
     checkRoots(sdk, module, listOf(moduleRoot, entryPath), emptyList())
 
@@ -251,6 +259,7 @@ internal class PySdkPathsTest {
     sdk.putUserData(PythonSdkType.MOCK_SYS_PATH_KEY, listOf(sdk.homePath, entryPath1.path, entryPath2.path))
 
     mockPythonPluginDisposable()
+    sdk.associateWith(moduleRoot1)
     updateSdkPaths(sdk)
 
     checkRoots(sdk, module1, listOf(moduleRoot1, entryPath1), emptyList())
@@ -308,7 +317,10 @@ internal class PySdkPathsTest {
           // Simulate an old SDK that had remote additional data from a previous IDE version that doesn't exist anymore
           // and one of non-local home paths
           homePath = remotePath
-          sdkAdditionalData = PythonSdkAdditionalData()
+          sdkAdditionalData = PythonSdkAdditionalData(
+            PyFlavorAndData(PyFlavorData.Empty, VirtualEnvSdkFlavor.getInstance()),
+            projectModel.projectRootDir
+          )
           commitChanges()
         }
       }
@@ -358,9 +370,48 @@ internal class PySdkPathsTest {
       .contains(skeletonsDir)
   }
 
+  /**
+   * PY-86494: with the update triggered by a `null` project (the synchronous creation/headless path), the updater
+   * must classify the owner's project-local entry via the SDK's own `associatedModulePath` — not the triggering
+   * project — and, since the owning project is open, transfer it as a source root instead of committing it as an
+   * SDK CLASSES (library) root (which moved the library root off `.venv` onto the project folder). Mirrors
+   * [sysPathEntryInModuleAndSdkInModuleButEntryNotInSdk], but triggered with no project.
+   */
+  @Test
+  fun projectLocalSysPathEntryIsResolvedViaAssociationWithoutTriggeringProject() {
+    val (module, moduleRoot) = createModule()
+
+    val sdkPath = createVenvStructureInModule(moduleRoot).path
+    val entryPath = createSubdir(moduleRoot)
+
+    val sdk = PythonMockSdk.create(sdkPath).also {
+      registerSdk(it)
+      module.pythonSdk = it
+    }
+    sdk.putUserData(PythonSdkType.MOCK_SYS_PATH_KEY, listOf(sdk.homePath, entryPath.path))
+
+    mockPythonPluginDisposable()
+    sdk.associateWith(moduleRoot)
+
+    PythonSdkUpdater.updateVersionAndPathsSynchronouslyAndScheduleRemaining(sdk, null)
+    ApplicationManager.getApplication().invokeAndWait { PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue() }
+
+    checkRoots(sdk, module, moduleRoots = listOf(moduleRoot, entryPath), sdkRoots = emptyList())
+  }
+
   private fun registerSdk(it: Sdk) {
     WriteAction.runAndWait<RuntimeException> {
       ProjectJdkTable.getInstance().addJdk(it, projectModel.disposableRule.disposable)
+    }
+  }
+
+  /** Associates the SDK with a module directory, as venv/uv SDK creation does; the updater keys project-local classification off it. */
+  private fun Sdk.associateWith(moduleDir: VirtualFile) {
+    runWriteActionAndWait {
+      sdkModificator.apply {
+        (sdkAdditionalData as PythonSdkAdditionalData).associatedModulePath = moduleDir.path
+        commitChanges()
+      }
     }
   }
 

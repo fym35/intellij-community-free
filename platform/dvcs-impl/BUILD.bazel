@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "vcs-dvcs-impl-tests_test",
@@ -63,11 +64,14 @@ jvm_library(
         "//platform/workspace/storage",
         "//platform/dvcs-impl/shared",
         "//platform/kernel/backend",
+        "//platform/kernel/rpc.backend",
         "//jps/model-api:model",
         "//platform/lang-core",
         "//fleet/rhizomedb",
     ],
 )
+
+content_module_jar(module = ":vcs-dvcs-impl")
 
 jvm_library(
     name = "vcs-dvcs-impl_test_lib",
@@ -121,6 +125,7 @@ jvm_library(
         "//platform/workspace/storage:storage_test_lib",
         "//platform/dvcs-impl/shared:shared_test_lib",
         "//platform/kernel/backend:backend_test_lib",
+        "//platform/kernel/rpc.backend:rpc.backend_test_lib",
         "//jps/model-api:model_test_lib",
         "//platform/lang-core:lang-core_test_lib",
         "//fleet/rhizomedb:rhizomedb_test_lib",
@@ -132,6 +137,9 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.vcs.dvcs.impl.iml",
+        "resources/VcsProductivityFeatures.xml",
+        "resources/intellij.platform.vcs.dvcs.impl.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

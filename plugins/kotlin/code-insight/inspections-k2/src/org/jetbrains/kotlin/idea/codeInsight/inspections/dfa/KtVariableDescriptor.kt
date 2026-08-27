@@ -15,17 +15,15 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
-import org.jetbrains.kotlin.analysis.api.components.functionType
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
-import org.jetbrains.kotlin.analysis.api.components.type
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.expressions.functionType
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.singleVariableAccessCall
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.session.useSiteModule
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaContextParameterSymbol
@@ -39,15 +37,19 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaVariableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.restoreSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
-import org.jetbrains.kotlin.analysis.api.useSiteModule
+import org.jetbrains.kotlin.analysis.api.types.expandedSymbol
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.idea.codeInsight.inspections.dfa.KtClassDef.Companion.classDef
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.references.readWriteAccess
 import org.jetbrains.kotlin.name.JvmStandardClassIds
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDestructuringDeclaration
 import org.jetbrains.kotlin.psi.KtDestructuringDeclarationEntry
@@ -79,7 +81,6 @@ class KtVariableDescriptor(
      */
     private val sourceAnchorPsi: PsiElement?,
 ) : JvmVariableDescriptor(), KtBaseDescriptor {
-    @OptIn(KaExperimentalApi::class)
     val stable: Boolean by lazy {
         when (val result = analyze(module) {
             when (val symbol = pointer.restoreSymbol()) {
@@ -212,7 +213,7 @@ class KtVariableDescriptor(
                 return@getProjectPsiDependentCache result
             }
 
-        @OptIn(KaExperimentalApi::class)
+        @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
         context(_: KaSession)
         fun createFromSimpleName(factory: DfaValueFactory, expr: KtExpression?): DfaVariableValue? {
             val varFactory = factory.varFactory
@@ -220,7 +221,7 @@ class KtVariableDescriptor(
                 return KtThisDescriptor.descriptorFromThis(expr).first?.let { varFactory.createVariableValue(it) }
             }
             if (expr !is KtSimpleNameExpression) return null
-            val symbol: KaVariableSymbol = expr.mainReference.resolveToSymbol() as? KaVariableSymbol ?: return null
+            val symbol: KaVariableSymbol = expr.resolveSymbol() as? KaVariableSymbol ?: return null
             if (symbol is KaValueParameterSymbol || symbol is KaLocalVariableSymbol || symbol is KaContextParameterSymbol) {
                 return varFactory.createVariableValue(symbol.variableDescriptor())
             }
@@ -256,7 +257,7 @@ class KtVariableDescriptor(
                 val receiver = parent.receiverExpression
                 return createFromSimpleName(factory, receiver)
             }
-            var dispatchReceiver = expr.resolveToCall()?.singleVariableAccessCall()?.partiallyAppliedSymbol?.dispatchReceiver
+            var dispatchReceiver = expr.resolveToCall()?.singleVariableAccessCall()?.dispatchReceiver
             dispatchReceiver = (dispatchReceiver as? KaSmartCastedReceiverValue)?.original ?: dispatchReceiver
             val receiverParameter = (dispatchReceiver as? KaImplicitReceiverValue)?.symbol as? KaReceiverParameterSymbol
             val functionLiteral = receiverParameter?.psi as? KtFunctionLiteral
@@ -288,8 +289,8 @@ class KtVariableDescriptor(
         }
 
         private fun isKotlinProperty(target: KaVariableSymbol?) =
-            target is KaPropertySymbol && target.getter?.isDefault != false && target.setter?.isDefault != false
-                    && !target.isDelegatedProperty && target.modality == KaSymbolModality.FINAL
+            target is KaPropertySymbol && target.getter?.isNotDefault != true && target.setter?.isNotDefault != true
+                    && !target.isDelegated && target.modality == KaSymbolModality.FINAL
                     && !target.isExtension
                     && target.backingFieldSymbol?.annotations?.contains(JvmStandardClassIds.VOLATILE_ANNOTATION_CLASS_ID) == false
 

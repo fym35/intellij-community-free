@@ -32,24 +32,35 @@ import com.intellij.util.application
 import com.intellij.util.containers.addIfNotNull
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
-import org.jetbrains.kotlin.analysis.api.components.builtinTypes
-import org.jetbrains.kotlin.analysis.api.components.isDenotable
-import org.jetbrains.kotlin.analysis.api.components.isUnitType
+import org.jetbrains.kotlin.analysis.api.components.directDiagnostics
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.components.returnType
+import org.jetbrains.kotlin.analysis.api.expressions.expectedType
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.expressions.isUsedAsExpression
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.renderer.render
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
 import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.builtinTypes
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.isDenotable
+import org.jetbrains.kotlin.analysis.api.types.lowerBoundIfFlexible
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.analyzeInModalWindow
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.getImplicitReceivers
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.shortenReferences
@@ -74,7 +85,6 @@ import org.jetbrains.kotlin.idea.refactoring.introduce.KotlinIntroduceVariableHe
 import org.jetbrains.kotlin.idea.refactoring.introduce.calculateAnchorForExpressions
 import org.jetbrains.kotlin.idea.refactoring.introduce.extractableSubstringInfo
 import org.jetbrains.kotlin.idea.refactoring.introduce.substringContextOrThis
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.util.application.executeCommand
 import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 import org.jetbrains.kotlin.idea.util.application.isUnitTestMode
@@ -85,6 +95,7 @@ import org.jetbrains.kotlin.psi.KtDelegatedSuperTypeEntry
 import org.jetbrains.kotlin.psi.KtDestructuringDeclaration
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtLambdaArgument
@@ -201,7 +212,7 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
                 allowAnalysisFromWriteAction {
                     analyze(property) {
                         if (initializer is KtObjectLiteralExpression &&
-                            property.diagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS).any {
+                            property.directDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS).any {
                                 it is KaFirDiagnostic.AmbiguousAnonymousTypeInferred
                             }
                         ) {
@@ -406,7 +417,7 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
             this is KaIntersectionType -> this.conjuncts.firstOrNull { it.isDenotable }
             else -> null
         }
-        return if (type?.isUnitType == true) {
+        return if (type?.classId == KaStandardTypeClassIds.UNIT) {
             null
         } else {
             (type ?: builtinTypes.any)
@@ -667,11 +678,12 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
         if (call.typeArgumentList != null) return false
         val callee = call.calleeExpression ?: return false
         val diagnostics = analyzeInModalWindow(callee, KotlinBundle.message("find.usages.prepare.dialog.progress")) {
-            callee.diagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
+            callee.directDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
         }
         return (diagnostics.any { diagnostic -> diagnostic is KaFirDiagnostic.CannotInferParameterType })
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     override fun filterContainersWithContainedLambdasByAnalyze(
         containersWithContainedLambdas: Sequence<ContainerWithContained>,
         physicalExpression: KtExpression,
@@ -680,7 +692,7 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
         return analyzeInModalWindow(physicalExpression, KotlinBundle.message("find.usages.prepare.dialog.progress")) {
             val psiToCheck = referencesFromExpressionToExtract.flatMap { reference ->
                 // in case of an unresolved reference consider all containers applicable
-                val symbol = reference.mainReference.resolveToSymbol() ?: return@flatMap emptyList()
+                val symbol = reference.resolveSymbol() ?: return@flatMap emptyList()
                 val implicitReceivers = reference.resolveToCall()
                     ?.singleCallOrNull<KaCallableMemberCall<*, *>>()
                     ?.getImplicitReceivers()
@@ -705,15 +717,16 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
     }
 }
 
-private fun KaSession.calculateExpectedType(expression: KtExpression): KaType? {
+context(session: KaSession)
+private fun calculateExpectedType(expression: KtExpression): KaType? {
     if (expression is KtObjectLiteralExpression) {
         // Special handling for KtObjectLiteralExpression is required because an instance of
         // KaFirUsualClassType returned from the KaExpressionTypeProvider.getExpressionType
         // extension function is rendered as <anonymous>.
         // However, we can attempt to infer a denotable type for an anonymous object from the context
         // using the KaExpressionTypeProvider.getExpectedType extension function.
-        val expectedType = expression.expectedType
-        if (expectedType != null) return expectedType
+        expression.expectedType?.let { return it }
+
         val parent = expression.parent
         when {
             // In certain cases, the KaExpressionTypeProvider.getExpectedType extension function

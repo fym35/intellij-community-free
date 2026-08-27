@@ -3,10 +3,10 @@ package com.intellij.platform.lsp.impl
 
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.impl.documentSync.LspDidChangeUtil
+import com.intellij.platform.lsp.impl.features.navigation.getFileUriForRequests
 import com.intellij.platform.lsp.util.getLsp4jPosition
 import org.eclipse.lsp4j.DidCloseTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
@@ -32,7 +32,7 @@ open class DefaultLspDocumentAdapter : LspDocumentAdapter {
   }
 
   override fun toLspDocumentPosition(lspClient: LspClient, file: VirtualFile, document: Document, hostOffset: Int): LspDocumentPosition? {
-    val uri = lspClient.descriptor.getFileUri(file)
+    val uri = lspClient.getFileUriForRequests(file)
     return LspDocumentPosition(
       DefaultLspDocument(TextDocumentIdentifier(uri), uri),
       getLsp4jPosition(document, hostOffset)
@@ -46,7 +46,7 @@ open class DefaultLspDocumentAdapter : LspDocumentAdapter {
     lspDocumentRange(lspClient, file, range)
 
   private fun lspDocumentRange(lspClient: LspClient, file: VirtualFile, range: Range): List<LspDocumentRange> {
-    val uri = lspClient.descriptor.getFileUri(file)
+    val uri = lspClient.getFileUriForRequests(file)
     return listOf(LspDocumentRange(DefaultLspDocument(TextDocumentIdentifier(uri), uri), range))
   }
 
@@ -57,7 +57,7 @@ open class DefaultLspDocumentAdapter : LspDocumentAdapter {
     lspDocument(lspClient, file)
 
   private fun lspDocument(lspClient: LspClient, file: VirtualFile): List<LspDocument> {
-    val uri = lspClient.descriptor.getFileUri(file)
+    val uri = lspClient.getFileUriForRequests(file)
     return listOf(DefaultLspDocument(TextDocumentIdentifier(uri), uri))
   }
 
@@ -70,7 +70,7 @@ open class DefaultLspDocumentAdapter : LspDocumentAdapter {
   override fun sendDidOpen(lspClient: LspClient, file: VirtualFile, document: Document) {
     val languageId = lspClient.descriptor.getLanguageId(file)
     val fileUri = lspClient.descriptor.getFileUri(file)
-    val version = (document as? DocumentEx)?.modificationSequence ?: document.modificationStamp.toInt()
+    val version = lspClient.getDocumentVersion(document)
     val item = TextDocumentItem(fileUri, languageId, version, document.text)
     lspClient.sendNotification {
       it.textDocumentService.didOpen(DidOpenTextDocumentParams(item))

@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.python.community.helpersLocator` start
 jvm_library(
@@ -28,6 +29,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":community-helpersLocator")
+
 jvm_library(
     name = "community-helpersLocator_test_lib",
     testonly = True,
@@ -53,6 +56,7 @@ jvm_library(
 exports_files(
     [
         "intellij.python.community.helpersLocator.iml",
+        "resources/intellij.python.community.helpersLocator.xml",
     ],
     visibility = ["//visibility:public"],
 )

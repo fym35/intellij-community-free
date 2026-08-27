@@ -3,6 +3,7 @@ package com.intellij.psi.impl.file.impl
 
 import com.intellij.codeInsight.multiverse.CodeInsightContext
 import com.intellij.codeInsight.multiverse.anyContext
+import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.codeInsight.multiverse.defaultContext
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.AbstractFileViewProvider
@@ -122,10 +123,17 @@ internal class ClassicFileViewProviderCache(
     return cacheOrGet(vFile, context, viewProvider)
   }
 
+  override fun canViewProviderBeResurrected(viewProvider: AbstractFileViewProvider): Boolean {
+    return evaluator.canViewProviderBeResurrected(viewProvider)
+  }
+
+  override fun getRecreationFailureReason(viewProvider: AbstractFileViewProvider): String? {
+    return evaluator.getRecreationFailureReason(viewProvider.virtualFile, viewProvider, viewProvider.codeInsightContext)
+  }
+
   override fun evaluateValidity(viewProvider: AbstractFileViewProvider): Boolean {
     return evaluator.evaluateValidity(viewProvider)
   }
 }
 
 private val NULL: VirtualFile = LightVirtualFile()
-

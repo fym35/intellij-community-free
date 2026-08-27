@@ -6,12 +6,19 @@
 
   <xi:include href="/META-INF/PlatformLangPlugin.xml"/>
   <xi:include href="/META-INF/intellij.moduleSets.ide.common.xml"/>
+  <xi:include href="/META-INF/intellij.moduleSets.jsp.base.xml"/>
   <!-- region additional -->
   <content namespace="jetbrains">
     <module name="intellij.platform.whatsNew"/>
     <module name="intellij.ide.startup.importSettings"/>
     <module name="intellij.platform.customization.min"/>
     <module name="intellij.idea.customization.base"/>
+    <module name="intellij.platform.ide.nonModalWelcomeScreen"/>
+    <module name="intellij.platform.ide.nonModalWelcomeScreen.frontend"/>
+    <module name="intellij.platform.ide.nonModalWelcomeScreen.backend"/>
+  </content>
+  <content>
+    <module name="intellij.libraries.sqlite"/>
   </content>
   <!-- endregion -->
 </idea-plugin>

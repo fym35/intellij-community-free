@@ -1,5 +1,17 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+jps_test(
+    name = "vcs-impl-shared-tests_test",
+    timeout = "moderate",
+    tags = ["community-aggregator"],
+    runtime_deps = [
+        ":vcs-impl-shared-tests_test_lib",
+        "//platform/vcs/plugin",
+    ],
+)
+### skip generation section `test intellij.platform.vcs.impl.shared.tests`
 
 ### auto-generated section `build intellij.platform.vcs.impl.shared` start
 jvm_library(
@@ -20,6 +32,7 @@ jvm_library(
     visibility = ["//visibility:public"],
     deps = [
         # do not sort,
+        "//platform/kernel/rpc",
         "@lib//:kotlin-stdlib",
         "//platform/core-api:core",
         "//platform/kernel/shared:kernel",
@@ -53,6 +66,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":shared")
+
 jvm_library(
     name = "shared_test_lib",
     testonly = True,
@@ -65,6 +80,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":shared",
+        "//platform/kernel/rpc:rpc_test_lib",
         "//platform/core-api:core_test_lib",
         "//platform/kernel/shared:kernel_test_lib",
         "//platform/project/shared:project_test_lib",
@@ -102,6 +118,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.vcs.impl.shared.iml",
+        "resources/intellij.platform.vcs.impl.shared.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -214,10 +232,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.platform.vcs.impl.shared.tests` end
-
-### auto-generated section `test intellij.platform.vcs.impl.shared.tests` start
-jps_test(
-    name = "vcs-impl-shared-tests_test",
-    runtime_deps = [":vcs-impl-shared-tests_test_lib"],
-)
-### auto-generated section `test intellij.platform.vcs.impl.shared.tests` end

@@ -22,11 +22,13 @@ interface GitSingleRepoContext : GitPlatformTestContext {
 fun TestFixture<GitPlatformTestContext>.gitSingleRepoFixture(makeInitialCommit: Boolean): TestFixture<GitSingleRepoContext> = testFixture {
   val gitPlatformContext = init()
   val repo = createRepository(gitPlatformContext.project, gitPlatformContext.projectNioRoot, makeInitialCommit)
-  val result = object : GitSingleRepoContext, GitPlatformTestContext by gitPlatformContext {
+  initialized(gitPlatformContext.withRepo(repo)) {}
+}
+
+private fun GitPlatformTestContext.withRepo(repo: GitRepository): GitSingleRepoContext =
+  object : GitSingleRepoContext, GitPlatformTestContext by this {
     override val repo = repo
   }
-  initialized(result) {}
-}
 
 fun GitSingleRepoContext.build(f: RepoBuilder.() -> Unit) = build(repo, f)
 

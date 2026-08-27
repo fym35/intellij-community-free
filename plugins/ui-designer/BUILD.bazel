@@ -1,5 +1,23 @@
+load("@community//build:bazel_targets_json.bzl", "current_bazel_targets_json")
 load("@community//build:tests-options.bzl", "jps_test")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
+load("@jps_dynamic_deps_community//:targets.bzl", "ALL_COMMUNITY_TARGETS")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+BAZEL_TARGETS_JSON = current_bazel_targets_json()
+
+jps_test(
+    name = "java-guiForms-designer-tests_test",
+    timeout = "long",
+    data = ALL_COMMUNITY_TARGETS + [BAZEL_TARGETS_JSON],
+    jvm_flags = [
+        "-Dintellij.build.bazel.targets.json.file=$(rlocationpath %s)" % BAZEL_TARGETS_JSON,
+    ],
+    tags = ["community-aggregator"],
+    runtime_deps = [":java-guiForms-designer-tests_test_lib"],
+)
+
+### skip generation section `test intellij.java.guiForms.designer.tests`
 
 ### auto-generated section `build intellij.java.guiForms.designer` start
 jvm_library(
@@ -183,10 +201,24 @@ jvm_library(
 exports_files(
     [
         "intellij.java.guiForms.designer.iml",
+        "resources/ClientPropertiesManager.xml",
+        "resources/META-INF/plugin.xml",
+        "resources/Palette2.xml",
+        "resources/com/intellij/uiDesigner/NewDialog.xml",
+        "resources/com/intellij/uiDesigner/NewForm.xml",
+        "resources/gui-designer-properties.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.java.guiForms.designer` end
+
+### auto-generated section `dev content intellij.java.guiForms.designer` start
+dev_dist_plugin_content(
+    content_modules = ["//plugins/ui-designer/jps-plugin:java-guiForms-jps"],
+    descriptor_module = ":java-guiForms-designer",
+)
+### auto-generated section `dev content intellij.java.guiForms.designer` end
 
 ### auto-generated section `build intellij.java.guiForms.designer.tests` start
 resourcegroup(
@@ -390,10 +422,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.java.guiForms.designer.tests` end
-
-### auto-generated section `test intellij.java.guiForms.designer.tests` start
-jps_test(
-    name = "java-guiForms-designer-tests_test",
-    runtime_deps = [":java-guiForms-designer-tests_test_lib"],
-)
-### auto-generated section `test intellij.java.guiForms.designer.tests` end

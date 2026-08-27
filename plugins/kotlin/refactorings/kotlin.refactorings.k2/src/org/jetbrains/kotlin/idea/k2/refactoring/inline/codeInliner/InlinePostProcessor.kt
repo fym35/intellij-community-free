@@ -4,12 +4,16 @@ package org.jetbrains.kotlin.idea.k2.refactoring.inline.codeInliner
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.SmartPsiElementPointer
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.allOverriddenSymbols
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.defaultValue
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenOptionsForIde
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility
@@ -29,6 +33,7 @@ import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtLambdaArgument
@@ -133,6 +138,7 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
         }
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     override fun dropArgumentsForDefaultValues(pointer: SmartPsiElementPointer<KtElement>) {
         val result = pointer.element ?: return
 
@@ -142,8 +148,8 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
             analyze(callExpression) {
                 val functionCall = callExpression.resolveToCall()?.singleFunctionCallOrNull() ?: return@forEachDescendantOfType
 
-                val arguments = functionCall.argumentMapping.entries.toList()
-                val callableSymbol = functionCall.partiallyAppliedSymbol.symbol
+                val arguments = functionCall.valueArgumentMapping.entries.toList()
+                val callableSymbol = functionCall.symbol
                 val valueParameters = callableSymbol.valueParameters
                 var idx = arguments.size
                 for ((argument, param) in arguments.asReversed()) {
@@ -160,11 +166,11 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
                         var needToSubstitute = false
                         defaultValue?.forEachDescendantOfType<KtSimpleNameExpression> { ref ->
                             analyze(defaultValue) {
-                                val symbol = ref.mainReference.resolveToSymbol()
+                                val symbol = ref.resolveSymbol()
                                 if (symbol is KaValueParameterSymbol && symbol in valueParameters) {
                                     ref.putCopyableUserData(
                                         key,
-                                        functionCall.argumentMapping.entries.firstOrNull { it.value.symbol == symbol }?.key
+                                        functionCall.valueArgumentMapping.entries.firstOrNull { it.value.symbol == symbol }?.key
                                     )
                                     needToSubstitute = true
                                 }
@@ -241,7 +247,7 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
                     if (argument.isNamed()) continue
                     if (argument is KtLambdaArgument) continue
                     val argumentExpression = argument.getArgumentExpression() ?: continue
-                    val name = resolvedCall.argumentMapping[argumentExpression]?.symbol?.let { symbol ->
+                    val name = resolvedCall.valueArgumentMapping[argumentExpression]?.symbol?.let { symbol ->
                         symbol.name.takeIf { symbol.psi is KtElement }
                     }
                     //TODO: not always correct for vararg's

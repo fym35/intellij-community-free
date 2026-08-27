@@ -403,9 +403,13 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerFactory(UselessIsCheckFactories.uselessIsCheckFactory)
         registerFactory(UselessIsCheckFactories.impossibleIsCheckWarningFactory)
         registerFactory(UselessIsCheckFactories.impossibleIsCheckErrorFactory)
+        registerFactory(UselessIsCheckFactories.impossibleIsCheckDeprecationWarningFactory)
+        registerFactory(UselessIsCheckFactories.impossibleIsCheckDeprecationErrorFactory)
         registerFactory(UselessIsCheckFactories.uselessWhenCheckFactory)
         registerFactory(UselessIsCheckFactories.impossibleWhenCheckWarningFactory)
         registerFactory(UselessIsCheckFactories.impossibleWhenCheckErrorFactory)
+        registerFactory(UselessIsCheckFactories.impossibleWhenCheckDeprecationWarningFactory)
+        registerFactory(UselessIsCheckFactories.impossibleWhenCheckDeprecationErrorFactory)
         registerFactory(ReplaceCallFixFactories.redundantCallsOfConversionMethods)
         registerFactory(ReplaceCallFixFactories.unsafeCallFactory)
         registerFactory(ReplaceCallFixFactories.unsafeInfixCallFactory)
@@ -538,6 +542,11 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerFactory(LetImplementInterfaceFixFactories.assignmentTypeMismatchFixFactory)
         registerFactory(LetImplementInterfaceFixFactories.initializerTypeMismatchFixFactory)
         registerFactory(LetImplementInterfaceFixFactories.returnTypeMismatchFixFactory)
+
+        registerFactory(KotlinTimeToJavaInstantFixFactories.argumentTypeMismatchFixFactory)
+        registerFactory(KotlinTimeToJavaInstantFixFactories.returnTypeMismatchFixFactory)
+        registerFactory(KotlinTimeToJavaInstantFixFactories.initializerTypeMismatchFixFactory)
+        registerFactory(KotlinTimeToJavaInstantFixFactories.assignmentTypeMismatchFixFactory)
     }
 
     private val needExplicitType = KtQuickFixesListBuilder.registerPsiQuickFix {
@@ -648,6 +657,13 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
 
         registerFactory(ConvertToAnonymousObjectFixFactories.fixFactory)
         registerFactory(MapPlatformClassToKotlinFixFactories.fixFactory)
+
+        registerFactory(RemoveJvmExposeBoxedNameFixFactory.inapplicableWithName)
+        registerFactory(RemoveJvmExposeBoxedNameFixFactory.cannotBeTheSameAsJvmName)
+        registerFactory(AddJvmExposeBoxedNameFixFactory.requiresName)
+        registerFactory(ChangeJvmExposeBoxedNameFixFactory.cannotBeTheSame)
+        registerFactory(ChangeJvmExposeBoxedNameFixFactory.cannotBeTheSameAsJvmName)
+        registerFactory(ReplaceJvmExposeBoxedWithJvmNameFixFactory.canBeReplacedWithJvmName)
     }
 
     private val optIn = KtQuickFixesListBuilder.registerPsiQuickFix {
@@ -716,6 +732,15 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerPsiQuickFixes(KaFirDiagnostic.OverloadsAnnotationClassConstructorError::class, RemoveAnnotationFix.JvmOverloads)
 
         registerPsiQuickFixes(KaFirDiagnostic.WrongExtensionFunctionType::class, RemoveAnnotationFix.ExtensionFunctionType)
+
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.uselessJvmExposeBoxed)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposeSuspend)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposeOpenAbstract)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposeSynthetic)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposeLocals)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposeReified)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.cannotExposePrivate)
+        registerFactory(RemoveJvmExposeBoxedAnnotationFixFactories.requiresName)
     }
 
     private val contextParameters = KtQuickFixesListBuilder.registerPsiQuickFix {

@@ -39,7 +39,7 @@ import com.intellij.openapi.vfs.newvfs.persistent.FSRecordsImpl;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.platform.backend.workspace.WorkspaceModel;
-import com.intellij.platform.workspace.storage.impl.url.VirtualFileUrlManagerImpl;
+import com.intellij.platform.workspace.storage.impl.url.VirtualFileUrlManagerEx;
 import com.intellij.util.MathUtil;
 import com.intellij.util.SmartList;
 import com.intellij.util.TimeoutUtil;
@@ -168,6 +168,28 @@ final class RefreshWorker {
       VfsUsageCollector.logRefreshScan(fullScans.get(), partialScans.get(), retries, t,
                                        NANOSECONDS.toMillis(vfsTime.get()), NANOSECONDS.toMillis(ioTime.get()));
     }
+  }
+
+  List<VFileEvent> scanNewFiles(@NotNull Map<NewVirtualFile, ? extends Collection<String>> newFilesCaseSensitive) {
+    var events = new ArrayList<VFileEvent>(newFilesCaseSensitive.size());
+    for (var entry : newFilesCaseSensitive.entrySet()) {
+      var parent = entry.getKey();
+      var fs = parent.getFileSystem();
+      Collection<String> childNames = createFilePathSet(entry.getValue(), parent.isCaseSensitive());
+      for (var childName : childNames) {
+        if (cancelled) return events;
+        if (VfsUtil.isBadName(childName)) continue;
+
+        var fakeChild = new FakeVirtualFile(parent, childName);
+        var attributes = computeAttributesForFile(fs, fakeChild);
+        if (attributes == null) continue;
+
+        var canonicalName = fs.getCanonicallyCasedName(fakeChild);
+        var symlinkTarget = attributes.isSymLink() ? fs.resolveSymLink(fakeChild) : null;
+        scheduleCreation(events, parent, canonicalName, attributes, symlinkTarget);
+      }
+    }
+    return events;
   }
 
   private void singleThreadScan(List<VFileEvent> events) {
@@ -685,7 +707,7 @@ final class RefreshWorker {
     for (Project openProject : ProjectManager.getInstance().getOpenProjects()) {
       ReadAction.runBlocking(() -> {
         var workspaceFileIndex = WorkspaceFileIndexEx.getInstance(openProject);
-        var vfuManager = (VirtualFileUrlManagerImpl)WorkspaceModel.getInstance(openProject).getVirtualFileUrlManager();
+        var vfuManager = (VirtualFileUrlManagerEx)WorkspaceModel.getInstance(openProject).getVirtualFileUrlManager();
         vfuManager.processChildrenRecursively(url, child -> {
           if (workspaceFileIndex.isUrlIndexableRecursiveFileSetRoot(child.getUrl())) {
             roots.add(VirtualFileUrlManagerUtil.toPath(child));

@@ -5,14 +5,17 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.contracts.description.KaContractCallsInPlaceContractEffectDeclaration
 import org.jetbrains.kotlin.analysis.api.contracts.description.KaContractInvocationKind
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingModule
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
@@ -20,6 +23,7 @@ import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKot
 import org.jetbrains.kotlin.idea.codeinsights.impl.base.quickFix.AddLoopLabelFix
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtBreakExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtContinueExpression
@@ -39,7 +43,6 @@ import org.jetbrains.kotlin.psi.KtWhileExpression
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.util.match
-import kotlin.collections.get
 
 /**
  * Affected tests:
@@ -94,13 +97,14 @@ private fun findCallExprThatCausesUnlabeledNonLocalBreakOrContinueAmbiguity(jump
     .mapNotNull { checkAmbiguityForUnlabeledNonLocalBreakOrContinue(it) }
     .firstOrNull()
 
+@OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
 private fun checkAmbiguityForUnlabeledNonLocalBreakOrContinue(functionLiteral: PsiElement): AmbiguousCallInfo? {
     val callExpression = functionLiteral.findMatchingCallExpr() ?: return null
     analyze(callExpression) {
         val successfulCall = callExpression.resolveToCall()?.successfulFunctionCallOrNull() ?: return null
         val calleeExpression = callExpression.calleeExpression as? KtReferenceExpression ?: return null
-        val lambdaParamName = successfulCall.argumentMapping[functionLiteral]?.takeIf(::isInlinedParameter)?.name ?: return null
-        val calleeExpressionSymbol = calleeExpression.mainReference.resolveToSymbol()
+        val lambdaParamName = successfulCall.valueArgumentMapping[functionLiteral]?.takeIf(::isInlinedParameter)?.name ?: return null
+        val calleeExpressionSymbol = calleeExpression.resolveSymbol()
             ?.let { it as? KaNamedFunctionSymbol }
             ?.takeIf(KaNamedFunctionSymbol::isInline) ?: return null
         if (calleeExpressionSymbol.hasNoCallsInPlaceContract(lambdaParamName)) {

@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.jetbrains.python.sdk.poetry
 
+import com.jetbrains.python.PyInternalExecApi
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PyFlavorData
@@ -13,10 +14,13 @@ import java.nio.file.Path
  */
 
 @ApiStatus.Internal
+@PyInternalExecApi
 class PyPoetrySdkAdditionalData : PythonSdkAdditionalData {
-  constructor(associatedModulePath: Path?) : super(PyFlavorAndData(PyFlavorData.Empty, PyPoetrySdkFlavor)) {
-    this.associatedModulePath = associatedModulePath?.toString()
-  }
+  // The association with the working directory is set by the base class for every tool, not just poetry.
+  constructor(workingDirectory: Path) : super(
+    PyFlavorAndData(PyFlavorData.Empty, PyPoetrySdkFlavor),
+    workingDirectory,
+  )
 
   override fun save(element: Element) {
     super.save(element)
@@ -34,7 +38,7 @@ class PyPoetrySdkAdditionalData : PythonSdkAdditionalData {
     fun load(element: Element): PyPoetrySdkAdditionalData? =
       when {
         element.getAttributeValue(IS_POETRY) == "true" -> {
-          PyPoetrySdkAdditionalData(null).apply {
+          PyPoetrySdkAdditionalData(Path.of("")).apply {
             load(element)
           }
         }

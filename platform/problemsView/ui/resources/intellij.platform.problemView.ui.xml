@@ -3,6 +3,7 @@
   <dependencies>
     <module name="intellij.libraries.fastutil"/>
     <module name="intellij.libraries.guava"/>
+    <module name="intellij.libraries.jetbrains.annotations"/>
     <module name="intellij.libraries.kotlinx.coroutines.core"/>
     <module name="intellij.libraries.kotlinx.serialization.core"/>
     <module name="intellij.platform.analysis"/>
@@ -26,8 +27,10 @@
     <module name="intellij.platform.lang.impl"/>
     <module name="intellij.platform.problemView.collector"/>
     <module name="intellij.platform.problemView.shared"/>
+    <module name="intellij.platform.project"/>
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.projectModel.impl"/>
+    <module name="intellij.platform.refactoring"/>
     <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.usageView"/>
     <module name="intellij.platform.usageView.impl"/>

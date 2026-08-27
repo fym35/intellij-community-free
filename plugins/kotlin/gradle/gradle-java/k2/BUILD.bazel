@@ -1,5 +1,6 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.kotlin.gradle.java` start
 jvm_library(
@@ -28,6 +29,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":kotlin-gradle-java")
+
 jvm_library(
     name = "kotlin-gradle-java_test_lib",
     testonly = True,
@@ -51,6 +54,7 @@ jvm_library(
 exports_files(
     [
         "intellij.kotlin.gradle.java.iml",
+        "resources/intellij.kotlin.gradle.java.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -65,7 +69,13 @@ jvm_library(
     ),
     module_name = "intellij.kotlin.gradle.java.tests",
     visibility = ["//visibility:public"],
-    runtime_deps = ["//platform/problemsView/collector"],
+    runtime_deps = [
+        # do not sort,
+        "//plugins/kotlin:kotlin-plugin-community-main",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
+        "//libraries/kotlinc/symbol-light-classes:libraries-kotlinc-symbol-light-classes",
+        "//platform/problemsView/collector",
+    ],
 )
 
 jvm_library(
@@ -87,6 +97,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":kotlin-gradle-java-tests",
+        "//plugins/kotlin:kotlin-plugin-community-main_test_lib",
         "//platform/ide-core:ide-core_test_lib",
         "//platform/problemsView/collector:collector_test_lib",
     ],
@@ -102,8 +113,6 @@ jvm_library(
         "//platform/indexing-api:indexing_test_lib",
         "//platform/projectModel-api:projectModel",
         "//platform/projectModel-api:projectModel_test_lib",
-        "//plugins/kotlin/plugin/k2",
-        "//plugins/kotlin/plugin/k2:k2_test_lib",
         "@lib//:kotlin-stdlib",
         "//plugins/kotlin/gradle/gradle-java/tests.shared",
         "//plugins/kotlin/gradle/gradle-java/tests.shared:tests.shared_test_lib",
@@ -133,7 +142,12 @@ jvm_library(
         "//java/testFramework:testFramework_test_lib",
         "//plugins/kotlin/highlighting/highlighting-k2:kotlin-highlighting",
         "//plugins/kotlin/highlighting/highlighting-k2:kotlin-highlighting_test_lib",
-        "@lib//:kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api_test_lib",
+        "//libraries/kotlinc/symbol-light-classes:libraries-kotlinc-symbol-light-classes",
+        "//libraries/kotlinc/symbol-light-classes:libraries-kotlinc-symbol-light-classes_test_lib",
         "//libraries/fastutil",
         "//libraries/fastutil:fastutil_test_lib",
         "//plugins/groovy",
@@ -193,13 +207,12 @@ jvm_library(
         "//plugins/junit:junit_test_lib",
         "//plugins/kotlin/gradle/gradle-tooling/impl",
         "//plugins/kotlin/gradle/gradle-tooling/impl:impl_test_lib",
-        "@lib//:kotlin-tooling-core",
+        "//libraries/kotlin/tooling-core:libraries-kotlin-tooling-core",
+        "//libraries/kotlin/tooling-core:libraries-kotlin-tooling-core_test_lib",
         "//platform/editor-ui-api:editor-ui",
         "//platform/editor-ui-api:editor-ui_test_lib",
         "//plugins/kotlin/gradle/code-insight-groovy:kotlin-gradle-codeInsight-groovy",
         "//plugins/kotlin/gradle/code-insight-groovy:kotlin-gradle-codeInsight-groovy_test_lib",
-        "//plugins/kotlin/inspections",
-        "//plugins/kotlin/inspections:inspections_test_lib",
         "//plugins/kotlin/gradle/gradle",
         "//plugins/kotlin/gradle/gradle:gradle_test_lib",
         "//libraries/junit5",

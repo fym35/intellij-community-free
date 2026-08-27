@@ -1,5 +1,28 @@
+load("@community//build:bazel_targets_json.bzl", "current_bazel_targets_json")
 load("@community//build:tests-options.bzl", "jps_test")
-load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
+load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "resourcegroup")
+
+BAZEL_TARGETS_JSON = current_bazel_targets_json()
+
+jps_test(
+    name = "vcs-gitlab-tests_test",
+    timeout = "moderate",
+    data = [BAZEL_TARGETS_JSON],
+    env_inherit = [
+        "idea_test_gitlab_api_data_path",
+        "idea_test_gitlab_api_token",
+        "idea_test_gitlab_api_version",
+        "idea_test_gitlab_api_edition",
+        "idea_test_gitlab_uri",
+    ],
+    jvm_flags = [
+        "-Dintellij.build.bazel.targets.json.file=$(rlocationpath %s)" % BAZEL_TARGETS_JSON,
+    ],
+    tags = ["community-aggregator"],
+    runtime_deps = [":vcs-gitlab-tests_test_lib"],
+)
+### skip generation section `test intellij.vcs.gitlab.tests`
 
 ### auto-generated section `build intellij.vcs.gitlab` start
 resourcegroup(
@@ -8,6 +31,11 @@ resourcegroup(
         ["gen-resources/**/*"],
     ),
     strip_prefix = "gen-resources",
+)
+
+jvm_provided_library(
+    name = "libraries_kotlinc_libraries-kotlinc-kotlinx-serialization-compiler-plugin_provided",
+    lib = "//libraries/kotlinc/kotlinx-serialization-compiler-plugin:libraries-kotlinc-kotlinx-serialization-compiler-plugin",
 )
 
 jvm_library(
@@ -50,7 +78,6 @@ jvm_library(
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/serialization/core",
         "//libraries/kotlinx/serialization/json",
-        "@lib//:kotlinc-kotlinx-serialization-compiler-plugin-provided",
         "//libraries/jackson/jackson",
         "//libraries/jackson/module-kotlin:libraries-jackson-module-kotlin",
         "//platform/dvcs-impl:vcs-dvcs-impl",
@@ -79,6 +106,7 @@ jvm_library(
         "//platform/observable",
         "//platform/progress/shared:ide-progress",
         "//platform/lang-api:lang",
+        ":libraries_kotlinc_libraries-kotlinc-kotlinx-serialization-compiler-plugin_provided",
     ],
 )
 
@@ -112,7 +140,8 @@ jvm_library(
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/kotlinx/serialization/core:core_test_lib",
         "//libraries/kotlinx/serialization/json:json_test_lib",
-        "@lib//:kotlinc-kotlinx-serialization-compiler-plugin-provided",
+        "//libraries/kotlinc/kotlinx-serialization-compiler-plugin:libraries-kotlinc-kotlinx-serialization-compiler-plugin",
+        "//libraries/kotlinc/kotlinx-serialization-compiler-plugin:libraries-kotlinc-kotlinx-serialization-compiler-plugin_test_lib",
         "//libraries/jackson/jackson:jackson_test_lib",
         "//libraries/jackson/module-kotlin:libraries-jackson-module-kotlin_test_lib",
         "//platform/dvcs-impl:vcs-dvcs-impl_test_lib",
@@ -165,10 +194,23 @@ jvm_library(
 exports_files(
     [
         "intellij.vcs.gitlab.iml",
+        "resources/META-INF/plugin.xml",
+        "resources/intellij.vcs.gitlab.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.vcs.gitlab` end
+
+### auto-generated section `dev content intellij.vcs.gitlab` start
+dev_dist_plugin_content(
+    descriptor_module = ":vcs-gitlab",
+    prepacked_content_modules = [
+        "//plugins/gitlab/gitlab-git:vcs-gitlab-git_content_module_jar",
+        "//plugins/gitlab/gitlab-yaml:vcs-gitlab-yaml_content_module_jar",
+    ],
+)
+### auto-generated section `dev content intellij.vcs.gitlab` end
 
 ### auto-generated section `build intellij.vcs.gitlab.tests` start
 jvm_library(
@@ -179,6 +221,7 @@ jvm_library(
     ),
     module_name = "intellij.vcs.gitlab.tests",
     visibility = ["//visibility:public"],
+    runtime_deps = ["//libraries/lucene.common"],
 )
 
 jvm_library(
@@ -211,6 +254,7 @@ jvm_library(
         "//platform/platform-util-io:ide-util-io_test_lib",
         "//platform/ide-core-impl:ide-core-impl_test_lib",
         "//platform/observable:observable_test_lib",
+        "//libraries/lucene.common:lucene.common_test_lib",
     ],
     deps = [
         # do not sort,
@@ -249,7 +293,8 @@ jvm_library(
         "//libraries/kotlinx/serialization/core:core_test_lib",
         "//libraries/kotlinx/serialization/json",
         "//libraries/kotlinx/serialization/json:json_test_lib",
-        "@lib//:kotlinc-kotlinx-serialization-compiler-plugin-provided",
+        "//libraries/kotlinc/kotlinx-serialization-compiler-plugin:libraries-kotlinc-kotlinx-serialization-compiler-plugin",
+        "//libraries/kotlinc/kotlinx-serialization-compiler-plugin:libraries-kotlinc-kotlinx-serialization-compiler-plugin_test_lib",
         "//libraries/jackson/jackson",
         "//libraries/jackson/jackson:jackson_test_lib",
         "//libraries/jackson/module-kotlin:libraries-jackson-module-kotlin",
@@ -316,6 +361,12 @@ jvm_library(
         "//platform/testFramework/junit5/codeInsight:codeInsight_test_lib",
         "//libraries/junit5",
         "//libraries/junit5:junit5_test_lib",
+        "//libraries/misc/plugin",
+        "//libraries/misc/plugin:plugin_test_lib",
+        "//platform/vcs/plugin",
+        "//platform/vcs/plugin:plugin_test_lib",
+        "//plugins/git4idea:vcs-git",
+        "//plugins/git4idea:vcs-git_test_lib",
     ],
 )
 ### auto-generated section `build intellij.vcs.gitlab.tests` end
@@ -328,10 +379,3 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 ### auto-generated section `iml intellij.vcs.gitlab.tests` end
-
-### auto-generated section `test intellij.vcs.gitlab.tests` start
-jps_test(
-    name = "vcs-gitlab-tests_test",
-    runtime_deps = [":vcs-gitlab-tests_test_lib"],
-)
-### auto-generated section `test intellij.vcs.gitlab.tests` end

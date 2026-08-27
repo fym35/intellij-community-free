@@ -1,5 +1,4 @@
 c:com.intellij.DynamicBundle
-- sf:INSTANCE:com.intellij.DynamicBundle
 - <init>(java.lang.Class,java.lang.String):V
 - p:findBundle(java.lang.String,java.lang.ClassLoader,java.util.ResourceBundle$Control):java.util.ResourceBundle
 - s:getBundle(java.lang.String):java.util.ResourceBundle
@@ -888,7 +887,6 @@ e:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:GotoTarget:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:GotoTypeDeclaration:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:GroovyMarkers:com.intellij.openapi.project.DumbModeBlockedFunctionality
-- sf:Gwt:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:Intentions:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:JfrStackFrames:com.intellij.openapi.project.DumbModeBlockedFunctionality
 - sf:Jpa:com.intellij.openapi.project.DumbModeBlockedFunctionality

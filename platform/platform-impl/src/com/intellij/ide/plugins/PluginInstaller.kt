@@ -6,7 +6,7 @@ import com.intellij.core.CoreBundle
 import com.intellij.diagnostic.LoadingState
 import com.intellij.ide.IdeBundle
 import com.intellij.ide.plugins.marketplace.MarketplacePluginDownloadService
-import com.intellij.ide.plugins.marketplace.PluginSignatureChecker
+import com.intellij.ide.plugins.marketplace.PluginSignatureVerifier
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.marketplace.statistics.enums.InstallationSourceEnum
 import com.intellij.ide.plugins.newui.PluginManagerSession
@@ -27,6 +27,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ex.MessagesEx
+import com.intellij.openapi.updateSettings.impl.PluginUpdateSourceId
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.openapi.util.io.NioFiles
@@ -47,6 +48,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.function.BiConsumer
 import java.util.function.Consumer
 import javax.swing.JComponent
 
@@ -60,6 +62,14 @@ object PluginInstaller {
 
   @JvmField
   internal val ourLock: Any = Any()
+
+  @ApiStatus.Internal
+  @JvmStatic
+  fun verifyPluginSignatureIfRequired(
+    descriptor: IdeaPluginDescriptor,
+    pluginFile: Path,
+    isMarketplace: Boolean,
+  ): Boolean = PluginSignatureVerifier.verifyIfRequired(descriptor, pluginFile, isMarketplace, false)
 
   /**
    * @return true if restart is needed
@@ -155,7 +165,19 @@ object PluginInstaller {
     newPluginPath: Path,
     oldPluginPath: Path?,
   ) {
-    installAfterRestart(newDescriptor, newPluginPath, oldPluginPath, !keepArchive())
+    installAfterRestartAndKeepIfNecessary(newDescriptor, newPluginPath, oldPluginPath, null)
+  }
+
+  @ApiStatus.Internal
+  @JvmStatic
+  @Throws(IOException::class)
+  fun installAfterRestartAndKeepIfNecessary(
+    newDescriptor: IdeaPluginDescriptor,
+    newPluginPath: Path,
+    oldPluginPath: Path?,
+    replacedPluginArchive: Path?,
+  ) {
+    installAfterRestart(newDescriptor, newPluginPath, oldPluginPath, !keepArchive(), replacedPluginArchive)
   }
 
   @ApiStatus.Internal
@@ -167,14 +189,34 @@ object PluginInstaller {
     existingPlugin: Path?,
     deleteSourceFile: Boolean,
   ) {
+    installAfterRestart(descriptor, sourceFile, existingPlugin, deleteSourceFile, null)
+  }
+
+  private fun installAfterRestart(
+    descriptor: IdeaPluginDescriptor,
+    sourceFile: Path,
+    existingPlugin: Path?,
+    deleteSourceFile: Boolean,
+    replacedPluginArchive: Path?,
+  ) {
     LOG.debug("Scheduling installation of plugin $descriptor after restart")
     val commands = ArrayList<ActionCommand>()
+
+    val pluginsPath = getPluginsPath()
+    if (replacedPluginArchive != null) {
+      val replacedTarget = if (replacedPluginArchive.fileName.toString().endsWith(".jar")) {
+        pluginsPath.resolve(replacedPluginArchive.fileName)
+      }
+      else {
+        pluginsPath.resolve(rootEntryName(replacedPluginArchive))
+      }
+      commands.add(DeleteCommand(replacedTarget))
+    }
 
     if (existingPlugin != null) {
       commands.add(DeleteCommand(existingPlugin))
     }
 
-    val pluginsPath = getPluginsPath()
     if (sourceFile.fileName.toString().endsWith(".jar")) {
       commands.add(CopyCommand(sourceFile, pluginsPath.resolve(sourceFile.fileName)))
     }
@@ -264,6 +306,7 @@ object PluginInstaller {
     project: Project?,
     parent: JComponent?,
     callback: Consumer<in PluginInstallCallbackData>,
+    pluginUpdateSourceCallback: BiConsumer<PluginId, PluginUpdateSourceId>,
   ) {
     try {
       val pluginDescriptor = ProgressManager.getInstance().runProcessWithProgressSynchronously(
@@ -297,7 +340,8 @@ object PluginInstaller {
         return
       }
 
-      val error = PluginManagerCore.checkBuildNumberCompatibility(pluginDescriptor, PluginManagerCore.buildNumber)
+      val error = PluginCompatibilityUtils.checkBuildNumberCompatibility(pluginDescriptor, PluginManagerCore.buildNumber)
+        ?.convertToUIError(pluginDescriptor)
       if (error != null) {
         MessagesEx.showErrorDialog(parent, error.detailedMessage, CommonBundle.getErrorTitle())
         return
@@ -320,7 +364,7 @@ object PluginInstaller {
       val previousVersion = installedPlugin?.getVersion()
       PluginManagerUsageCollector.pluginInstallationStarted(pluginDescriptor, InstallationSourceEnum.FROM_DISK, previousVersion)
 
-      if (!PluginSignatureChecker.verifyIfRequired(pluginDescriptor, file, false, true)) {
+      if (!PluginSignatureVerifier.verifyIfRequired(pluginDescriptor, file, false, true)) {
         return
       }
 
@@ -410,6 +454,9 @@ object PluginInstaller {
           callback.accept(callbackData)
         }
       }
+      for ((pluginId, pluginUpdateSourceId) in operation.dependentPluginUpdateSourceIds) {
+        pluginUpdateSourceCallback.accept(pluginId, pluginUpdateSourceId)
+      }
 
       if (file.toString().endsWith(".zip") && keepArchive()) {
         val tempFile = MarketplacePluginDownloadService.getPluginTempFile()
@@ -474,7 +521,7 @@ object PluginInstaller {
       if (!wasInstalledBefore) {
         // FIXME can't drop the disabled flag first because it's implementation filters ids against the current plugin set;
         //  so load first, then enable
-        targetDescriptor.isMarkedForLoading = true
+        // TODO the problem from the FIXME should be gone already with the new dynamic plugins support
         val result = DynamicPlugins.loadPlugin(targetDescriptor)
         PluginEnabler.HEADLESS.enable(setOf(targetDescriptor))
         return result

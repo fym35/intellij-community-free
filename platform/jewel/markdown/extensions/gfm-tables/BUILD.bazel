@@ -1,6 +1,7 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 jps_test(
     name = "jewel-markdown-extensions-gfmTables-tests_test",
@@ -45,7 +46,7 @@ jvm_library(
         # do not sort,
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//platform/jewel/markdown/core",
         "//platform/jewel/ui",
         "//platform/jewel/foundation",
@@ -53,6 +54,11 @@ jvm_library(
         "//libraries/compose-runtime-desktop",
         "@lib//:platform-jewel-markdown-extensions-gfm_tables-commonmark-ext-gfm-tables",
     ],
+)
+
+content_module_jar(
+    libraries = ["@lib//:platform-jewel-markdown-extensions-gfm_tables-commonmark-ext-gfm-tables"],
+    module = ":gfm-tables",
 )
 
 jvm_library(
@@ -69,6 +75,7 @@ jvm_library(
         # do not sort,
         ":gfm-tables",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//platform/jewel/markdown/core:core_test_lib",
         "//platform/jewel/ui:ui_test_lib",
         "//platform/jewel/foundation:foundation_test_lib",
@@ -86,6 +93,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.jewel.markdown.extensions.gfmTables.iml",
+        "src/main/resources/intellij.platform.jewel.markdown.extensions.gfmTables.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -137,7 +146,8 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//platform/jewel/markdown/core",
         "//platform/jewel/markdown/core:core_test_lib",
         "//platform/jewel/ui",

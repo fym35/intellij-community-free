@@ -1,4 +1,6 @@
+load("@community//platform/build-scripts/bazel-rules:dev_dist_content.bzl", "dev_dist_plugin_content")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.ui.webview.jcef` start
 jvm_library(
@@ -20,7 +22,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         "//libraries/jcef",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/serialization/core",
@@ -32,6 +34,8 @@ jvm_library(
         "//platform/util",
     ],
 )
+
+content_module_jar(module = ":jcef")
 
 jvm_library(
     name = "jcef_test_lib",
@@ -45,6 +49,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":jcef",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/jcef:jcef_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/kotlinx/serialization/core:core_test_lib",
@@ -62,6 +67,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.ui.webview.jcef.iml",
+        "resources/intellij.platform.ui.webview.jcef.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

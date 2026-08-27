@@ -8,6 +8,9 @@ import java.nio.file.Path
 interface ModuleOutputProvider {
   val useTestCompilationOutput: Boolean
 
+  /** Whether descriptor lookup and explicit test-output reads may use [module]'s test compilation output. */
+  fun isTestCompilationOutputEnabled(module: JpsModule): Boolean = useTestCompilationOutput
+
   /**
    * Returns all modules from the project model if available.
    * Used for graph enrichment in analysis-only flows.
@@ -24,6 +27,16 @@ interface ModuleOutputProvider {
   fun findRequiredModule(name: String): JpsModule
 
   fun findLibraryRoots(libraryName: String, moduleLibraryModuleName: String? = null): List<Path>
+
+  /**
+   * The roots of a library a **probe** may read - a descriptor search asking many candidates for one file.
+   *
+   * Defaults to [findLibraryRoots]. A build assembling from an explicit Bazel input manifest narrows it to the jars it
+   * declares, because resolving a jar is what declares it there and a probe must not turn "does anyone have this file?"
+   * into an input of the fragment that asked. An unknown library is empty rather than an error for the same reason.
+   */
+  fun findDeclaredLibraryRoots(libraryName: String, moduleLibraryModuleName: String? = null): List<Path> =
+    findLibraryRoots(libraryName = libraryName, moduleLibraryModuleName = moduleLibraryModuleName)
 
   /**
    * Returns a map from project library name to library module name.

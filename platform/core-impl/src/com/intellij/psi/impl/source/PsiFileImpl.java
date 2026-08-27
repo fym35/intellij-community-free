@@ -215,13 +215,15 @@ public abstract class PsiFileImpl extends ElementBase implements PsiFileEx, PsiF
       return false;
     }
     if (InternalPsiVersioning.isInsideVersioningButNotLocks()) {
+      // todo: rework after lazy validation happens in a dumb task: IJPL-250756
+      return true;
       // in versioned environment, we would like to not touch VFS, so we don't evalute the validity of virtual file.
       // We do not allow resurrection of PsiFiles (this is a questionable logic, and we try to not rely on it),
       // so resurrection is not invoked.
       // Instead, we track invalidation in a versioned reference.
       // So once a file is invalidated, it cannot become valid anymore.
-      Object trace = versionedInvalidationTrace.get();
-      return trace == null;
+      //Object trace = versionedInvalidationTrace.get();
+      //return trace == null;
     }
 
     if (!myViewProvider.getVirtualFile().isValid()) {
@@ -747,6 +749,11 @@ public abstract class PsiFileImpl extends ElementBase implements PsiFileEx, PsiF
    */
   @Deprecated
   public final @Nullable StubTree getGreenStubTree() {
+    if (InternalPsiVersioning.isInsideVersioningButNotLocks()) {
+      // as of now, we do not allow working with stubs inside versioned environment, as stubs are not represented as a versioned structure
+      // so the green stub functionality is disabled.
+      return null;
+    }
     assertReadAccessAllowed();
 
     StubTree deref = derefStub();
@@ -776,7 +783,7 @@ public abstract class PsiFileImpl extends ElementBase implements PsiFileEx, PsiF
     Function<FileElement, T> astProcessor
   ) {
     Pair<@Nullable StubTree, @Nullable FileElement> result = getStubTreeOrFileElement();
-    StubElement<?> stubElement = result.first != null ? result.first.getRoot() : null;
+    StubElement<?> stubElement = result.first != null && !InternalPsiVersioning.isInsideVersioningButNotLocks() ? result.first.getRoot() : null;
     if (stubElement != null && !stubClass.isAssignableFrom(stubElement.getClass())) {
       LanguageStubDescriptor descriptor = getStubDescriptor();
       String elementTypeName = descriptor != null ? descriptor.getFileElementSerializer().getExternalId() : null;
@@ -799,7 +806,7 @@ public abstract class PsiFileImpl extends ElementBase implements PsiFileEx, PsiF
     Function<FileElement, T> astProcessor
   ) {
     Pair<@Nullable StubTree, @Nullable FileElement> result = getStubTreeOrFileElement();
-    if (result.first != null) {
+    if (result.first != null && !InternalPsiVersioning.isInsideVersioningButNotLocks()) {
       return stubProcessor.apply(result.first);
     }
     FileElement fileElement = result.second;

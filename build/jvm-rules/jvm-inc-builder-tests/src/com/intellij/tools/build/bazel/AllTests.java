@@ -16,8 +16,12 @@ import static org.junit.Assert.fail;
   ZipBuilderTest.class,
   IteratorsTest.class,
   DependencyGraphTest.class,
+  JavacProtoUtilTest.class,
   KotlinCriTest.class,
-  JavaAbiFilterTest.class
+  JavaAbiFilterTest.class,
+  JavaAnnotationProcessorTests.class,
+  WarningLevelTests.class,
+  BuildContextKotlinOptionsTest.class
 })
 public class AllTests {
 

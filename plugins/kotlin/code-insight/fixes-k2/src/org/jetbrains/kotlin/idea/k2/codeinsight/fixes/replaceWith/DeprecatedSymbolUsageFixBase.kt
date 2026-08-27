@@ -6,13 +6,13 @@ import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.diagnostic.ControlFlowException
+import com.intellij.openapi.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.renderer.base.annotations.KaRendererAnnotationsFilter
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.bodies.KaParameterDefaultValueRenderer
@@ -21,8 +21,14 @@ import org.jetbrains.kotlin.analysis.api.renderer.declarations.modifiers.rendere
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.renderers.callables.KaConstructorSymbolRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.renderers.callables.KaNamedFunctionSymbolRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.renderers.classifiers.KaNamedClassSymbolRenderer
+import org.jetbrains.kotlin.analysis.api.renderer.render
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.isDeprecated
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory.IntentionBased
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.quickfixes.CleanupFix
@@ -88,7 +94,8 @@ internal object DeprecationFixFactory {
     }
 
     @OptIn(KaExperimentalApi::class)
-    private fun KaSession.createDeprecation(
+    context(session: KaSession)
+    private fun createDeprecation(
         kaSymbol: KaDeclarationSymbol,
         psi: PsiElement
     ): List<IntentionAction> {
@@ -166,7 +173,7 @@ abstract class DeprecatedSymbolUsageFixBase(
             "${javaClass.name} should not be created on EDT"
         }
         isUnitTypeReplacement = createReplacementExpression(element.project, replaceWith, element)?.let {
-            analyze(it) { it.expressionType?.isUnitType }
+            analyze(it) { it.expressionType?.classId == KaStandardTypeClassIds.UNIT }
         }
         isAvailable = buildUsageReplacementStrategy(
             element, replaceWith, isUnitTypeReplacement
@@ -226,13 +233,14 @@ abstract class DeprecatedSymbolUsageFixBase(
 
                         (codeFragment.getContentElement() as? KtIsExpression)?.typeReference
                     } catch (e: Exception) {
-                        if (e is ControlFlowException) throw e
+                        rethrowControlFlowException(e)
                         val replacement = createReplacement(target as KtDeclaration, element, replaceWith, isUnitType) ?: return null
 
                         val mainExpression = replacement.mainExpression
                         if (target is KtClassLikeDeclaration &&
                             mainExpression !is KtReferenceExpression &&
-                            mainExpression !is KtQualifiedExpression) {
+                            mainExpression !is KtQualifiedExpression
+                        ) {
                             return null
                         }
 

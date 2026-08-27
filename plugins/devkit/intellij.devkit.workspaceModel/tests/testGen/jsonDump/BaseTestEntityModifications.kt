@@ -11,6 +11,7 @@ import com.intellij.platform.workspace.storage.MutableEntityStorage
 import com.intellij.platform.workspace.storage.WorkspaceEntity
 import com.intellij.platform.workspace.storage.WorkspaceEntityBuilder
 import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceList
+import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceSet
 
 @GeneratedCodeApiVersion(3)
 interface BaseTestEntityBuilder : WorkspaceEntityBuilder<BaseTestEntity> {
@@ -19,20 +20,26 @@ interface BaseTestEntityBuilder : WorkspaceEntityBuilder<BaseTestEntity> {
   var children: List<ChildEntityBuilder>
   var singleChild: SingleChildBuilder?
   var listOfAbstract: MutableList<AbstractClass>
+  var stringList: MutableList<String>
+  var stringSet: MutableSet<String>
 }
 
 internal object BaseTestEntityType : EntityType<BaseTestEntity, BaseTestEntityBuilder>() {
-  override val entityClass: Class<BaseTestEntity> get() = BaseTestEntity::class.java
+  override val entityImplClass: Class<*> get() = BaseTestEntityImpl::class.java
   override val entityImplBuilderClass: Class<*> get() = BaseTestEntityImpl.Builder::class.java
   operator fun invoke(
     name: String,
     listOfAbstract: List<AbstractClass>,
+    stringList: List<String>,
+    stringSet: Set<String>,
     entitySource: EntitySource,
     init: (BaseTestEntityBuilder.() -> Unit)? = null,
   ): BaseTestEntityBuilder {
     val builder = builder()
     builder.name = name
     builder.listOfAbstract = listOfAbstract.toMutableWorkspaceList()
+    builder.stringList = stringList.toMutableWorkspaceList()
+    builder.stringSet = stringSet.toMutableWorkspaceSet()
     builder.entitySource = entitySource
     init?.invoke(builder)
     return builder
@@ -47,12 +54,13 @@ fun MutableEntityStorage.modifyBaseTestEntity(
 var BaseTestEntityBuilder.extensionChildren: List<ExtensionChildEntityBuilder>
   by WorkspaceEntity.extensionBuilder(ExtensionChildEntity::class.java)
 
-
 @JvmOverloads
 @JvmName("createBaseTestEntity")
 fun BaseTestEntity(
   name: String,
   listOfAbstract: List<AbstractClass>,
+  stringList: List<String>,
+  stringSet: Set<String>,
   entitySource: EntitySource,
   init: (BaseTestEntityBuilder.() -> Unit)? = null,
-): BaseTestEntityBuilder = BaseTestEntityType(name, listOfAbstract, entitySource, init)
+): BaseTestEntityBuilder = BaseTestEntityType(name, listOfAbstract, stringList, stringSet, entitySource, init)

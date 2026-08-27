@@ -12,9 +12,12 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.parentOfTypes
 import com.intellij.psi.util.startOffset
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaLocalVariableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.idea.base.psi.isPartOfQualifiedExpression
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
@@ -23,6 +26,7 @@ import org.jetbrains.kotlin.idea.references.KtSimpleNameReference
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
@@ -117,6 +121,7 @@ internal class CanBeParameterInspection : AbstractKotlinInspection() {
         }
     }
 
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
     private fun referencesWithSameNameResolveToNonLocalVariable(klass: KtClass, parameter: KtParameter): Boolean {
 
         val properties = klass.getProperties().asSequence()
@@ -131,14 +136,14 @@ internal class CanBeParameterInspection : AbstractKotlinInspection() {
 
         analyze(klass) {
             val constructorPropertySymbol =
-                (parameter.symbol as? KaValueParameterSymbol)?.generatedPrimaryConstructorProperty ?: return true
+                (parameter.symbol as? KaValueParameterSymbol)?.primaryConstructorProperty ?: return true
 
             for (element in initializersAndDelegates) {
                 val nameReferenceExpressions = element.collectDescendantsOfType<KtNameReferenceExpression> {
                     it.text == parameter.name && !it.isPartOfQualifiedExpression()
                 }
                 for (nameReferenceExpression in nameReferenceExpressions) {
-                    val referenceSymbol = nameReferenceExpression.mainReference.resolveToSymbol() ?: continue
+                    val referenceSymbol = nameReferenceExpression.resolveSymbol() ?: continue
                     if (referenceSymbol != constructorPropertySymbol && referenceSymbol !is KaLocalVariableSymbol) {
                         return true
                     }

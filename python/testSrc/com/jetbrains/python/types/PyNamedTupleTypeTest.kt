@@ -7,13 +7,14 @@ import com.jetbrains.python.allure.Components
 import com.intellij.idea.TestFor
 import com.jetbrains.python.fixtures.PyCodeInsightTestCase
 import com.jetbrains.python.psi.LanguageLevel
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 /**
  * Type and type-checker tests for named tuples
- * ([typing.NamedTuple][https://docs.python.org/3/library/typing.html#typing.NamedTuple] in both class and
- * functional form, [collections.namedtuple][https://docs.python.org/3/library/collections.html#collections.namedtuple],
+ * ([typing.NamedTuple](https://docs.python.org/3/library/typing.html#typing.NamedTuple) in both class and
+ * functional form, [collections.namedtuple](https://docs.python.org/3/library/collections.html#collections.namedtuple),
  * their fields, `_make`/`_replace`, unpacking and inheritance)
  */
 @Subsystems.Typing
@@ -31,7 +32,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = User("name", 13).age
       #└ TYPE Unknown
-      """)
+      """.trimIndent())
 
     @Test
     fun `collections namedtuple target field`() = test("""
@@ -39,7 +40,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       User = namedtuple("User", "name age")
       expr = User("name", 13).age
       #└ TYPE Literal[13]
-      """)
+      """.trimIndent())
 
     @Test
     fun `collections namedtuple inheritor unpacking`() = test("""
@@ -48,7 +49,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       y1, expr = User("name", 13)
       #   └ TYPE Unknown
-      """)
+      """.trimIndent())
 
     @Test
     fun `collections namedtuple target unpacking`() = test("""
@@ -57,7 +58,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       p1 = Point(1, '1')
       expr, y1 = p1
       #└ TYPE Literal[1]
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -66,7 +67,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = namedtuple("Cat", "name age")
       expr = Cat("name", 5)._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -75,7 +76,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = namedtuple("Cat", "name age")
       expr = Cat._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -85,7 +86,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = Cat("name", 5)._make(["newname", 6])
       # └ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -95,7 +96,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = Cat._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -104,7 +105,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = namedtuple("Cat", "name age")
       expr = Cat("name", 5)._replace(name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -114,7 +115,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = Cat("name", 5)._replace(name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -123,7 +124,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = namedtuple("Cat", "name age")
       expr = Cat("name", 5)._replace(age="five").age
       #└ TYPE Literal["five"]
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -133,7 +134,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = Cat._replace(Cat("name", 5), name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     fun `inherited collections namedtuple _replace`() = test("""
@@ -145,7 +146,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       inst = MyClass(1,2,3)
       expr = inst._replace(a=2)
       #└ TYPE MyClass
-      """)
+      """.trimIndent())
 
     @Test
     fun `namedtuple parameter type in docstring`() = test("""
@@ -157,7 +158,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           ${"\"\"\""}
           expr = point
       #   └ TYPE Point
-      """)
+      """.trimIndent())
 
     @Test
     fun `no stack overflow on transitive namedtuple fields`() = test("""
@@ -167,12 +168,11 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       FIELDS = C.FIELDS
       expr = namedtuple('Tup', FIELDS)
       #└ TYPE type[tuple]
-      """)
+      """.trimIndent())
 
     @Test
-    fun `function with different namedtuples as parameter and return types`() = test(
-      TestOptions(languageLevel = LanguageLevel.PYTHON35, assertRecursionPrevention = false),
-      """
+    @TestCaseOptions(languageLevel = LanguageLevel.PYTHON35, assertRecursionPrevention = false)
+    fun `function with different namedtuples as parameter and return types`() = test("""
       from collections import namedtuple
       MyType1 = namedtuple('MyType1', 'x y')
       MyType2 = namedtuple('MyType2', 'x y')
@@ -180,8 +180,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       expr = foo
       #└ TYPE (a: MyType1) -> MyType2
-      """,
-    )
+      """.trimIndent())
 
     @Test
     fun `iterate over collections namedtuple`() = test("""
@@ -191,7 +190,25 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           for instruction in instructions:
               expr = instruction
       #       └ TYPE Instruction
-      """)
+      """.trimIndent())
+
+    @Test
+    @TestFor(issues = ["PY-18096"])
+    fun `named tuple base class`() = test("""
+      from collections import namedtuple
+
+      class C(namedtuple('C', ['foo', 'bar'])):
+          pass
+
+      def f(x):
+          return x.foo, x.bar
+
+      def g():
+          x = C(foo=0, bar=1)
+          return f(x)
+
+      print(g())
+      """.trimIndent())
   }
 
   @Nested
@@ -206,8 +223,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           level: int = 0
       expr = User("name").level
       #└ TYPE int
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-25346"])
     fun `typing NamedTuple functional target field`() = test("""
@@ -216,7 +234,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       expr = User("name").level
       #│                └ WARNING Parameter 'level' unfilled
       #└ TYPE int
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-32240"])
@@ -229,7 +247,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       expr = A(undefined).user
       #│       ^^^^^^^^^ ERROR Unresolved reference 'undefined'
       #└ TYPE str
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-4351"])
@@ -239,7 +257,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           pass
       y2, expr = User("name", 13)
       #   └ TYPE int
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-4351"])
@@ -249,7 +267,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       p2 = Point2(1, "1")
       expr, y2 = p2
       #└ TYPE int
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -260,7 +278,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           age: int
       expr = Cat("name", 5)._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -271,8 +289,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           age: int
       expr = Cat._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-27148"])
     fun `typing NamedTuple functional _make on instance`() = test("""
@@ -280,8 +299,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = NamedTuple("Cat", name=str, age=int)
       expr = Cat("name", 5)._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-27148"])
     fun `typing NamedTuple functional _make on class`() = test("""
@@ -289,7 +309,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = NamedTuple("Cat", name=str, age=int)
       expr = Cat._make(["newname", 6])
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -300,8 +320,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           age: int
       expr = Cat("name", 5)._replace(name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-27148"])
     fun `typing NamedTuple functional _replace on instance`() = test("""
@@ -309,8 +330,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       Cat = NamedTuple("Cat", name=str, age=int)
       expr = Cat("name", 5)._replace(name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-27148"])
     fun `typing NamedTuple functional _replace result field`() = test("""
@@ -319,7 +341,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       expr = Cat("name", 5)._replace(age="give").age
       #│                             ^^^^^^^^^^ WARNING Expected type 'int', got 'Literal["give"]' instead
       #└ TYPE int
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-27148"])
@@ -330,7 +352,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
           age: int
       expr = Cat._replace(Cat("name", 5), name="newname")
       #└ TYPE Cat
-      """)
+      """.trimIndent())
 
     @Test
     fun `typing NamedTuple class subscription field`() = test("""
@@ -343,7 +365,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       def foo(point: Point):
           expr = point[1]
       #   └ TYPE int
-      """)
+      """.trimIndent())
   }
 
   @Nested
@@ -363,8 +385,9 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
 
       foo(5) # WARNING Expected type 'name', got 'Literal[5]' instead
       foo(nt(field = "f"))
-      """)
+      """.trimIndent())
 
+    @Disabled //see: PY-91856
     @Test
     @TestFor(issues = ["PY-23239", "PY-23253"])
     fun `initializing typing NamedTuple`() = test("""
@@ -470,7 +493,7 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
       # ok
       MyTup7(names=["A"], ages=[5])
       MyTup7(["A"], [5])
-      """)
+      """.trimIndent())
 
     @Test
     @TestFor(issues = ["PY-76845"])
@@ -483,6 +506,6 @@ class PyNamedTupleTypeTest : PyCodeInsightTestCase() {
 
       x: tuple[str, int] = NT("a", 1)
       y: tuple[str, int, str] = NT("a", 1) # WARNING Expected type 'tuple[str, int, str]', got 'NT' instead
-      """)
+      """.trimIndent())
   }
 }

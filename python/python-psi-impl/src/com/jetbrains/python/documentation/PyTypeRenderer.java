@@ -39,13 +39,16 @@ import com.jetbrains.python.psi.types.PyLiteralType;
 import com.jetbrains.python.psi.types.PyModuleType;
 import com.jetbrains.python.psi.types.PyNamedTupleType;
 import com.jetbrains.python.psi.types.PyNarrowedType;
+import com.jetbrains.python.psi.types.PyTypeFormType;
 import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PyOverloadType;
 import com.jetbrains.python.psi.types.PyParamSpecType;
 import com.jetbrains.python.psi.types.PySelfType;
+import com.jetbrains.python.psi.types.PyTopType;
 import com.jetbrains.python.psi.types.PyTupleType;
 import com.jetbrains.python.psi.types.PyType;
 import com.jetbrains.python.psi.types.PyTypeParameterType;
+import com.jetbrains.python.psi.types.PyTypeRendererFeature;
 import com.jetbrains.python.psi.types.PyTypeVarTupleType;
 import com.jetbrains.python.psi.types.PyTypeVarType;
 import com.jetbrains.python.psi.types.PyTypeVisitorExt;
@@ -53,6 +56,7 @@ import com.jetbrains.python.psi.types.PyTypingNewType;
 import com.jetbrains.python.psi.types.PyUnionType;
 import com.jetbrains.python.psi.types.PyUnpackedTupleType;
 import com.jetbrains.python.psi.types.PyUnsafeUnionType;
+import com.jetbrains.python.psi.types.PyVariance;
 import com.jetbrains.python.psi.types.TypeEvalContext;
 import kotlin.jvm.functions.Function4;
 import one.util.streamex.StreamEx;
@@ -78,36 +82,17 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
 
   protected int myDepth = 0;
   protected final @NotNull TypeEvalContext myTypeEvalContext;
-  protected final EnumSet<Feature> myRenderingFeatures;
-
-  public enum Feature {
-    /**
-     * Render fully qualified names of all classes and type forms, e.g. {@code typing.Callable[[mod.MyClass], typing.Any]}.
-     */
-    USE_FQN,
-    /**
-     * Render internal "unsafe" unions as {@code UnsafeUnion[...]}, otherwise render them as regular union types.
-     */
-    UNSAFE_UNION,
-    /**
-     * Render bounds and constraints of TypeVars.
-     */
-    TYPE_VAR_BOUNDS,
-  }
+  protected final EnumSet<PyTypeRendererFeature> myRenderingFeatures;
 
   protected final boolean isRenderingFqn() {
-    return myRenderingFeatures.contains(Feature.USE_FQN);
+    return myRenderingFeatures.contains(PyTypeRendererFeature.USE_FQN);
   }
 
   protected final boolean isRenderingTypeVarBounds() {
-    return myRenderingFeatures.contains(Feature.TYPE_VAR_BOUNDS);
+    return myRenderingFeatures.contains(PyTypeRendererFeature.TYPE_VAR_BOUNDS);
   }
 
-  protected final boolean isRenderingUnsafeUnion() {
-    return myRenderingFeatures.contains(Feature.UNSAFE_UNION);
-  }
-
-  private PyTypeRenderer(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<Feature> features) {
+  private PyTypeRenderer(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<PyTypeRendererFeature> features) {
     myTypeEvalContext = typeEvalContext;
     myRenderingFeatures = features;
   }
@@ -115,7 +100,7 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
   static abstract class HtmlRenderer extends PyTypeRenderer {
     private final @NotNull PsiElement myAnchor;
 
-    private HtmlRenderer(@NotNull TypeEvalContext typeEvalContext, @NotNull PsiElement anchor, @NotNull EnumSet<Feature> features) {
+    private HtmlRenderer(@NotNull TypeEvalContext typeEvalContext, @NotNull PsiElement anchor, @NotNull EnumSet<PyTypeRendererFeature> features) {
       super(typeEvalContext, features);
       myAnchor = anchor;
     }
@@ -152,7 +137,7 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
 
   static final class RichDocumentation extends HtmlRenderer {
     RichDocumentation(@NotNull TypeEvalContext typeEvalContext, @NotNull PsiElement anchor) {
-      super(typeEvalContext, anchor, EnumSet.noneOf(Feature.class));
+      super(typeEvalContext, anchor, EnumSet.noneOf(PyTypeRendererFeature.class));
     }
   }
 
@@ -163,7 +148,7 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
    * protocol used by Quick Documentation. Intended for rich inspection tooltips.
    */
   static final class TooltipDocumentation extends HtmlRenderer {
-    TooltipDocumentation(@NotNull TypeEvalContext typeEvalContext, @NotNull PsiElement anchor, @NotNull EnumSet<Feature> features) {
+    TooltipDocumentation(@NotNull TypeEvalContext typeEvalContext, @NotNull PsiElement anchor, @NotNull EnumSet<PyTypeRendererFeature> features) {
       super(typeEvalContext, anchor, features);
     }
 
@@ -184,20 +169,20 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
   }
 
   static final class Documentation extends PyTypeRenderer {
-    Documentation(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<Feature> features) {
+    Documentation(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<PyTypeRendererFeature> features) {
       super(typeEvalContext, features);
     }
   }
 
   public static final class TypeHint extends PyTypeRenderer {
-    private static final EnumSet<Feature> SUPPORTED_FEATURES = EnumSet.of(Feature.USE_FQN);
+    private static final EnumSet<PyTypeRendererFeature> SUPPORTED_FEATURES = EnumSet.of(PyTypeRendererFeature.USE_FQN);
 
-    public TypeHint(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<Feature> features) {
+    public TypeHint(@NotNull TypeEvalContext typeEvalContext, @NotNull EnumSet<PyTypeRendererFeature> features) {
       super(typeEvalContext, validateFeatures(features));
     }
 
-    private static @NotNull EnumSet<Feature> validateFeatures(@NotNull EnumSet<Feature> features) {
-      EnumSet<Feature> unsupported = EnumSet.copyOf(features);
+    private static @NotNull EnumSet<PyTypeRendererFeature> validateFeatures(@NotNull EnumSet<PyTypeRendererFeature> features) {
+      EnumSet<PyTypeRendererFeature> unsupported = EnumSet.copyOf(features);
       unsupported.removeAll(SUPPORTED_FEATURES);
       if (!unsupported.isEmpty()) {
         throw new IllegalArgumentException("Unsupported features for type hint rendering " + unsupported);
@@ -435,8 +420,23 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
   }
 
   @Override
+  public HtmlChunk visitPyTypeFormType(@NotNull PyTypeFormType typeFormType) {
+    HtmlBuilder result = new HtmlBuilder();
+    result.append(styled(isRenderingFqn() ? "typing.TypeForm" : "TypeForm", PyHighlighter.PY_CLASS_DEFINITION));
+    result.append(styled("[", PyHighlighter.PY_BRACKETS));
+    result.append(render(typeFormType.getRepresentedType()));
+    result.append(styled("]", PyHighlighter.PY_BRACKETS));
+    return result.toFragment();
+  }
+
+  @Override
   public @NotNull HtmlChunk visitPyNeverType(@NotNull PyNeverType neverType) {
     return className(neverType.getName());
+  }
+
+  @Override
+  public @NotNull HtmlChunk visitPyTopType(@NotNull PyTopType topType) {
+    return className(isRenderingFqn() ? PyNames.FQN.OBJECT : topType.getName());
   }
 
   @Override
@@ -480,15 +480,12 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
 
   @Override
   public @NotNull HtmlChunk visitPyUnsafeUnionType(@NotNull PyUnsafeUnionType unsafeUnionType) {
-    if (isRenderingUnsafeUnion()) {
-      HtmlBuilder result = new HtmlBuilder();
-      result.append(escaped("UnsafeUnion")); //NON-NLS
-      result.append(styled("[", PyHighlighter.PY_BRACKETS));
-      result.append(renderList(ContainerUtil.map(unsafeUnionType.getMembers(), this::render)));
-      result.append(styled("]", PyHighlighter.PY_BRACKETS));
-      return result.toFragment();
-    }
-    return renderUnion(ContainerUtil.map(unsafeUnionType.getMembers(), this::render));
+    HtmlBuilder result = new HtmlBuilder();
+    result.append(escaped("UnsafeUnion")); //NON-NLS
+    result.append(styled("[", PyHighlighter.PY_BRACKETS));
+    result.append(renderList(ContainerUtil.map(unsafeUnionType.getMembers(), this::render)));
+    result.append(styled("]", PyHighlighter.PY_BRACKETS));
+    return result.toFragment();
   }
 
   private @NotNull HtmlChunk renderUnionOfLiterals(@NotNull List<PyLiteralType> literals) {
@@ -680,12 +677,12 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
                                            boolean showKind,
                                            Function4<PyType, PyTypedElement, PsiElement, TypeEvalContext, HtmlChunk> renderer,
                                            @NotNull TypeEvalContext context) {
-    PyTypeVarType.Variance variance = null;
+    PyVariance variance = null;
     if (showVariance) {
       PyTypedElement refExpr = findReferenceOrTypeParameter(originalElement);
       boolean effectivelyInvariant = isEffectivelyInvariant(refExpr, context);
       variance = effectivelyInvariant
-                 ? PyTypeVarType.Variance.INVARIANT
+                 ? PyVariance.INVARIANT
                  : PyInferredVarianceJudgment.getDeclaredOrInferredVariance(refExpr, context);
     }
     PyExpression boundExpression = typeParameter.getBoundExpression();
@@ -720,7 +717,7 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
   }
 
   private @NotNull HtmlChunk describeTypeParameter(
-    @Nullable PyTypeVarType.Variance variance,
+    @Nullable PyVariance variance,
     @Nls @NotNull String name,
     @Nullable HtmlChunk bound,
     @Nullable HtmlChunk defaultValue,

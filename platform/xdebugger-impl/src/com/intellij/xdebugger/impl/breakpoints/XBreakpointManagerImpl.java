@@ -24,6 +24,7 @@ import com.intellij.openapi.vfs.VirtualFileUrlChangeAdapter;
 import com.intellij.openapi.vfs.ex.http.HttpFileSystem;
 import com.intellij.openapi.vfs.impl.BulkVirtualFileListenerAdapter;
 import com.intellij.platform.debugger.impl.shared.BreakpointRequestCounter;
+import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy;
 import com.intellij.util.EventDispatcher;
 import com.intellij.util.SmartList;
 import com.intellij.util.concurrency.SequentialTaskExecutor;
@@ -88,7 +89,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
   private final Set<XBreakpointBase<?, ?, ?>> myAllBreakpoints = new LinkedHashSet<>();
   private final Map<XBreakpointType, EventDispatcher<XBreakpointListener>> myDispatchers = new ConcurrentHashMap<>();
   private volatile XBreakpointsDialogState myBreakpointsDialogSettings;
-  private final XLineBreakpointManager myLineBreakpointManager;
+  private final XLineBreakpointManager<XLineBreakpointProxy> myLineBreakpointManager;
   private final Project myProject;
   private final XDebuggerManagerImpl myDebuggerManager;
   private final XDependentBreakpointManager myDependentBreakpointManager;
@@ -107,7 +108,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     myDebuggerManager = debuggerManager;
     myCoroutineScope = coroutineScope;
     myDependentBreakpointManager = new XDependentBreakpointManager(this);
-    myLineBreakpointManager = new XLineBreakpointManager(project, MonolithBreakpointManagerKt.asProxy(this));
+    myLineBreakpointManager = new XLineBreakpointManager<>(project, MonolithBreakpointManagerKt.asProxy(this));
 
     XBreakpointType.EXTENSION_POINT_NAME.addExtensionPointListener(coroutineScope, new ExtensionPointListener<>() {
       @SuppressWarnings("unchecked")
@@ -146,7 +147,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     messageBusConnection.subscribe(VirtualFileManager.VFS_CHANGES, new BulkVirtualFileListenerAdapter(new VirtualFileUrlChangeAdapter() {
       @Override
       public void fileDeleted(@NotNull VirtualFileEvent event) {
-        myLineBreakpointManager.onFileDeleted(event.getFile().getUrl());
+        myLineBreakpointManager.onFileDeleted(event.getFile());
       }
 
       @Override
@@ -189,7 +190,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     return result;
   }
 
-  public XLineBreakpointManager getLineBreakpointManager() {
+  public XLineBreakpointManager<XLineBreakpointProxy> getLineBreakpointManager() {
     return myLineBreakpointManager;
   }
 
@@ -417,8 +418,9 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
                                                                                          final @NotNull XLineBreakpointAdditionalInfo additionalInfo,
                                                                                          boolean initUI) {
     return withLockMaybeCancellable(myLock, () -> {
-      LineBreakpointState state = new LineBreakpointState(true, type.getId(), fileUrl, line, additionalInfo.isTemporary(), additionalInfo.getVerticalPlacement(),
-                                                               ++myTime, type.getDefaultSuspendPolicy());
+      LineBreakpointState state = new LineBreakpointState(true, type.getId(), fileUrl, line, additionalInfo.getVerticalPlacement(),
+                                                          ++myTime, type.getDefaultSuspendPolicy());
+      state.setTemporary(additionalInfo.isTemporary());
       getBreakpointDefaults(type).applyDefaults(state);
       state.setGroup(myDefaultGroup);
       XLineBreakpointImpl<T> breakpoint = new XLineBreakpointImpl<>(type, this, properties,
@@ -435,8 +437,8 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
       breakpoint.setSuspendPolicy(additionalInfo.getSuspendPolicy());
     }
     if (additionalInfo.getLogExpressionIfEnabled() != null) {
-      breakpoint.setLogMessage(true);
-      breakpoint.setLogExpression(additionalInfo.getLogExpressionIfEnabled());
+      breakpoint.setLogExpressionEnabled(true);
+      breakpoint.setLogExpressionObject(additionalInfo.getLogExpressionIfEnabled());
     }
   }
 

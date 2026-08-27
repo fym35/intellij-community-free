@@ -1,7 +1,17 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 filegroup(
     name = "textmate_bundle_files",
+    srcs = glob(["lib/bundles/**"]),
+    visibility = ["//visibility:public"],
+)
+
+# Checkout directories that plugin layouts copy into a distribution verbatim (`withResource*`). They are
+# resolved against the module content root and exist in no jar, so a dev assembly that materializes its own
+# project tree has to declare them. Consumed through `ULTIMATE_EXTRA_PROJECT_FILES`.
+filegroup(
+    name = "dev_dist_resources",
     srcs = glob(["lib/bundles/**"]),
     visibility = ["//visibility:public"],
 )
@@ -61,6 +71,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":textmate")
+
 jvm_library(
     name = "textmate_test_lib",
     testonly = True,
@@ -116,6 +128,7 @@ jvm_library(
 exports_files(
     [
         "intellij.textmate.iml",
+        "resources/intellij.textmate.xml",
     ],
     visibility = ["//visibility:public"],
 )

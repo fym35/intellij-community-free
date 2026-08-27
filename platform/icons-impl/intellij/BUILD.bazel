@@ -1,4 +1,5 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.platform.icons.impl.intellij` start
 jvm_provided_library(
@@ -78,7 +79,7 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/serialization/core",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jetbrains/annotations",
         ":platform_core-ui_provided",
         ":platform_icons-api_provided",
         ":platform_icons-api_rendering_provided",
@@ -91,6 +92,8 @@ jvm_library(
         ":platform_ide-impl_provided",
     ],
 )
+
+content_module_jar(module = ":intellij")
 
 jvm_library(
     name = "intellij_test_lib",
@@ -135,6 +138,7 @@ jvm_library(
         "//platform/ide-core:ide-core_test_lib",
         "//platform/platform-impl:ide-impl",
         "//platform/platform-impl:ide-impl_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
     ],
 )
 ### auto-generated section `build intellij.platform.icons.impl.intellij` end
@@ -143,6 +147,8 @@ jvm_library(
 exports_files(
     [
         "intellij.platform.icons.impl.intellij.iml",
+        "resources/intellij.platform.icons.impl.intellij.xml",
+        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

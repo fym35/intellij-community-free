@@ -28,7 +28,6 @@ import com.jetbrains.python.statistics.InterpreterCreationMode
 import com.jetbrains.python.statistics.InterpreterType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 
 internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
@@ -37,6 +36,10 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
 ) : PythonNewEnvironmentCreator<P>(model) {
   internal lateinit var basePythonComboBox: PythonInterpreterComboBox<P>
   internal lateinit var executablePath: ValidatedPathField<Version, P, ValidatedPath.Executable<P>>
+
+  // Persist the tool path only when the user explicitly browsed/typed it, never an autodetected fill.
+  override val persistToolExecutableOnSetup: Boolean
+    get() = this::executablePath.isInitialized && executablePath.isUserEdited
 
   override fun setupUI(panel: Panel, validationRequestor: DialogValidationRequestor) {
     with(panel) {
@@ -48,13 +51,20 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
         onPathSelected = model::addManuallyAddedSystemPython,
       )
 
+      val missingExecutableText = if (model.fileSystem.toolPathCanBePersisted) {
+        message("sdk.create.custom.venv.missing.text", pyTool.presentableName)
+      }
+      else {
+        message("sdk.create.custom.tool.not.detected", pyTool.presentableName)
+      }
       executablePath = validatablePathField(
         fileSystem = model.fileSystem,
         pathValidator = toolValidator,
         validationRequestor = validationRequestor,
         labelText = message("sdk.create.custom.venv.executable.path", pyTool.presentableName),
-        missingExecutableText = message("sdk.create.custom.venv.missing.text", pyTool.presentableName),
+        missingExecutableText = missingExecutableText,
         installAction = createInstallFix(errorSink),
+        canBeEdited = model.fileSystem.toolPathCanBePersisted,
       )
 
       row("") {
@@ -90,11 +100,15 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
     return Result.success(newSdk)
   }
 
+  /** Whether the created env inherits the base interpreter's site-packages; only tools that offer the choice override it. */
+  protected open val globalSitePackage: Boolean
+    get() = false
+
   override fun createStatisticsInfo(target: PythonInterpreterCreationTargets): InterpreterStatisticsInfo =
     InterpreterStatisticsInfo(
       type = interpreterType,
       target = target.toStatisticsField(),
-      globalSitePackage = false,
+      globalSitePackage = globalSitePackage,
       makeAvailableToAllProjects = false,
       previouslyConfigured = false,
       isWSLContext = false, // todo fix for wsl
@@ -132,10 +146,8 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
   private fun installExecutable(errorSink: ErrorSink) {
     runWithModalProgressBlocking(ModalTaskOwner.guess(), message("sdk.create.custom.venv.install.fix.title", pyTool.presentableName)) {
       val eel = model.projectPathFlows.projectPath.first()?.getEelDescriptor()?.toEelApi() ?: localEel
-      when (val r = pyTool.performToolInstallation(eel)) {
-        is Result.Success -> savePathToExecutableToProperties(PathHolder.Eel(r.result) as? P)
-        is Result.Failure -> errorSink.emit(r.error)
-      }
+      // performToolInstallation drops the detection cache on success, so the next lookup finds the new binary.
+      (pyTool.performToolInstallation(eel) as? Result.Failure)?.let { errorSink.emit(it.error) }
     }
   }
 

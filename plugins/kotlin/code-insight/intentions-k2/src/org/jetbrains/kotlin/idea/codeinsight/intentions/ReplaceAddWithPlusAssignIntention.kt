@@ -5,20 +5,26 @@ import com.intellij.codeInspection.util.IntentionFamilyName
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.Presentation
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.expressions.isUsedAsExpression
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.symbols.KaVariableSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinApplicableModCommandAction
 import org.jetbrains.kotlin.idea.codeinsight.utils.callExpression
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.createExpressionByPattern
+import org.jetbrains.kotlin.resolution.KtResolvable
 
 internal class ReplaceAddWithPlusAssignIntention : KotlinApplicableModCommandAction<KtDotQualifiedExpression, Unit>(
     KtDotQualifiedExpression::class,
@@ -31,20 +37,21 @@ internal class ReplaceAddWithPlusAssignIntention : KotlinApplicableModCommandAct
         return Presentation.of(KotlinBundle.message("replace.0.with", calleeName))
     }
 
-    override fun isApplicableByPsi(element: KtDotQualifiedExpression): Boolean {
-        if (element.callExpression?.valueArguments?.size != 1) return false
-        return element.calleeName in setOf("add", "addAll")
-    }
+    override fun isApplicableByPsi(element: KtDotQualifiedExpression): Boolean =
+        element.callExpression?.valueArguments?.size == 1 && element.calleeName in setOf("add", "addAll")
 
-    override fun KaSession.prepareContext(element: KtDotQualifiedExpression): Unit? {
+    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
+    context(session: KaSession)
+    override fun prepareContext(element: KtDotQualifiedExpression): Unit? {
+        if (element.isUsedAsExpression) return null
+
         val resolvedCall = element.resolveToCall()?.successfulFunctionCallOrNull() ?: return null
-        val partiallyAppliedSymbol = resolvedCall.partiallyAppliedSymbol
-        val receiver = partiallyAppliedSymbol.dispatchReceiver ?: partiallyAppliedSymbol.extensionReceiver ?: return null
+        val receiver = resolvedCall.dispatchReceiver ?: resolvedCall.extensionReceiver ?: return null
         val receiverType = receiver.type as? KaClassType ?: return null
 
         if (!receiverType.isSubtypeOf(StandardClassIds.MutableCollection)) return null
 
-        val variableSymbol = element.receiverExpression.mainReference?.resolveToSymbol() as? KaVariableSymbol ?: return null
+        val variableSymbol = (element.receiverExpression as? KtResolvable)?.resolveSymbol() as? KaVariableSymbol ?: return null
         if (!variableSymbol.isVal) return null
 
         return Unit

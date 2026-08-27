@@ -104,6 +104,7 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.platform.ide.CoreUiCoroutineScopeHolder
+import com.intellij.platform.ide.productMode.IdeProductMode
 import com.intellij.ui.DirtyUI
 import com.intellij.ui.HintHint
 import com.intellij.ui.JBColor
@@ -220,7 +221,7 @@ class EditorMarkupModelImpl internal constructor(private val editor: EditorImpl)
 
   val statusToolbar: ActionToolbarImpl
   private var showToolbar = EditorSettingsExternalizable.getInstance().isShowInspectionWidget
-  private var trafficLightVisible = true
+  private var trafficLightVisible = mayRenderTrafficLight
   private val toolbarComponentListener: ComponentListener
   private var cachedToolbarBounds = Rectangle()
   private val smallIconLabel = JLabel()
@@ -272,6 +273,7 @@ class EditorMarkupModelImpl internal constructor(private val editor: EditorImpl)
     }
 
     val toolbar = statusToolbar.getComponent()
+    toolbar.isVisible = trafficLightVisible
     toolbar.setLayout(StatusComponentLayout())
     toolbar.addComponentListener(toolbarComponentListener)
     toolbar.setBorder(JBUI.Borders.empty(2))
@@ -302,7 +304,16 @@ class EditorMarkupModelImpl internal constructor(private val editor: EditorImpl)
     smallIconLabel.setBackground(JBColor.lazy { editor.colorsScheme.getDefaultBackground() })
     smallIconLabel.isVisible = false
 
-    val statusPanel = NonOpaquePanel()
+
+    // Placeholder to prevent the top of scroll bar from jumping while an analysis is running
+    val statusPanel = object : NonOpaquePanel() {
+      override fun getPreferredSize(): Dimension =
+        super.getPreferredSize().apply {
+          if (trafficLightVisible) {
+            height = height.coerceAtLeast(statusIconSize)
+          }
+        }
+    }
     statusPanel.isVisible = !editor.isOneLineMode
     statusPanel.setLayout(BoxLayout(statusPanel, BoxLayout.X_AXIS))
     statusPanel.add(toolbar)
@@ -369,6 +380,8 @@ class EditorMarkupModelImpl internal constructor(private val editor: EditorImpl)
   }
 
   companion object {
+    private val mayRenderTrafficLight: Boolean get() = !IdeProductMode.isLight
+
     @JvmStatic
     fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
       val lineCount = editor.visibleLineCount
@@ -565,8 +578,9 @@ class EditorMarkupModelImpl internal constructor(private val editor: EditorImpl)
       return
     }
 
-    if (value != trafficLightVisible) {
-      trafficLightVisible = value
+    val shouldShowTrafficLight = value && mayRenderTrafficLight
+    if (shouldShowTrafficLight != trafficLightVisible) {
+      trafficLightVisible = shouldShowTrafficLight
       updateTrafficLightVisibility()
     }
     repaint()

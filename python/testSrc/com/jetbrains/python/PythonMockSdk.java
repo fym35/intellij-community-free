@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,7 +63,13 @@ public final class PythonMockSdk {
     Sdk sdk = ProjectJdkTable.getInstance().createSdk(sdkName, sdkType);
     SdkModificator sdkModificator = sdk.getSdkModificator();
     sdkModificator.setHomePath(sdkPath + "/bin/python");
-    sdkModificator.setSdkAdditionalData(new PythonSdkAdditionalData(new PyFlavorAndData(PyFlavorData.Empty.INSTANCE, VirtualEnvSdkFlavor.getInstance())));
+    // A mock SDK belongs to no project, so it must not be associated with one. Its working directory is the SDK root
+    // rather than a module base dir, and the association the constructor derives from it would make the SDK's own
+    // subdirectories look project-local (see findSdkOwnerModuleAndRoots).
+    PythonSdkAdditionalData additionalData =
+      new PythonSdkAdditionalData(new PyFlavorAndData(PyFlavorData.Empty.INSTANCE, VirtualEnvSdkFlavor.getInstance()), Path.of(sdkPath));
+    additionalData.setAssociatedModulePath(null);
+    sdkModificator.setSdkAdditionalData(additionalData);
     sdkModificator.setVersionString(toVersionString(level));
 
     createRoots(sdkPath, level).forEach(vFile -> {

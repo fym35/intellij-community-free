@@ -24,11 +24,13 @@ import com.jetbrains.python.psi.AccessDirection;
 import com.jetbrains.python.psi.LanguageLevel;
 import com.jetbrains.python.psi.PyAugAssignmentStatement;
 import com.jetbrains.python.psi.PyBinaryExpression;
-import com.jetbrains.python.psi.PyCallSiteExpression;
+import com.jetbrains.python.psi.PyCallExpression;
+import com.jetbrains.python.psi.PyCallable;
 import com.jetbrains.python.psi.PyClass;
 import com.jetbrains.python.psi.PyExpression;
 import com.jetbrains.python.psi.PyParameter;
 import com.jetbrains.python.psi.PyPrefixExpression;
+import com.jetbrains.python.psi.PyQualifiedElement;
 import com.jetbrains.python.psi.PyQualifiedExpression;
 import com.jetbrains.python.psi.PySubscriptionExpression;
 import com.jetbrains.python.psi.PyTargetExpression;
@@ -52,8 +54,8 @@ import java.util.List;
 import static com.jetbrains.python.psi.types.PyTypeUtilKt.isAnyOrUnknown;
 import static com.jetbrains.python.psi.types.PyTypeUtilKt.isUnknown;
 
-public class PyOperatorReference extends PyReferenceImpl {
-  public PyOperatorReference(PyQualifiedExpression element, @NotNull PyResolveContext context) {
+public class PyOperatorReference extends PyReferenceBase {
+  public PyOperatorReference(@NotNull PyQualifiedElement element, @NotNull PyResolveContext context) {
     super(element, context);
   }
 
@@ -107,11 +109,14 @@ public class PyOperatorReference extends PyReferenceImpl {
     }
   }
 
-  public @Nullable PyExpression getReceiver() {
-    if (myElement instanceof PyCallSiteExpression) {
-      return ((PyCallSiteExpression)myElement).getReceiver(null);
-    }
-    return null;
+  public @Nullable PyExpression getReceiver(@Nullable PyCallable resolvedCallee) {
+    return switch (myElement) {
+      case PyCallExpression call -> call.getCallee() instanceof PyQualifiedExpression callee ? callee.getQualifier() : null;
+      case PyPrefixExpression prefixExpr -> prefixExpr.getOperand();
+      case PySubscriptionExpression subscription -> subscription.getOperand();
+      case PyBinaryExpression binaryExpr -> binaryExpr.getReceiver(resolvedCallee);
+      default -> null;
+    };
   }
 
   private @NotNull List<Pair<@NotNull PyType, @NotNull List<RatedResolveResult>>>
@@ -146,11 +151,11 @@ public class PyOperatorReference extends PyReferenceImpl {
 
     final TypeEvalContext typeEvalContext = myContext.getTypeEvalContext();
     typeEvalContext.traceWithIndent("Trying to resolve inplace operator", () -> {
-      result.addAll(resolveMember(stmt.getReceiver(null), name));
+      result.addAll(resolveMember(stmt.getTarget(), name));
       return Unit.INSTANCE;
     });
     typeEvalContext.traceWithIndent("Trying to resolve left operator", () -> {
-      result.addAll(resolveMember(stmt.getReceiver(null), PyNames.inplaceToLeftOperatorName(name)));
+      result.addAll(resolveMember(stmt.getTarget(), PyNames.inplaceToLeftOperatorName(name)));
       return Unit.INSTANCE;
     });
     typeEvalContext.traceWithIndent("Trying to resolve right operator", () -> {

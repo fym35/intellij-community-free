@@ -8,6 +8,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.fileLogger
+import com.intellij.openapi.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diff.impl.DiffUtil
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -26,9 +27,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointManagerProxy
-import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointProxy
-import com.intellij.platform.debugger.impl.shared.proxy.XLightLineBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointHighlighterRange
 import com.intellij.util.DocumentUtil
 import com.intellij.xdebugger.XDebuggerUtil
@@ -37,7 +35,6 @@ import com.intellij.xdebugger.impl.breakpoints.InlineBreakpointInlayManager
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointTypeWithDocumentDelegation
 import com.intellij.xdebugger.impl.ui.DebuggerUIUtil
 import com.intellij.xdebugger.ui.DebuggerColors
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -51,10 +48,9 @@ import org.jetbrains.annotations.TestOnly
 private data class UpdateUICallback(val callOnUpdate: Runnable)
 
 @ApiStatus.Internal
-class XBreakpointVisualRepresentation(
+class XBreakpointVisualRepresentation internal constructor(
   cs: CoroutineScope,
-  private val myBreakpoint: XLightLineBreakpointProxy,
-  private val myBreakpointManager: XBreakpointManagerProxy,
+  private val myBreakpoint: FrontendXLineBreakpointVisualizable,
 ) {
   private val myProject: Project = myBreakpoint.project
   private val channel = Channel<UpdateUICallback>(Channel.UNLIMITED)
@@ -68,7 +64,7 @@ class XBreakpointVisualRepresentation(
               internalUpdateUI(event.callOnUpdate)
             }
             catch (e: Throwable) {
-              if (e is CancellationException) throw e
+              rethrowControlFlowException(e)
               fileLogger().error(e)
             }
           }
@@ -87,7 +83,7 @@ class XBreakpointVisualRepresentation(
     }
   }
 
-  var rangeMarker: RangeMarker? = null
+  internal var rangeMarker: RangeMarker? = null
     private set
 
   val highlighter: RangeHighlighter?
@@ -101,7 +97,7 @@ class XBreakpointVisualRepresentation(
   private suspend fun internalUpdateUI(callOnUpdate: Runnable) {
     val file = myBreakpoint.getFile() ?: return
 
-    val document = readAction { findDocument(file, mayDecompile = false) }
+    val document = findDocument(file, mayDecompile = false)
     if (document == null) {
       // currently LazyRangeMarkerFactory creates document for non binary files
       if (readAction { file.fileType.isBinary() }) {
@@ -163,7 +159,7 @@ class XBreakpointVisualRepresentation(
   private fun getBreakpointAttributes(): TextAttributes? {
     var attributes = EditorColorsManager.getInstance().getGlobalScheme().getAttributes(DebuggerColors.BREAKPOINT_ATTRIBUTES)
 
-    if (!myBreakpoint.isEnabled() || (myBreakpoint as? XBreakpointProxy)?.getSuspendPolicy() == SuspendPolicy.NONE) {
+    if (!myBreakpoint.isEnabled() || (myBreakpoint as? FrontendXBreakpointProxy)?.getSuspendPolicy() == SuspendPolicy.NONE) {
       attributes = attributes.clone()
       attributes.backgroundColor = null
     }
@@ -187,7 +183,7 @@ class XBreakpointVisualRepresentation(
       highlighter = markupModel.addPersistentLineHighlighter(line, DebuggerColors.BREAKPOINT_HIGHLIGHTER_LAYER, attributes)
     }
     if (highlighter == null) return
-    highlighter.setGutterIconRenderer(myBreakpoint.createGutterIconRenderer())
+    highlighter.setGutterIconRenderer(myBreakpoint.getGutterIconRenderer())
     highlighter.putUserData(DebuggerColors.BREAKPOINT_HIGHLIGHTER_KEY, true)
     highlighter.setEditorFilter(MarkupEditorFilter { editor -> isHighlighterAvailableIn(editor) })
     this.rangeMarker = highlighter
@@ -195,34 +191,25 @@ class XBreakpointVisualRepresentation(
     redrawInlineInlays()
   }
 
-  private fun findDocument(file: VirtualFile, mayDecompile: Boolean): Document? {
+  private suspend fun findDocument(file: VirtualFile, mayDecompile: Boolean): Document? {
     var document = FileDocumentManager.getInstance().getCachedDocument(file)
     if (document == null) {
       if (!mayDecompile && file.fileType.isBinary()) {
         return null
       }
-      document = getDocumentOrNull(file) ?: return null
+      file.ensureContentLoaded()
+      document = readAction { FileDocumentManager.getInstance().getDocument(file) } ?: return null
     }
 
+    val type = myBreakpoint.type
     // TODO IJPL-185322 support XBreakpointTypeWithDocumentDelegation
-    if (myBreakpoint.type is XBreakpointTypeWithDocumentDelegation) {
-      document = (myBreakpoint.type as XBreakpointTypeWithDocumentDelegation).getDocumentForHighlighting(document)
+    if (type is XBreakpointTypeWithDocumentDelegation) {
+      document = readAction { type.getDocumentForHighlighting(document!!) }
     }
     return document
   }
 
-  private fun getDocumentOrNull(file: VirtualFile): Document? {
-    return try {
-      FileDocumentManager.getInstance().getDocument(file)
-    }
-    catch (e: Exception) {
-      // See IJPL-202734 for the reason why we handle the exception here
-      LOG.warn("Failed to load document for breakpoint file: ${file.url}", e)
-      null
-    }
-  }
-
-  fun removeHighlighter() {
+  internal fun removeHighlighter() {
     val marker = rangeMarker ?: return
     rangeMarker = null
     DebuggerUIUtil.invokeLater {
@@ -239,19 +226,19 @@ class XBreakpointVisualRepresentation(
     redrawInlineInlays(myBreakpoint.getFile(), myBreakpoint.getLine())
   }
 
-  fun redrawInlineInlays(file: VirtualFile?, line: Int) {
+  internal fun redrawInlineInlays(file: VirtualFile?, line: Int) {
     if (file == null) return
     if (!XDebuggerUtil.areInlineBreakpointsEnabled(file)) return
 
     val service = RedrawInlaysService.getInstance(myProject)
     service.launch {
-      val document = readAction { findDocument(file, mayDecompile = true) } ?: return@launch
+      val document = findDocument(file, mayDecompile = true) ?: return@launch
       InlineBreakpointInlayManager.getInstance(myProject).redrawLine(document, line)
     }
   }
 
   @TestOnly
-  fun installRangeMarkerForTest(rangeMarker: RangeMarker) {
+  internal fun installRangeMarkerForTest(rangeMarker: RangeMarker) {
     this.rangeMarker = rangeMarker
   }
 

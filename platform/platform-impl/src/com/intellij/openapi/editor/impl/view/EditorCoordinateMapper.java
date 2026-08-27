@@ -106,10 +106,23 @@ final class EditorCoordinateMapper {
     return lineMin;
   }
 
+  /**
+   * Safe without read action
+   */
   @NotNull LogicalPosition offsetToLogicalPosition(int offset) {
     return myView.getLogicalPositionCache().offsetToLogicalPosition(offset);
   }
 
+  /**
+   * Safe without read action
+   */
+  int offsetToLogicalColumn(int line, int intraLineOffset) {
+    return myView.getLogicalPositionCache().offsetToLogicalColumn(line, intraLineOffset);
+  }
+
+  /**
+   * Safe without read action
+   */
   int logicalPositionToOffset(@NotNull LogicalPosition pos) {
     return myView.getLogicalPositionCache().logicalPositionToOffset(pos);
   }
@@ -372,8 +385,8 @@ final class EditorCoordinateMapper {
         }
         float nextX = fragment.getEndX();
         if (px <= nextX) {
-          int[] column = fragment.xToVisualColumn(px);
-          return new VisualPosition(visualLine, column[0], column[1] > 0);
+          VisualColumn column = fragment.xToVisualColumn(px);
+          return new VisualPosition(visualLine, column.column, column.leansRight);
         }
         x = nextX;
         lastColumn = fragment.getEndVisualColumn();

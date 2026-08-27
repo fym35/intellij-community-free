@@ -84,6 +84,69 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+config_setting(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "linux_arm64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+config_setting(
+    name = "windows_x86_64",
+    constraint_values = [
+        "@platforms//os:windows",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "windows_arm64",
+    constraint_values = [
+        "@platforms//os:windows",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+# binaryen's wasm-opt for the current host, used by the wasm_opt_action fused into wasmjs_binary
+# (see rules/opt-wasmjs.bzl and rules/binary-wasmjs.bzl)
+alias(
+    name = "wasm-opt",
+    actual = select({
+        ":macos_arm64": "@binaryen_arm64-macos//:wasm-opt",
+        ":macos_x86_64": "@binaryen_x86_64-macos//:wasm-opt",
+        ":linux_x86_64": "@binaryen_x86_64-linux//:wasm-opt",
+        ":linux_arm64": "@binaryen_aarch64-linux//:wasm-opt",
+        ":windows_x86_64": "@binaryen_x86_64-windows//:wasm-opt",
+        ":windows_arm64": "@binaryen_arm64-windows//:wasm-opt",
+    }),
+    visibility = ["//visibility:public"],
+)
+
 jvm_import(
     name = "annotations_import",
     jar = "@annotations_http//file",
@@ -111,12 +174,6 @@ jvm_import(
     name = "caffeine_import",
     jar = "@caffeine_http//file",
     source_jar = "@caffeine-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "forms_import",
-    jar = "@forms_http//file",
     visibility = ["//visibility:public"],
 )
 
@@ -151,12 +208,6 @@ jvm_import(
 jvm_import(
     name = "javax-annotation-api_import",
     jar = "@javax_annotation-api_http//file",
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "jaxen_import",
-    jar = "@jaxen_http//file",
     visibility = ["//visibility:public"],
 )
 
@@ -223,6 +274,7 @@ jvm_import(
 jvm_import(
     name = "kotlin-stdlib_import",
     jar = "@kotlin-stdlib_http//file",
+    source_jar = "@kotlin-stdlib-sources_http//file",
     # Version must match `kotlin_compiler_version` in MODULE.bazel — verified at
     # analysis time by `:kotlin-stdlib_import_coords_check`.
     tags = ["maven_coordinates=org.jetbrains.kotlin:kotlin-stdlib:2.4.10-RC2"],

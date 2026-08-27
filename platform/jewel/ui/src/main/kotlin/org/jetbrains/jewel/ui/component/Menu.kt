@@ -1,3 +1,4 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.jewel.ui.component
 
 import androidx.annotation.VisibleForTesting
@@ -59,6 +60,9 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -302,9 +306,7 @@ private fun PopupMenuImpl(
         },
         cornerSize = style.metrics.cornerSize,
     ) {
-        @Suppress("AssignedValueIsNeverRead")
         focusManager = LocalFocusManager.current
-        @Suppress("AssignedValueIsNeverRead")
         inputModeManager = LocalInputModeManager.current
 
         OverrideDarkMode(style.isDark) {
@@ -575,6 +577,14 @@ public fun MenuScope.separator() {
     passiveItem { MenuSeparator(JewelTheme.menuStyle.colors.itemColors, JewelTheme.menuStyle.metrics.itemMetrics) }
 }
 
+/**
+ * Adds [count] selectable items to the menu, using index-based selection and click callbacks.
+ *
+ * @param count The number of items to add
+ * @param isSelected Returns whether the item at the given index is currently selected
+ * @param onItemClick Called with the index of the item when it is clicked
+ * @param content The composable content for the item at the given index
+ */
 public fun MenuScope.items(
     count: Int,
     isSelected: (Int) -> Boolean,
@@ -584,6 +594,15 @@ public fun MenuScope.items(
     repeat(count) { selectableItem(isSelected(it), onClick = { onItemClick(it) }) { content(it) } }
 }
 
+/**
+ * Adds a selectable item for each element in [items], using element-based selection and click callbacks.
+ *
+ * @param T The type of items in the list.
+ * @param items The list of items to render.
+ * @param isSelected Returns whether the given item is currently selected.
+ * @param onItemClick Called with the item when it is clicked.
+ * @param content The composable content for the given item.
+ */
 public fun <T> MenuScope.items(
     items: List<T>,
     isSelected: (T) -> Boolean,
@@ -663,12 +682,19 @@ private interface MenuItem {
 @VisibleForTesting
 @GenerateDataFunctions
 public class MenuSelectableItem(
+    /** Whether this item is currently selected. */
     public val isSelected: Boolean,
+    /** Whether this item is enabled and can be interacted with. */
     public val isEnabled: Boolean,
+    /** Optional icon key for displaying an icon before the item content. */
     public val iconKey: IconKey?,
+    /** Optional action type used to resolve and handle the shortcut hint. */
     public val itemOptionAction: ContextMenuItemOptionAction? = null,
+    /** Optional set of keybinding strings to display alongside the item. */
     public val keybinding: Set<String>? = emptySet(),
+    /** Called when the item is clicked. */
     public val onClick: () -> Unit = {},
+    /** The composable content displayed inside this menu item. */
     override val content: @Composable () -> Unit,
 ) : MenuItem {
     override fun equals(other: Any?): Boolean {
@@ -691,9 +717,9 @@ public class MenuSelectableItem(
     override fun hashCode(): Int {
         var result = isSelected.hashCode()
         result = 31 * result + isEnabled.hashCode()
-        result = 31 * result + (iconKey?.hashCode() ?: 0)
-        result = 31 * result + (itemOptionAction?.hashCode() ?: 0)
-        result = 31 * result + (keybinding?.hashCode() ?: 0)
+        result = 31 * result + iconKey.hashCode()
+        result = 31 * result + itemOptionAction.hashCode()
+        result = 31 * result + keybinding.hashCode()
         result = 31 * result + onClick.hashCode()
         result = 31 * result + content.hashCode()
         return result
@@ -721,16 +747,6 @@ private data class SubmenuItem(
     override val content: @Composable () -> Unit,
 ) : MenuItem
 
-@Deprecated("This is being made private")
-@Composable
-public fun MenuSeparator(
-    modifier: Modifier = Modifier,
-    metrics: MenuItemMetrics = JewelTheme.menuStyle.metrics.itemMetrics,
-    colors: MenuItemColors = JewelTheme.menuStyle.colors.itemColors,
-) {
-    MenuSeparator(colors, metrics, modifier)
-}
-
 @Composable
 private fun MenuSeparator(colors: MenuItemColors, metrics: MenuItemMetrics, modifier: Modifier = Modifier) {
     Box(modifier.height(metrics.separatorHeight)) {
@@ -755,7 +771,7 @@ private fun MenuItem(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     style: MenuStyle = JewelTheme.menuStyle,
-    @Suppress("DEPRECATION") content: @Composable (itemState: MenuItemState) -> Unit,
+    content: @Composable (itemState: MenuItemState) -> Unit,
 ) {
     val shortcutHintProvider = LocalMenuItemShortcutHintProvider.current
 
@@ -786,7 +802,7 @@ private fun MenuItem(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     style: MenuStyle = JewelTheme.menuStyle,
-    @Suppress("DEPRECATION") content: @Composable (itemState: MenuItemState) -> Unit,
+    content: @Composable (itemState: MenuItemState) -> Unit,
 ) {
     MenuItemBase(
         selected = selected,
@@ -808,6 +824,12 @@ private fun MenuItem(
     )
 }
 
+@ApiStatus.Internal
+@InternalJewelApi
+@VisibleForTesting
+public val IsHoveredKey: SemanticsPropertyKey<Boolean> = SemanticsPropertyKey("IsHovered")
+internal var SemanticsPropertyReceiver.isHovered by IsHoveredKey
+
 @Composable
 internal fun MenuItemBase(
     selected: Boolean,
@@ -820,7 +842,7 @@ internal fun MenuItemBase(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     style: MenuStyle = JewelTheme.menuStyle,
-    @Suppress("DEPRECATION") content: @Composable (itemState: MenuItemState) -> Unit,
+    content: @Composable (itemState: MenuItemState) -> Unit,
 ) {
     val itemState by rememberMenuItemState(selected, enabled, interactionSource)
 
@@ -848,6 +870,7 @@ internal fun MenuItemBase(
                     interactionSource = interactionSource,
                     indication = null,
                 )
+                .semantics { isHovered = itemState.isHovered } // For testing purposes
                 .fillMaxWidth()
     ) {
         DisposableEffect(Unit) {
@@ -864,7 +887,6 @@ internal fun MenuItemBase(
             trailingContent =
                 if (canShowKeybinding) {
                     {
-                        @Suppress("DEPRECATION") // Not really deprecated, MenuItemColors will be made internal
                         Text(
                             modifier = Modifier.padding(style.metrics.itemMetrics.keybindingsPadding),
                             text = keybindingHint,
@@ -877,24 +899,13 @@ internal fun MenuItemBase(
     }
 }
 
-@Suppress("ComposableParamOrder")
-@Deprecated("This is being made private")
-@Composable
-public fun MenuSubmenuItem(
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    canShowIcon: Boolean,
-    iconKey: IconKey?,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    style: MenuStyle = JewelTheme.menuStyle,
-    submenu: MenuScope.() -> Unit,
-    content: @Composable () -> Unit,
-) {
-    MenuSubmenuItem(canShowIcon, selected = false, submenu, modifier, enabled, iconKey, interactionSource, style) {
-        content()
-    }
-}
-
+/**
+ * Low-level submenu menu item implementation, exposed for testing.
+ *
+ * Renders a menu item that opens a nested [submenu] popup when selected. Unlike the public overload, this function
+ * accepts explicit [showIcon] and [selected] arguments and provides the [MenuItemState] to [content], allowing tests to
+ * drive the item's state directly.
+ */
 @VisibleForTesting
 @ApiStatus.Internal
 @InternalJewelApi
@@ -908,7 +919,7 @@ public fun MenuSubmenuItem(
     iconKey: IconKey? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     style: MenuStyle = JewelTheme.menuStyle,
-    @Suppress("DEPRECATION") content: @Composable (itemState: MenuItemState) -> Unit,
+    content: @Composable (itemState: MenuItemState) -> Unit,
 ) {
     var itemState by rememberMenuItemState(selected, enabled, interactionSource)
     // When the item becomes disabled, close any open submenu
@@ -943,7 +954,6 @@ public fun MenuSubmenuItem(
             iconKey = iconKey,
             canShowIcon = showIcon,
             trailingContent = {
-                @Suppress("DEPRECATION") // Not really deprecated, MenuItemColors will be made internal
                 Icon(
                     key = style.icons.submenuChevron,
                     contentDescription = null,
@@ -972,7 +982,6 @@ public fun MenuSubmenuItem(
     }
 }
 
-@Suppress("DEPRECATION") // Not really deprecated, MenuItemColors be made internal
 @Composable
 internal fun MenuItemLayout(
     itemState: MenuItemState,
@@ -1089,9 +1098,7 @@ internal fun Submenu(
             handlePopupMenuOnKeyEvent(it, currentFocusManager, currentInputModeManager, menuController)
         },
     ) {
-        @Suppress("AssignedValueIsNeverRead")
         focusManager = LocalFocusManager.current
-        @Suppress("AssignedValueIsNeverRead")
         inputModeManager = LocalInputModeManager.current
 
         CompositionLocalProvider(LocalMenuController provides menuController) {
@@ -1113,10 +1120,14 @@ internal fun Submenu(
  * @see SelectableComponentState
  * @see FocusableComponentState
  */
-@Deprecated("This is being made private")
+@ApiStatus.Internal
+@InternalJewelApi
 @Immutable
 @JvmInline
-public value class MenuItemState(public val state: ULong) : SelectableComponentState, FocusableComponentState {
+public value class MenuItemState(
+    /** The raw bit-masked state value encoding all interaction flags. */
+    public val state: ULong
+) : SelectableComponentState, FocusableComponentState {
     override val isActive: Boolean
         get() = state and Selected != 0UL
 
@@ -1135,7 +1146,7 @@ public value class MenuItemState(public val state: ULong) : SelectableComponentS
     override val isPressed: Boolean
         get() = state and Pressed != 0UL
 
-    @Suppress("DEPRECATION")
+    /** Returns a copy of this [MenuItemState] with the given fields replaced by their new values. */
     public fun copy(
         selected: Boolean = isSelected,
         enabled: Boolean = isEnabled,
@@ -1157,10 +1168,8 @@ public value class MenuItemState(public val state: ULong) : SelectableComponentS
         "MenuItemState(state=$state, isSelected=$isSelected, isEnabled=$isEnabled, isFocused=$isFocused, " +
             "isHovered=$isHovered, isPressed=$isPressed, isActive=$isActive)"
 
-    public companion object {
-        @Suppress("DEPRECATION")
-        @Deprecated("This is being made private")
-        public fun of(
+    internal companion object {
+        internal fun of(
             selected: Boolean,
             enabled: Boolean,
             focused: Boolean = false,
@@ -1180,7 +1189,6 @@ public value class MenuItemState(public val state: ULong) : SelectableComponentS
     }
 }
 
-@Suppress("DEPRECATION") // Not really deprecated, MenuItemState will be made internal
 @Composable
 internal fun rememberMenuItemState(
     selected: Boolean,

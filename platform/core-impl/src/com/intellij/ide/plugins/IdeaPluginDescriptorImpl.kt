@@ -52,8 +52,6 @@ sealed class IdeaPluginDescriptorImpl(
 
   abstract val ownClassPath: List<Path>?
 
-  /** **DO NOT USE** outside plugin subsystem internal code. It is public now due to an unfinished migration */
-  var isMarkedForLoading: Boolean = true
   private var _pluginClassLoader: ClassLoader? = null
 
   abstract val isIndependentFromCoreClassLoader: Boolean
@@ -75,7 +73,7 @@ sealed class IdeaPluginDescriptorImpl(
   }
 
   @Deprecated("Deprecated in Java")
-  override fun isEnabled(): Boolean = isMarkedForLoading
+  override fun isEnabled(): Boolean = isLoaded
 
   internal fun createDependsSubDescriptor(
     subBuilder: PluginDescriptorBuilder,
@@ -515,30 +513,6 @@ val IdeaPluginDescriptorImpl.shortLogDescription: String
       is ContentModuleDescriptor -> "module ${moduleId.displayName}"
     }
   }
-
-internal fun getPackagePrefixConflictModuleId(descriptor: PluginModuleDescriptor): String {
-  return when (descriptor) {
-    is PluginMainDescriptor -> descriptor.pluginId.idString
-    is ContentModuleDescriptor -> descriptor.moduleId.name
-  }
-}
-
-internal fun getPackagePrefixConflictNamespace(descriptor: PluginModuleDescriptor): String {
-  return when (descriptor) {
-    is PluginMainDescriptor -> descriptor.implicitNamespaceForPluginDescriptorModule ?: "<none>"
-    is ContentModuleDescriptor -> descriptor.moduleId.namespace
-  }
-}
-
-internal fun formatPackagePrefixConflictDetails(descriptor: PluginModuleDescriptor): String {
-  val plugin = descriptor.getMainDescriptor()
-  val descriptorPathDescription = descriptor.getDescriptorPath()?.let { ", descriptor=$it" }.orEmpty()
-  return "plugin '${plugin.name}' (${plugin.pluginId}), " +
-         "module '${getPackagePrefixConflictModuleId(descriptor)}', " +
-         "namespace=${getPackagePrefixConflictNamespace(descriptor)}, " +
-         "packagePrefix=${descriptor.packagePrefix ?: "<none>"}" +
-         descriptorPathDescription
-}
 
 /**
  * Workaround for the `com.intellij.rd.client.capable` alias being declared in two plugins (IJPL-220139):

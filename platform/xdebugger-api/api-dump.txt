@@ -309,12 +309,14 @@ a:com.intellij.xdebugger.breakpoints.XBreakpointType
 - getPropertyXMLDescriptions(com.intellij.xdebugger.breakpoints.XBreakpoint):java.util.List
 - getShortText(com.intellij.xdebugger.breakpoints.XBreakpoint):java.lang.String
 - getSourcePosition(com.intellij.xdebugger.breakpoints.XBreakpoint):com.intellij.xdebugger.XSourcePosition
+- getSuspendNoneDisabledIcon():javax.swing.Icon
 - getSuspendNoneIcon():javax.swing.Icon
 - getTitle():java.lang.String
 - getVisibleStandardPanels():java.util.EnumSet
 - hasCustomCondition(com.intellij.xdebugger.breakpoints.XBreakpoint):Z
 - isAddBreakpointButtonVisible():Z
 - isSuspendThreadSupported():Z
+- isTemporaryBreakpointSupported():Z
 - shouldShowInBreakpointsDialog(com.intellij.openapi.project.Project):Z
 e:com.intellij.xdebugger.breakpoints.XBreakpointType$StandardPanels
 - java.lang.Enum
@@ -335,16 +337,6 @@ com.intellij.xdebugger.breakpoints.XLineBreakpoint
 - a:getType():com.intellij.xdebugger.breakpoints.XLineBreakpointType
 - a:isTemporary():Z
 - a:setTemporary(Z):V
-f:com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo
-- f:getLogExpressionIfEnabled():java.lang.String
-- f:getSuspendPolicy():com.intellij.xdebugger.breakpoints.SuspendPolicy
-- f:isTemporary():Z
-f:com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo$Builder
-- <init>():V
-- f:build():com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo
-- f:setLogExpressionIfEnabled(java.lang.String):com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo$Builder
-- f:setSuspendPolicy(com.intellij.xdebugger.breakpoints.SuspendPolicy):com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo$Builder
-- f:setTemporary(Z):com.intellij.xdebugger.breakpoints.XLineBreakpointAdditionalInfo$Builder
 a:com.intellij.xdebugger.breakpoints.XLineBreakpointType
 - com.intellij.xdebugger.breakpoints.XBreakpointType
 - p:<init>(java.lang.String,java.lang.String):V
@@ -363,6 +355,7 @@ a:com.intellij.xdebugger.breakpoints.XLineBreakpointType
 - getShortText(com.intellij.xdebugger.breakpoints.XLineBreakpoint):java.lang.String
 - getSourcePosition(com.intellij.xdebugger.breakpoints.XBreakpoint):com.intellij.xdebugger.XSourcePosition
 - getTemporaryIcon():javax.swing.Icon
+- isTemporaryBreakpointSupported():Z
 - variantAndBreakpointMatch(com.intellij.xdebugger.breakpoints.XLineBreakpoint,com.intellij.xdebugger.breakpoints.XLineBreakpointType$XLineBreakpointVariant):Z
 c:com.intellij.xdebugger.breakpoints.XLineBreakpointType$XLineBreakpointAllVariant
 - com.intellij.xdebugger.breakpoints.XLineBreakpointType$XLineBreakpointVariant

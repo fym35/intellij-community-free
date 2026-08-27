@@ -41,6 +41,9 @@ package org.jetbrains.jewel.intui.standalone {
     method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle getMedium();
     method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle getRegular();
     method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle getSmall();
+    method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle rememberConsoleTextStyle(long fontSize, androidx.compose.ui.text.font.FontWeight? fontWeight, androidx.compose.ui.text.font.FontStyle? fontStyle);
+    method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle rememberDefaultTextStyle(long fontSize, androidx.compose.ui.text.font.FontWeight? fontWeight, androidx.compose.ui.text.font.FontStyle? fontStyle);
+    method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle rememberEditorTextStyle(long fontSize, androidx.compose.ui.text.font.FontWeight? fontWeight, androidx.compose.ui.text.font.FontStyle? fontStyle);
     property @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle consoleTextStyle;
     property @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle editorTextStyle;
     property @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle h0TextStyle;
@@ -68,10 +71,6 @@ package org.jetbrains.jewel.intui.standalone {
 
   @SuppressCompatibility @org.jetbrains.annotations.ApiStatus.Experimental @org.jetbrains.jewel.foundation.ExperimentalJewelApi public final class JewelIntUIBundle extends org.jetbrains.jewel.intui.standalone.bundle.DynamicBundle {
     field public static final org.jetbrains.jewel.intui.standalone.JewelIntUIBundle INSTANCE;
-  }
-
-  public final class PainterProviderKt {
-    method @Deprecated public static org.jetbrains.jewel.ui.painter.ResourcePainterProvider standalonePainterProvider(String path);
   }
 
   public final class StandalonePainterHintsProvider extends org.jetbrains.jewel.ui.painter.PalettePainterHintsProvider {
@@ -570,7 +569,6 @@ package org.jetbrains.jewel.intui.standalone.styling {
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarStyle dark(org.jetbrains.jewel.ui.component.styling.ScrollbarStyle.Companion);
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.AlwaysVisible default(org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.AlwaysVisible.Companion);
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.WhenScrolling default(org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.WhenScrolling.Companion);
-    method @Deprecated public static org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.WhenScrolling default(org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.WhenScrolling.Companion, optional float trackThickness, optional float trackThicknessExpanded, optional androidx.compose.foundation.layout.PaddingValues trackPadding, optional androidx.compose.foundation.layout.PaddingValues trackPaddingWithBorder, optional long trackColorAnimationDuration, optional long expandAnimationDuration, optional long thumbColorAnimationDuration, optional long lingerDuration);
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarStyle light(org.jetbrains.jewel.ui.component.styling.ScrollbarStyle.Companion);
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarMetrics macOs(org.jetbrains.jewel.ui.component.styling.ScrollbarMetrics.Companion, optional androidx.compose.foundation.shape.CornerSize thumbCornerSize, optional float minThumbLength);
     method public static org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.AlwaysVisible macOs(org.jetbrains.jewel.ui.component.styling.ScrollbarVisibility.AlwaysVisible.Companion, optional float trackThickness, optional androidx.compose.foundation.layout.PaddingValues trackPadding, optional long thumbColorAnimationDuration, optional long scrollbarBackgroundColorLight, optional long scrollbarBackgroundColorDark);

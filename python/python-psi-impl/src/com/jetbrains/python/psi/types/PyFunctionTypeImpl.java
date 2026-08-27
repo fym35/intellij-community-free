@@ -27,10 +27,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static com.jetbrains.python.psi.PyUtil.as;
+import static com.jetbrains.python.psi.types.PyTypeUtilKt.isUnknown;
 
 /**
  * Type of particular function that is represented as a {@link PyCallable} in the PSI tree.
@@ -66,26 +69,58 @@ public class PyFunctionTypeImpl implements PyFunctionType {
   }
 
   @Override
-  public @Nullable PyType getCallType(@NotNull TypeEvalContext context, @NotNull PyCallSiteOwner callSite) {
+  public @Nullable PyType getCallType(@NotNull TypeEvalContext context,
+                                      @Nullable PyCallSiteOwner callSite,
+                                      @NotNull List<PyCallableArgument> arguments) {
     if (!(myCallable instanceof PyFunction function)) {
       return context.getReturnType(myCallable);
     }
 
-    for (PyTypeProvider typeProvider : PyTypeProvider.EP_NAME.getExtensionList()) {
-      final Ref<PyType> typeRef = typeProvider.getCallType(function, callSite, context);
-      if (typeRef != null) {
-        final PyType type = typeRef.get();
-        if (type != null) {
-          type.assertValid(typeProvider.toString());
+    if (callSite != null) {
+      for (PyTypeProvider typeProvider : PyTypeProvider.EP_NAME.getExtensionList()) {
+        final Ref<PyType> typeRef = typeProvider.getCallType(function, callSite, context);
+        if (typeRef != null) {
+          final PyType type = typeRef.get();
+          if (type != null) {
+            type.assertValid(typeProvider.toString());
+          }
+          return type;
         }
-        return type;
       }
     }
 
-    List<PyExpression> arguments = callSite.getArguments(myCallable);
     PyCallableParameterListTypeImpl parametersType = new PyCallableParameterListTypeImpl(myParameters);
     ArgumentMappingResults mappingResults = PyCallExpressionHelper.analyzeArguments(arguments, parametersType, context);
-    return function.getCallType(null, callSite, mappingResults.getMappedParameters(), context);
+    Map<PyCallableArgument, PyCallableParameter> parameters = mappingResults.getMappedParameters();
+    @Nullable PyType type = context.getReturnType(function);
+    if (PyTypeChecker.hasGenerics(type, context)) {
+      PyType callableType = context.getType(function);
+      PyCallableType callableTypeCasted = callableType instanceof PyCallableType ? (PyCallableType)callableType : null;
+      final var substitutions =
+        PyTypeInferenceCspFactory.unifyGenericCall(callSite, callableTypeCasted, parameters, context);
+      if (substitutions != null) {
+        final var substitutionsWithUnresolvedReturnGenerics =
+          PyTypeChecker.getSubstitutionsWithUnresolvedReturnGenerics(callableTypeCasted, type, substitutions, context);
+        type = PyTypeChecker.substitute(type, substitutionsWithUnresolvedReturnGenerics, context);
+      }
+      else {
+        type = PyAnyType.getUnknown();
+      }
+    }
+    if (!isUnknown(type) && isDynamicallyEvaluated(parameters.values(), context)) {
+      type = PyUnionType.createWeakType(type);
+    }
+    return PyNarrowedType.Companion.bindIfNeeded(type, callSite);
+  }
+
+  private static boolean isDynamicallyEvaluated(@NotNull Collection<PyCallableParameter> parameters, @NotNull TypeEvalContext context) {
+    for (PyCallableParameter parameter : parameters) {
+      final PyType type = parameter.getType(context);
+      if (type instanceof PyDynamicallyEvaluatedType) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

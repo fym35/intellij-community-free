@@ -32,6 +32,10 @@ jvm_library(
 exports_files(
     [
         "intellij.keymap.vscode.iml",
+        "resources/META-INF/plugin.xml",
+        "resources/keymaps/VSCode OSX.xml",
+        "resources/keymaps/VSCode.xml",
+        "plugin-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

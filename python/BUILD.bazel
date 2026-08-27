@@ -1,5 +1,7 @@
 load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.pycharm.community` start
 resourcegroup(
@@ -65,6 +67,11 @@ jvm_library(
 exports_files(
     [
         "intellij.pycharm.community.iml",
+        "ide-common/resources/META-INF/PyCharmCorePlugin.xml",
+        "ide-common/resources/META-INF/pycharm-core-customization.xml",
+        "ide-common/resources/idea/PyCharmCoreApplicationInfo.xml",
+        "resources/META-INF/pycharm-core.xml",
+        "resources/ProductivityFeaturesRegistry.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -116,6 +123,7 @@ jvm_library(
 exports_files(
     [
         "intellij.pycharm.community.customization.iml",
+        "ide/resources/META-INF/plugin.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -311,8 +319,8 @@ jvm_library(
         "//python/openapi:community_test_lib",
         "//python/impl.helperLocator:community-helpersLocator",
         "//python/impl.helperLocator:community-helpersLocator_test_lib",
-        "//python/python-sdk:sdk",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend",
+        "//python/python-sdk/backend:backend_test_lib",
         "//platform/testFramework/core",
         "//platform/testFramework/core:core_test_lib",
         "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
@@ -338,6 +346,11 @@ jps_test(
 ### auto-generated section `test intellij.python.commonTests` end
 
 ### auto-generated section `build intellij.python.community.impl` start
+create_kotlinc_options(
+    name = "custom_python-community-impl",
+    opt_in = ["com.jetbrains.python.PyInternalExecApi"],
+)
+
 jvm_library(
     name = "python-community-impl",
     srcs = glob(
@@ -350,6 +363,7 @@ jvm_library(
         ],
         allow_empty = True,
     ),
+    kotlinc_opts = ":custom_python-community-impl",
     module_name = "intellij.python.community.impl",
     resource_strip_prefix = "pluginResources",
     resources = glob(
@@ -362,7 +376,7 @@ jvm_library(
         "//platform/ide-core-impl",
         "//RegExpSupport:regexp",
         "//python/python-psi-impl:psi-impl",
-        "//python/python-requirements:requirements",
+        "//python/python-requirements/backend",
     ],
     runtime_deps = [
         # do not sort,
@@ -425,8 +439,11 @@ jvm_library(
         "//libraries/javax/annotation",
         "@lib//ant/lib:ant-provided",
         "//python/python-psi-impl:psi-impl",
-        "//python/python-sdk:sdk",
-        "//python/python-sdk-ui:sdk-ui",
+        "//python/python-sdk/backend",
+        "//python/python-sdk/common",
+        "//platform/kernel/rpc.backend",
+        "//platform/project/shared:project",
+        "//platform/platform-impl/rpc",
         "//libraries/stream",
         "//platform/statistics",
         "@lib//:python-community-impl-ml-completion-prev-exprs-models",
@@ -437,11 +454,11 @@ jvm_library(
         "//libraries/fastutil",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/jcef",
-        "@lib//:jna",
+        "//libraries/jna",
         "//plugins/toml",
         "//plugins/toml/core",
-        "@lib//:jsr305",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jsr305",
+        "//libraries/jetbrains/annotations",
         "@lib//:kotlin-stdlib",
         "//libraries/caffeine",
         "//platform/util/jdom",
@@ -489,7 +506,6 @@ jvm_library(
         "//python/impl.helperLocator:community-helpersLocator",
         "//python/python-exec-service/execService.python",
         "//python/interpreters",
-        "//python/python-sdk-configurator/common",
         "//python/python-poetry/common",
         "//python/python-uv/common",
         "//python/common",
@@ -502,12 +518,13 @@ jvm_library(
         "//python/python-external-index:externalIndex",
         "//python/conda",
         "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
-        "//python/python-requirements:requirements",
+        "//python/python-requirements/backend",
         "//python/python-pytools:pytools",
         "//python/python-uv/backend",
         "//platform/testIntegration",
         "//platform/testIntegration-ui",
         "//python/python-poetry/backend",
+        "//platform/eel-nioFs",
     ],
 )
 
@@ -518,6 +535,7 @@ jvm_library(
         [],
         allow_empty = True,
     ),
+    kotlinc_opts = ":custom_python-community-impl",
     module_name = "intellij.python.community.impl",
     visibility = ["//visibility:public"],
     exports = [
@@ -530,8 +548,8 @@ jvm_library(
         "//RegExpSupport:regexp_test_lib",
         "//python/python-psi-impl:psi-impl",
         "//python/python-psi-impl:psi-impl_test_lib",
-        "//python/python-requirements:requirements",
-        "//python/python-requirements:requirements_test_lib",
+        "//python/python-requirements/backend",
+        "//python/python-requirements/backend:backend_test_lib",
     ],
     runtime_deps = [
         # do not sort,
@@ -588,8 +606,11 @@ jvm_library(
         "//libraries/javax/annotation:annotation_test_lib",
         "@lib//ant/lib:ant-provided",
         "//python/python-psi-impl:psi-impl_test_lib",
-        "//python/python-sdk:sdk_test_lib",
-        "//python/python-sdk-ui:sdk-ui_test_lib",
+        "//python/python-sdk/backend:backend_test_lib",
+        "//python/python-sdk/common:common_test_lib",
+        "//platform/kernel/rpc.backend:rpc.backend_test_lib",
+        "//platform/project/shared:project_test_lib",
+        "//platform/platform-impl/rpc:rpc_test_lib",
         "//libraries/stream:stream_test_lib",
         "//platform/statistics:statistics_test_lib",
         "//platform/util:util_test_lib",
@@ -599,8 +620,11 @@ jvm_library(
         "//libraries/fastutil:fastutil_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/jcef:jcef_test_lib",
+        "//libraries/jna:jna_test_lib",
         "//plugins/toml:toml_test_lib",
         "//plugins/toml/core:core_test_lib",
+        "//libraries/jsr305:jsr305_test_lib",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/caffeine:caffeine_test_lib",
         "//platform/util/jdom:jdom_test_lib",
         "//platform/extensions:extensions_test_lib",
@@ -646,7 +670,6 @@ jvm_library(
         "//python/impl.helperLocator:community-helpersLocator_test_lib",
         "//python/python-exec-service/execService.python:execService.python_test_lib",
         "//python/interpreters:interpreters_test_lib",
-        "//python/python-sdk-configurator/common:common_test_lib",
         "//python/python-poetry/common:common_test_lib",
         "//python/python-uv/common:common_test_lib",
         "//python/common:common_test_lib",
@@ -659,12 +682,13 @@ jvm_library(
         "//python/python-external-index:externalIndex_test_lib",
         "//python/conda:conda_test_lib",
         "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
-        "//python/python-requirements:requirements_test_lib",
+        "//python/python-requirements/backend:backend_test_lib",
         "//python/python-pytools:pytools_test_lib",
         "//python/python-uv/backend:backend_test_lib",
         "//platform/testIntegration:testIntegration_test_lib",
         "//platform/testIntegration-ui:testIntegration-ui_test_lib",
         "//python/python-poetry/backend:backend_test_lib",
+        "//platform/eel-nioFs:eel-nioFs_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.community.impl` end
@@ -673,6 +697,10 @@ jvm_library(
 exports_files(
     [
         "intellij.python.community.impl.iml",
+        "pluginResources/colorSchemes/PythonDarcula.xml",
+        "pluginResources/colorSchemes/PythonDefault.xml",
+        "pluginResources/intellij.python.community.impl.xml",
+        "pluginResources/liveTemplates/Python.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -829,10 +857,8 @@ jvm_library(
         "@lib//ant/lib:ant-provided",
         "//python/python-psi-impl:psi-impl",
         "//python/python-psi-impl:psi-impl_test_lib",
-        "//python/python-sdk:sdk",
-        "//python/python-sdk:sdk_test_lib",
-        "//python/python-sdk-ui:sdk-ui",
-        "//python/python-sdk-ui:sdk-ui_test_lib",
+        "//python/python-sdk/backend",
+        "//python/python-sdk/backend:backend_test_lib",
         "//libraries/stream",
         "//libraries/stream:stream_test_lib",
         "//platform/statistics",
@@ -852,13 +878,16 @@ jvm_library(
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//libraries/jcef",
         "//libraries/jcef:jcef_test_lib",
-        "@lib//:jna",
+        "//libraries/jna",
+        "//libraries/jna:jna_test_lib",
         "//plugins/toml",
         "//plugins/toml:toml_test_lib",
         "//plugins/toml/core",
         "//plugins/toml/core:core_test_lib",
-        "@lib//:jsr305",
-        "@lib//:jetbrains-annotations",
+        "//libraries/jsr305",
+        "//libraries/jsr305:jsr305_test_lib",
+        "//libraries/jetbrains/annotations",
+        "//libraries/jetbrains/annotations:annotations_test_lib",
         "@lib//:kotlin-stdlib",
         "//libraries/caffeine",
         "//libraries/caffeine:caffeine_test_lib",
@@ -945,8 +974,6 @@ jvm_library(
         "//python/python-exec-service/execService.python:execService.python_test_lib",
         "//python/interpreters",
         "//python/interpreters:interpreters_test_lib",
-        "//python/python-sdk-configurator/common",
-        "//python/python-sdk-configurator/common:common_test_lib",
         "//python/python-poetry/common",
         "//python/python-poetry/common:common_test_lib",
         "//python/python-uv/common",
@@ -1091,6 +1118,14 @@ exports_files(
 ### auto-generated section `iml intellij.python.community.plugin.modules` end
 
 ### auto-generated section `build intellij.python.community.tests` start
+create_kotlinc_options(
+    name = "custom_python-community-tests",
+    opt_in = [
+        "kotlin.time.ExperimentalTime",
+        "com.jetbrains.python.PyInternalExecApi",
+    ],
+)
+
 jvm_library(
     name = "python-community-tests",
     srcs = glob(
@@ -1144,6 +1179,7 @@ jvm_library(
         "//python:python-community-impl",
         "//python:python-community-impl_test_lib",
     ],
+    kotlinc_opts = ":custom_python-community-tests",
     resource_strip_prefix = "testResources",
     resources = glob(
         ["testResources/**/*"],
@@ -1291,8 +1327,10 @@ jvm_library(
         "//libraries/kotlinx/coroutines/test:test_test_lib",
         "//python/python-core-impl:community-core-impl",
         "//python/python-core-impl:community-core-impl_test_lib",
-        "//python/python-sdk:sdk",
-        "//python/python-sdk:sdk_test_lib",
+        "//python/python-sdk/backend",
+        "//python/python-sdk/backend:backend_test_lib",
+        "//python/python-sdk/common",
+        "//python/python-sdk/common:common_test_lib",
         "//libraries/gson",
         "//libraries/gson:gson_test_lib",
         "//tools/intellij.tools.ide.metrics.benchmark:ide-metrics-benchmark",
@@ -1339,7 +1377,8 @@ jvm_library(
         "//python/python-exec-service:community-execService_test_lib",
         "//platform/execution",
         "//platform/execution:execution_test_lib",
-        "@lib//:jet_check",
+        "//libraries/jetcheck",
+        "//libraries/jetcheck:jetcheck_test_lib",
         "//platform/forms_rt:java-guiForms-rt",
         "//platform/forms_rt:java-guiForms-rt_test_lib",
         "//python/python-test-env/common",
@@ -1380,6 +1419,8 @@ jvm_library(
         "//platform/todo/backend:backend_test_lib",
         "//platform/statistics",
         "//platform/statistics:statistics_test_lib",
+        "//platform/statistics/testFramework",
+        "//platform/statistics/testFramework:testFramework_test_lib",
         "//json/backend",
         "//json/backend:backend_test_lib",
         "//platform/progress/shared:ide-progress",
@@ -1411,6 +1452,8 @@ jvm_library(
         "//plugins/toml/core:core_test_lib",
         "//python/python-poetry/backend",
         "//python/python-poetry/backend:backend_test_lib",
+        "//python/python-requirements/backend",
+        "//python/python-requirements/backend:backend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.community.tests` end
@@ -1463,6 +1506,8 @@ jvm_library(
 exports_files(
     [
         "intellij.python.helpers.iml",
+        "helpers/tools/class_method_versions.xml",
+        "helpers/tools/versions.xml",
     ],
     visibility = ["//visibility:public"],
 )
@@ -1562,6 +1607,8 @@ jvm_library(
     ],
 )
 
+content_module_jar(module = ":python-pydev")
+
 jvm_library(
     name = "python-pydev_test_lib",
     testonly = True,
@@ -1600,6 +1647,7 @@ jvm_library(
 exports_files(
     [
         "intellij.python.pydev.iml",
+        "pydevSrc/resources/intellij.python.pydev.xml",
     ],
     visibility = ["//visibility:public"],
 )

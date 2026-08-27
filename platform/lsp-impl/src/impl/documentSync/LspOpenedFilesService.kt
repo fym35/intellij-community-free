@@ -1,5 +1,6 @@
 package com.intellij.platform.lsp.impl.documentSync
 
+import com.intellij.ide.trustedProjects.TrustedFiles
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
@@ -30,7 +31,8 @@ internal class LspOpenedFilesService(private val project: Project) {
     fun getInstance(project: Project): LspOpenedFilesService = project.service()
   }
 
-  private val openedFilesToHandle: MutableSet<VirtualFile> = Collections.synchronizedSet(HashSet())
+  // linked sets keep the report order, so a batch processes the files in a predictable order
+  private val openedFilesToHandle: MutableSet<VirtualFile> = Collections.synchronizedSet(LinkedHashSet())
   private val openFilesCoalesceObject = Any()
   private val closeFilesCoalesceObject = Any()
 
@@ -44,13 +46,14 @@ internal class LspOpenedFilesService(private val project: Project) {
     if (!TrustedProjects.isProjectTrusted(project)) return
     if (!LspIntegrationProvider.hasAnyExtensions()) return
 
-    val added = files.filter { it.isInLocalFileSystem }.let { openedFilesToHandle.addAll(it) }
+    // LSP servers are external processes: never send the content of files opened in the safe mode to them
+    val added = files.filter { it.isInLocalFileSystem && TrustedFiles.isTrusted(it, project) }.let { openedFilesToHandle.addAll(it) }
     if (added) scheduleOpenedFilesProcessing()
   }
 
   private fun scheduleOpenedFilesProcessing() {
     class OpenedFilesData {
-      val handledFiles: MutableSet<VirtualFile> = HashSet()
+      val handledFiles: MutableSet<VirtualFile> = LinkedHashSet()
       val clientsToSendDidOpen: MultiMap<LspClientImpl, VirtualFile> = MultiMap()
       val newClientsToStart: MutableCollection<Pair<Class<out LspIntegrationProvider>, LspClientDescriptor>> = mutableListOf()
     }
@@ -66,9 +69,9 @@ internal class LspOpenedFilesService(private val project: Project) {
       for (provider in LspIntegrationProvider.getAllExtensions()) {
         val providerClass: Class<out LspIntegrationProvider> = provider.javaClass
         val clientsForProvider = manager.getClients(providerClass)
-        var fileWithinServerRootsAndSupported = false
 
         for (openedFile in data.handledFiles) {
+          var fileWithinServerRootsAndSupported = false
           for (lspClient in clientsForProvider) {
             ProgressManager.checkCanceled()
             if (lspClient.descriptor.roots.any { VfsUtilCore.isAncestor(it, openedFile, true) } && lspClient.isSupportedFile(openedFile)) {
