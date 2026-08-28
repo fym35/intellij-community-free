@@ -8,6 +8,7 @@ import com.intellij.openapi.externalSystem.ExternalSystemManager;
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectId;
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTracker;
 import com.intellij.openapi.externalSystem.model.ProjectSystemId;
+import com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManagerImpl;
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings;
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil;
 import com.intellij.openapi.module.Module;
@@ -44,47 +45,44 @@ public class ExternalSystemProjectsWatcherImpl implements ExternalSystemProjects
   public void markDirtyAllExternalProjects() {
     debugTrace(LOG, "Mark Dirty All External Projects");
     ExternalSystemProjectTracker projectTracker = ExternalSystemProjectTracker.getInstance(project);
-    List<ExternalSystemProjectId> projectSettings = findAllProjectSettings();
-    ApplicationManager.getApplication().invokeLater(() -> {
-      projectSettings.forEach(it -> projectTracker.markDirty(it));
+    whenSettingsLoaded(() -> {
+      findAllProjectSettings().forEach(it -> projectTracker.markDirty(it));
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirtyAllExternalProjects(project);
       }
       projectTracker.scheduleProjectRefresh();
-    }, project.getDisposed());
+    });
   }
 
   @Override
   public void markDirty(@NotNull Module module) {
     debugTrace(LOG, "Module (%s): Mark Dirty External Project".formatted(module.getName()));
-    ExternalSystemProjectTracker projectTracker = ExternalSystemProjectTracker.getInstance(project);
     String projectPath = ExternalSystemApiUtil.getExternalProjectPath(module);
-    List<ExternalSystemProjectId> projectSettings = findAllProjectSettings();
-    ApplicationManager.getApplication().invokeLater(() -> {
-      projectSettings.stream()
+    ExternalSystemProjectTracker projectTracker = ExternalSystemProjectTracker.getInstance(project);
+    whenSettingsLoaded(() -> {
+      findAllProjectSettings().stream()
         .filter(it -> it.getExternalProjectPath().equals(projectPath))
         .forEach(it -> projectTracker.markDirty(it));
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirty(module);
       }
       projectTracker.scheduleProjectRefresh();
-    }, module.getDisposed());
+    });
   }
 
   @Override
   public void markDirty(@NotNull String projectPath) {
     debugTrace(LOG, "Project (%s): Mark Dirty External Project".formatted(PathUtil.getFileName(projectPath)));
     ExternalSystemProjectTracker projectTracker = ExternalSystemProjectTracker.getInstance(project);
-    List<ExternalSystemProjectId> projectSettings = findAllProjectSettings();
-    ApplicationManager.getApplication().invokeLater(() -> {
-      projectSettings.stream()
+    whenSettingsLoaded(() -> {
+      findAllProjectSettings().stream()
         .filter(it -> it.getExternalProjectPath().equals(projectPath))
         .forEach(it -> projectTracker.markDirty(it));
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirty(projectPath);
       }
       projectTracker.scheduleProjectRefresh();
-    }, project.getDisposed());
+    });
   }
 
   private List<ExternalSystemProjectId> findAllProjectSettings() {
@@ -100,6 +98,18 @@ public class ExternalSystemProjectsWatcherImpl implements ExternalSystemProjects
       }
     });
     return list;
+  }
+
+  /**
+   * Executes {@param runnable} when AbstractExternalSystemSettings is loaded.
+   * <p>
+   * Cannot use {@link com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManager#runWhenInitialized},
+   * because {@link ExternalSystemProjectsWatcher} is used in {@link  ExternalProjectsManagerImpl#init}.
+   *
+   * @see com.intellij.openapi.externalSystem.settings.AbstractExternalSystemSettings#loadState
+   */
+  private void whenSettingsLoaded(@NotNull Runnable runnable) {
+    ApplicationManager.getApplication().invokeLater(runnable, project.getDisposed());
   }
 
   /**
