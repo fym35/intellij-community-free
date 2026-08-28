@@ -50,7 +50,6 @@ public class ExternalSystemProjectsWatcherImpl implements ExternalSystemProjects
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirtyAllExternalProjects(project);
       }
-      projectTracker.scheduleProjectRefresh();
     });
   }
 
@@ -66,7 +65,6 @@ public class ExternalSystemProjectsWatcherImpl implements ExternalSystemProjects
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirty(module);
       }
-      projectTracker.scheduleProjectRefresh();
     });
   }
 
@@ -81,7 +79,6 @@ public class ExternalSystemProjectsWatcherImpl implements ExternalSystemProjects
       for (Contributor contributor : EP_NAME.getExtensions()) {
         contributor.markDirty(projectPath);
       }
-      projectTracker.scheduleProjectRefresh();
     });
   }
 

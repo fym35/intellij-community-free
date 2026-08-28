@@ -11,17 +11,19 @@ import org.jetbrains.annotations.ApiStatus.Internal
 interface ExternalSystemProjectTracker {
 
   /**
-   * Starts tracking of project settings that will be defined by [projectAware]
+   * Registers [projectAware] for tracking.
    *
-   * Auto reloads will be activated after first project refresh
-   * (i.e. after first [ExternalSystemProjectListener.onProjectReloadStart] / [ExternalSystemProjectListener.onProjectReloadFinish])
-   * @see [ExternalSystemProjectTracker.activate] for details
+   * @see [ExternalSystemProjectTracker.activate]
    */
   fun register(projectAware: ExternalSystemProjectAware)
 
   /**
-   * @see [ExternalSystemProjectTracker.register]
-   * @param [parentDisposable] allows to remove [projectAware] when it will be disposed
+   * Registers [projectAware] for tracking.
+   *
+   * @param parentDisposable is used to unload data and stop tracking when it is disposed.
+   * Expected at least project + plugin disposable or a main build tool service disposable.
+   *
+   * @see ExternalSystemProjectTracker.register
    */
   fun register(projectAware: ExternalSystemProjectAware, parentDisposable: Disposable) {
     register(projectAware)
@@ -29,9 +31,18 @@ interface ExternalSystemProjectTracker {
   }
 
   /**
-   * Activates auto reload for project with [id]
+   * Activates auto-sync for project with [id].
    *
-   * Allows to detect project that loaded from local cashes but previously didn't register here
+   * Auto-sync should be activated only when all build tool preparations are made:
+   *  - data storages and settings are loaded,
+   *  - initialization activities are completed,
+   *  - etc.
+   *
+   * Note: registered projects are activated automatically when sync is started.
+   *
+   * @see ExternalSystemProjectTracker.register
+   * @see ExternalSystemProjectAware.subscribe
+   * @see ExternalSystemProjectListener.onProjectReloadStart
    */
   fun activate(id: ExternalSystemProjectId)
 
