@@ -7,6 +7,7 @@ import com.jetbrains.python.allure.Layers
 import com.jetbrains.python.allure.Subsystems
 import com.jetbrains.python.fixtures.PyCodeInsightTestCase
 import com.jetbrains.python.psi.LanguageLevel
+import com.jetbrains.python.psi.impl.PyYieldExpressionImpl
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -839,6 +840,67 @@ class PyComprehensionAndIteratorTypeTest : PyCodeInsightTestCase() {
       def g() -> Generator[str, int, None]:
           expr = yield "foo"
       #   └ TYPE int
+      """.trimIndent())
+
+    @TestFor(issues = ["PY-47487", "PY-89154"], classes = [PyYieldExpressionImpl::class])
+    @Test
+    fun `generator send type from yield expression expected type`() = test("""
+      def g():
+          received: int = yield "foo"
+
+      expr = g()
+      # └ TYPE Generator[Literal["foo"], int, None]
+      """.trimIndent())
+
+    @TestFor(issues = ["PY-47487"], classes = [PyYieldExpressionImpl::class])
+    @Test
+    fun `generator send type inference does not recurse through generic call`() = test("""
+      def consume[T](value: T, fallback: T) -> None:
+          pass
+
+      def g():
+          consume((yield "foo"), 42)
+
+      expr = g()
+      # └ TYPE Generator[Literal["foo"], int, None]
+      """.trimIndent())
+
+    @TestFor(issues = ["PY-47487"], classes = [PyYieldExpressionImpl::class])
+    @Test
+    fun `generator send type from assignment target`() = test("""
+      def complex_foo():
+          bar = (yield 1) or None
+      #   └ TYPE Unknown | None
+      def foo():
+          typed: bool
+          typed = yield 0
+      #   └ TYPE bool
+          return 'a'
+      def use_foo():
+          gg = foo()
+      #   └ TYPE Generator[Literal[0], bool, Literal["a"]]
+          next(gg)
+          gg.send('wrong')
+      #           ^^^^^^^ WARNING Expected type 'bool', got 'Literal["wrong"]' instead
+      """.trimIndent())
+
+    @TestFor(issues = ["PY-89154"], classes = [PyYieldExpressionImpl::class])
+    @Test
+    fun `generator send type from bare yield assignment`() = test("""
+      def f():
+          a: int = yield
+      expr = f()
+      # └ TYPE Generator[None, int, None]
+      """.trimIndent())
+
+    @TestFor(issues = ["PY-47487"], classes = [PyYieldExpressionImpl::class])
+    @Test
+    fun `generator send type unifies multiple expected types`() = test("""
+      def g():
+          received1: int = yield 1
+          received2: str = yield 2
+      expr = g()
+      # └ TYPE Generator[Literal[1, 2], int | str, None]
       """.trimIndent())
 
     @TestFor(issues = ["PY-20710"])
