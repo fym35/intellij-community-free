@@ -40,6 +40,9 @@ public class LoadingCommittedChangeListPanel implements Disposable {
     myChangesPanel = new CommittedChangeListPanel(project, commitDetailsComponent);
 
     myLoadingPanel = new LoadingChangesPanel(myChangesPanel, this);
+
+    // A drag of a file row must reach a target outside the tree, such as an editor or an agent session.
+    ChangesTreeFileDragSourceKt.installFileDragSource(myChangesPanel.getChangesBrowser().getViewer(), this);
   }
 
   @Override
