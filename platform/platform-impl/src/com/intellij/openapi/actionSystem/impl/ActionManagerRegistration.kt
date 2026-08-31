@@ -305,14 +305,16 @@ internal fun reportActionIdCollision(
   oldAction: AnAction?,
   oldPluginId: PluginId?,
 ) {
-  val oldPluginInfo = oldPluginId?.let { getPluginInfo(it) }
+  val oldPluginInfo = oldPluginId?.let { getPluginInfo(it) + " (plugin $oldPluginId)" } ?: "<no-plugin>"
+  val pluginInfo = pluginId?.let { getPluginInfo(it) + " (plugin $pluginId)" } ?: "<no-plugin>"
+
   val message = "ID '$actionId' is already taken by action ${actionToString(oldAction)} $oldPluginInfo. " +
-                "Action ${actionToString(action)} cannot use the same ID"
+                "Action ${actionToString(action)} $pluginInfo cannot use the same ID"
   if (pluginId == null) {
     actionManagerImplLog.error(message)
   }
   else {
-    actionManagerImplLog.error(PluginException("$message (plugin $pluginId)", null, pluginId))
+    actionManagerImplLog.error(PluginException(message, null, pluginId))
   }
 }
 
