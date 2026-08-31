@@ -86,6 +86,7 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     val configDir = project.stateStore.directoryStorePath ?: return files
     val configDirFile = LocalFileSystem.getInstance().findFileByNioFile(configDir) ?: return files
     val filesInConfigDir = files.filterTo(mutableSetOf()) { VfsUtil.isAncestor(configDirFile, it, true) }
+    if (filesInConfigDir.isEmpty()) return files
     val unversionedFilesInConfigDir = collectUnversionedUnder(filesInConfigDir)
 
     runInEdt {
