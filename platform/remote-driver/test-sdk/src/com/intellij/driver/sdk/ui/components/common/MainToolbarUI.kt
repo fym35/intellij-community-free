@@ -33,9 +33,7 @@ val Finder.toolbar: UiComponent
 private const val MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH = 24
 
 /**
- * Bounds of the main toolbar's own groups, left to right. Their gaps are the toolbar's free space:
- * `MainToolbar` lays the groups out with [com.intellij.ui.components.panels.HorizontalLayout], so nothing
- * at all is painted between them.
+ * Returns the visible main toolbar groups from left to right.
  */
 private fun Finder.mainToolbarGroupBounds(): List<Rectangle> =
   xx("//div[@class='MainToolbar']/div").list()
@@ -44,35 +42,16 @@ private fun Finder.mainToolbarGroupBounds(): List<Rectangle> =
     .sortedBy { it.x }
 
 /**
- * The middle of the widest widget-free run of the main toolbar, in screen coordinates, or `null` when the
- * toolbar is too crowded to have a [MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH] px wide gap.
- *
- * Use this instead of guessing a point: the New UI centers the run/debug widget group, so the middle of the
- * toolbar is the least likely place to be free.
- *
- * Only the gaps *between* `MainToolbar`'s own groups qualify. `MainToolbar` itself carries the window-move
- * and click-transparency listeners, while its per-group `MyActionToolbarImpl` children swallow clicks into
- * their own popup handler — so a point inside a group's internal padding looks empty but neither drags nor
- * maximizes the window.
+ * Returns the top-center point of the widest gap between toolbar groups.
+ * Returns `null` if no gap is at least [MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH] px wide.
  */
 fun Finder.emptyMainToolbarAreaPointOnScreenOrNull(): Point? {
-  val toolbarBounds = mainToolbar.boundsOnScreen
-  val groups = mainToolbarGroupBounds()
-  val rightEdge = Rectangle(toolbarBounds.x + toolbarBounds.width, toolbarBounds.y, 0, toolbarBounds.height)
+  val gaps = mainToolbarGroupBounds().zipWithNext { left, right -> (left.x + left.width) to right.x }
 
-  var freeStart = toolbarBounds.x
-  var widestStart = toolbarBounds.x
-  var widestEnd = toolbarBounds.x
-  for (group in groups + rightEdge) {
-    if (group.x - freeStart > widestEnd - widestStart) {
-      widestStart = freeStart
-      widestEnd = group.x
-    }
-    freeStart = maxOf(freeStart, group.x + group.width)
-  }
+  val (gapStart, gapEnd) = gaps.maxByOrNull { (start, end) -> end - start } ?: return null
+  if (gapEnd - gapStart < MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH) return null
 
-  if (widestEnd - widestStart < MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH) return null
-  return Point((widestStart + widestEnd) / 2, toolbarBounds.y + toolbarBounds.height / 2)
+  return Point((gapStart + gapEnd) / 2, mainToolbar.boundsOnScreen.y)
 }
 
 /**
@@ -80,7 +59,7 @@ fun Finder.emptyMainToolbarAreaPointOnScreenOrNull(): Point? {
  */
 fun Finder.emptyMainToolbarAreaPointOnScreen(): Point =
   emptyMainToolbarAreaPointOnScreenOrNull()
-  ?: error("No free area of $MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH px or more in the main toolbar " +
+  ?: error("No gap of $MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH px or more between the groups of the main toolbar " +
            "${mainToolbar.boundsOnScreen}, toolbar groups: ${mainToolbarGroupBounds()}")
 
 class MainToolbarUI(data: ComponentData) : UiComponent(data) {
