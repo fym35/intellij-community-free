@@ -42,8 +42,11 @@ private fun Finder.mainToolbarGroupBounds(): List<Rectangle> =
     .sortedBy { it.x }
 
 /**
- * Returns the top-center point of the widest gap between toolbar groups.
+ * Returns the center point of the widest gap between toolbar groups.
  * Returns `null` if no gap is at least [MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH] px wide.
+ *
+ * The point is vertically centered on purpose: the toolbar's top row is the window's top row, where the OS
+ * takes the click for its own edge resizing and the IDE never sees it.
  */
 fun Finder.emptyMainToolbarAreaPointOnScreenOrNull(): Point? {
   val gaps = mainToolbarGroupBounds().zipWithNext { left, right -> (left.x + left.width) to right.x }
@@ -51,7 +54,8 @@ fun Finder.emptyMainToolbarAreaPointOnScreenOrNull(): Point? {
   val (gapStart, gapEnd) = gaps.maxByOrNull { (start, end) -> end - start } ?: return null
   if (gapEnd - gapStart < MIN_EMPTY_MAIN_TOOLBAR_AREA_WIDTH) return null
 
-  return Point((gapStart + gapEnd) / 2, mainToolbar.boundsOnScreen.y)
+  val toolbarBounds = mainToolbar.boundsOnScreen
+  return Point((gapStart + gapEnd) / 2, toolbarBounds.y + toolbarBounds.height / 2)
 }
 
 /**
