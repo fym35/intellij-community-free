@@ -173,8 +173,6 @@ jvm_library(
         "//platform/structure-view-impl/plugin:plugin_test_lib",
         "//platform/todo/plugin",
         "//platform/todo/plugin:plugin_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//java/java-syntax:syntax",
         "//java/java-syntax:syntax_test_lib",
         "//java/java-psi-api:psi",

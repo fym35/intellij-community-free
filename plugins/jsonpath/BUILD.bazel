@@ -172,8 +172,6 @@ jvm_library(
         "//platform/lang-impl:lang-impl_test_lib",
         "//spellchecker",
         "//spellchecker:spellchecker_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/core-ui",
         "//platform/core-ui:core-ui_test_lib",
         "//libraries/fastutil",

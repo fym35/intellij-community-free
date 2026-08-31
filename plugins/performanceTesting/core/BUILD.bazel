@@ -383,8 +383,6 @@ jvm_library(
         "//libraries/junit5:junit5_test_lib",
         "//libraries/junit5-params",
         "//libraries/junit5-params:junit5-params_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
     ],
 )
 ### auto-generated section `build intellij.performanceTesting.tests` end

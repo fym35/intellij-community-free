@@ -467,8 +467,6 @@ jvm_library(
         "//libraries/oro-matcher:oro-matcher_test_lib",
         "//platform/libraries/cglib",
         "//platform/libraries/cglib:cglib_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//libraries/junit4",
         "//libraries/junit4:junit4_test_lib",
         "//platform/platform-impl:ide-impl",

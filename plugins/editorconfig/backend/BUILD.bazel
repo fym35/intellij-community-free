@@ -258,8 +258,6 @@ jvm_library(
         "//plugins/editorconfig:editorconfig-plugin-main_test_lib",
         "//plugins/editorconfig/backend.spellchecking",
         "//plugins/editorconfig/backend.spellchecking:backend.spellchecking_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//java/java-backend:backend",
         "//java/java-backend:backend_test_lib",
         "//java/plugin",

@@ -132,8 +132,6 @@ jvm_library(
         "//python/services/system-python:system-python_test_lib",
         "//python/python-pytools/backend",
         "//python/python-pytools/backend:backend_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//plugins/jcef/plugin",
         "//plugins/jcef/plugin:plugin_test_lib",
         "//platform/testRunner/plugin",

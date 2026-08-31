@@ -219,8 +219,6 @@ jvm_library(
         "//libraries/junit5-params:junit5-params_test_lib",
         "//aether-dependency-resolver/plugin",
         "//aether-dependency-resolver/plugin:plugin_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/structure-view-impl/plugin",
         "//platform/structure-view-impl/plugin:plugin_test_lib",
         "//platform/todo/plugin",

@@ -188,8 +188,6 @@ jvm_library(
         "//platform/testFramework:testFramework_test_lib",
         "//libraries/guava",
         "//libraries/guava:guava_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/statistics",
         "//platform/statistics:statistics_test_lib",
         "//platform/util/progress",

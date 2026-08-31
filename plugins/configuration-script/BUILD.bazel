@@ -300,8 +300,6 @@ jvm_library(
         "//java/java-backend:backend_test_lib",
         "//java/execution/impl",
         "//java/execution/impl:impl_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/structure-view-impl/plugin",
         "//platform/structure-view-impl/plugin:plugin_test_lib",
         "//platform/testRunner/plugin",

@@ -59,8 +59,6 @@ jvm_library(
         "//platform/projectModel-api:projectModel_test_lib",
         "//platform/testFramework",
         "//platform/testFramework:testFramework_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//java/plugin",
         "//java/plugin:plugin_test_lib",
         "//aether-dependency-resolver/plugin",

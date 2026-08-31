@@ -238,8 +238,6 @@ jvm_library(
         "//libraries/jackson3/databind:databind_test_lib",
         "//libraries/jsoup",
         "//libraries/jsoup:jsoup_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//libraries/jackson3/jackson:libraries-jackson3",
         "//libraries/jackson3/jackson:libraries-jackson3_test_lib",
         "//platform/testFramework",

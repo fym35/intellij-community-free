@@ -66,8 +66,6 @@ jvm_library(
         "//json/backend/regexp:regexp_test_lib",
         "//spellchecker",
         "//spellchecker:spellchecker_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//libraries/lucene.common",
         "//libraries/lucene.common:lucene.common_test_lib",
         "//plugins/grazie/src:core",

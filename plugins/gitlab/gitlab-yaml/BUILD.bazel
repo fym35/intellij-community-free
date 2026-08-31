@@ -168,8 +168,6 @@ jvm_library(
         "//json/networknt.wrapper:networknt.wrapper_test_lib",
         "//spellchecker",
         "//spellchecker:spellchecker_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/vcs/plugin",
         "//platform/vcs/plugin:plugin_test_lib",
         "//plugins/git4idea:vcs-git",

@@ -273,8 +273,6 @@ jvm_library(
         "//java/plugin:plugin_test_lib",
         "//json",
         "//json:json_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/structuralsearch:structuralSearch",
         "//platform/structuralsearch:structuralSearch_test_lib",
         "//platform/structuralsearch/plugin",

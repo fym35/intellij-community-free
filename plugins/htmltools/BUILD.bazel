@@ -193,8 +193,6 @@ jvm_library(
         "//xml/xml-analysis-api:analysis_test_lib",
         "//libraries/fastutil",
         "//libraries/fastutil:fastutil_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
         "//platform/util/concurrency",
         "//platform/util/concurrency:concurrency_test_lib",
         "//platform/ide-core",

@@ -348,8 +348,6 @@ jvm_library(
         "//java/plugin:plugin_test_lib",
         "//aether-dependency-resolver/plugin",
         "//aether-dependency-resolver/plugin:plugin_test_lib",
-        "//libraries/misc/plugin",
-        "//libraries/misc/plugin:plugin_test_lib",
     ],
 )
 ### auto-generated section `build intellij.ant.tests` end
