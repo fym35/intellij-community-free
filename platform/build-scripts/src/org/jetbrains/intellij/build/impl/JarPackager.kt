@@ -102,8 +102,6 @@ private val IMPLICIT_PLUGIN_PROJECT_LIBRARY_ALLOWLIST: Set<String> = java.util.S
   // declared by the platform layout of the ultimate-family products only, so a plugin of another product needs its own copy
   "LicenseDecoder",
   "LicenseServerAPI",
-  // used by `intellij.rider.test.cases.rdct`, whose plugin is built by an auto layout
-  "intellij-plugin-structure",
   "kotlin-metadata",
   "layoutlib",
   "okhttp",
