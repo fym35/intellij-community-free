@@ -553,6 +553,7 @@ libraries/kotlinc/kotlin-scripting-compiler-impl
 libraries/kotlinc/kotlin-scripting-dependencies
 libraries/kotlinc/kotlin-scripting-jvm
 libraries/kotlinc/kotlinx-serialization-compiler-plugin
+libraries/kotlinc/lombok-compiler-plugin
 libraries/kotlinc/low-level-api-fir
 libraries/kotlinc/noarg-compiler-plugin
 libraries/kotlinc/parcelize-compiler-plugin

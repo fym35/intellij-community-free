@@ -87,7 +87,7 @@ internal fun generateKotlincLibraries(preferences: GeneratorPreferences, isCommu
         kotlincForIdeWithStandardNaming("kotlinc.kotlin-compiler-ir", kotlincCoordinates)
         kotlincForIdeWithStandardNaming("kotlinc.kotlin-gradle-statistics", kotlincCoordinates)
         kotlincForIdeWithStandardNaming("kotlinc.kotlinx-serialization-compiler-plugin", kotlincCoordinates, convertedToModuleLibrary = true)
-        kotlincForIdeWithStandardNaming("kotlinc.lombok-compiler-plugin", kotlincCoordinates)
+        kotlincForIdeWithStandardNaming("kotlinc.lombok-compiler-plugin", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.low-level-api-fir", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.noarg-compiler-plugin", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.parcelize-compiler-plugin", kotlincCoordinates, convertedToModuleLibrary = true)

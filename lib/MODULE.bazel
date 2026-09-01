@@ -5426,20 +5426,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-lombok-compiler-plugin-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "lombok-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "adfe2727b12abb52e51bfe45f4128d7be57349f9b6516973f26431dc465ea2b6",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/lombok-compiler-plugin-for-ide/2.5.0-dev-6810/lombok-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-lombok-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "lombok-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "6cd51cb24f84dbfd1cf02d42f86cef1a794a1f424403bb5ce0ddf0abf8b24660",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/lombok-compiler-plugin-for-ide/2.5.0-dev-6810/lombok-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "io_ktor-ktor-client-cio-jvm-3_4_1_http",
     downloaded_file_path = "ktor-client-cio-jvm-3.4.1.jar",
     sha256 = "e6c174ff674f76c9ce1bc3d73814e4508587eee25625cf1c44b5436d691eace7",
@@ -10260,6 +10246,20 @@ http_file(
     downloaded_file_path = "kotlinx-serialization-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
     sha256 = "e4b90f594fab9d4e14447aad72c4e72dbb60f4c245da8afb266350bba599e565",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlinx-serialization-compiler-plugin-for-ide/2.5.0-dev-6810/kotlinx-serialization-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-lombok-compiler-plugin-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "lombok-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "adfe2727b12abb52e51bfe45f4128d7be57349f9b6516973f26431dc465ea2b6",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/lombok-compiler-plugin-for-ide/2.5.0-dev-6810/lombok-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-lombok-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "lombok-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "6cd51cb24f84dbfd1cf02d42f86cef1a794a1f424403bb5ce0ddf0abf8b24660",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/lombok-compiler-plugin-for-ide/2.5.0-dev-6810/lombok-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(
