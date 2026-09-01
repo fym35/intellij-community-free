@@ -100,7 +100,6 @@ fun interface DistributionAssetFilter {
  */
 private val IMPLICIT_PLUGIN_PROJECT_LIBRARY_ALLOWLIST: Set<String> = java.util.Set.of(
   // declared by the platform layout of the ultimate-family products only, so a plugin of another product needs its own copy
-  "LicenseServerAPI",
   "kotlin-metadata",
   "layoutlib",
   "org.scilab.forge:jlatexmath",
