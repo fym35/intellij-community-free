@@ -195,7 +195,6 @@ private val LAYOUT_PACKED_PROJECT_LIBRARIES = setOf(
   "jaxb-runtime",
   "jaxb-api",
   // UltimateRepositoryModules.kt `customizePlatformLayoutForUltimate`: packed into `PRODUCT_BACKEND_JAR`
-  "LicenseDecoder",
   "LicenseServerAPI",
   "yFiles",
   // LanguageServerProperties.kt: packed into the language server's `lib.jar`
