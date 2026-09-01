@@ -813,9 +813,9 @@ internal fun isConventionalPrepackedPath(moduleName: String, relativeOutputFile:
  * Whether the **platform** layout merges the library [jpsLibraryName] declares into the content-module jar owned by
  * [packedModuleName], reproducing `JarPackager.computeSourcesForModuleLibs` for it. See [MergeRules.PLATFORM].
  *
- * Everything the platform path of that function tests is here. What is *not* here is deliberate:
- * `LibraryPackMode` is reachable only for an auto `PluginLayout`, and `excludedProjectLibraries`/
- * `excludedModuleLibraries` are `PluginLayout` fields that are empty for the platform.
+ * Everything the platform path of that function tests is here. What is *not* here is deliberate, because it is the plugin
+ * path: the `auto` gate that lets a library module pack its project library, the implicit-library check behind it, and
+ * `excludedProjectLibraries`/`excludedModuleLibraries`, which are `PluginLayout` fields that are empty for the platform.
  *
  * The caller has already applied the scope filter and dropped application-level libraries.
  */

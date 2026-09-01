@@ -36,7 +36,12 @@ typealias ResourceGenerator = (Path, BuildContext) -> Unit
 typealias DeprecatedPostScrambleProcessor = (String, ByteArray, PluginLayout, PlatformLayout, ScopedCachedDescriptorContainer, BuildContext) -> ByteArray?
 
 /**
- * Describes layout of a plugin in the product distribution
+ * Describes layout of a plugin in the product distribution.
+ *
+ * [auto] controls two things in `JarPackager`. The direct dependencies of [mainModule] in the same module group are packed
+ * (`inferModuleSources`). A project library is packed only for a library module (`intellij.libraries.*`), and the build fails
+ * for a project library of any other module that nobody provides (`checkImplicitProjectLibraries`).
+ * A non-auto plugin packs no project library implicitly, and `createPlatformLayout` checks that the platform provides it.
  */
 class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean = false) : BaseLayout() {
   private val mainJarNameWithoutExtension: String = convertModuleNameToFileName(mainModule)

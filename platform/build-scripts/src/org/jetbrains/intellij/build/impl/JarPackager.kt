@@ -102,7 +102,7 @@ class JarPackager private constructor(
 
   private val copiedFiles = LibraryFileCopyTracker()
 
-  /** project library name to the names of the plugin modules that depend on it, but do not get it packaged - see [checkImplicitProjectLibraries] */
+  /** project library name to the names of the auto plugin modules that depend on it, but do not get it packaged - see [checkImplicitProjectLibraries] */
   private val implicitProjectLibraryViolations = TreeMap<String, MutableSet<String>>()
 
   private val helper = (context as BuildContextImpl).jarPackagerDependencyHelper
@@ -287,13 +287,12 @@ class JarPackager private constructor(
         searchableOptionSet = searchableOptionSet,
         context = context,
       )
+      checkImplicitProjectLibraries(layout)
     }
 
     if (layout is PluginLayout) {
       validatePrepackedPluginContent(layout)
     }
-
-    checkImplicitProjectLibraries(layout)
   }
 
   /**
@@ -365,34 +364,16 @@ class JarPackager private constructor(
   }
 
   /**
-   * A project library referenced by a plugin module, but neither provided by the platform nor by a library module,
+   * A project library referenced by a module of an auto plugin, but neither provided by the platform nor by a library module,
    * would be silently missing from the distribution - fail the build instead, listing everything to be converted.
    */
-  private fun checkImplicitProjectLibraries(layout: BaseLayout?) {
+  private fun checkImplicitProjectLibraries(layout: PluginLayout) {
     check(implicitProjectLibraryViolations.isEmpty()) {
       "Project libraries used by modules of $layout must be converted to content modules:\n" +
       implicitProjectLibraryViolations.entries.joinToString(separator = "\n") { (libraryName, moduleNames) ->
         "  '$libraryName' used by " + moduleNames.joinToString { "'$it'" }
       }
     }
-  }
-
-  /**
-   * `true` if [libName] reaches [module] without being packaged for it: the platform provides it (as a library or as a library module),
-   * the plugin declares it explicitly, another module of the same group brings it (the same check the collection above does),
-   * or a library module for it exists, so `LibraryModuleValidator` is the one to make this module depend on that module.
-   */
-  private fun isProjectLibraryProvided(libName: String, layout: BaseLayout, module: JpsModule, withTests: Boolean): Boolean {
-    return platformLayout == null ||
-           platformLayout.hasLibrary(libName, module.name) ||
-           layout.hasLibrary(libName) ||
-           context.outputProvider.getProjectLibraryToModuleMap().containsKey(libName) ||
-           helper.hasLibraryInDependencyChainOfModuleDependencies(
-             dependentModule = module,
-             libraryName = libName,
-             siblings = layout.includedModules,
-             withTests = withTests,
-           )
   }
 
   internal fun computeSourcesForModule(item: ModuleItem, layout: BaseLayout?, searchableOptionSet: SearchableOptionSetDescriptor?) {
@@ -539,9 +520,8 @@ class JarPackager private constructor(
     withTests: Boolean,
   ) {
     val moduleName = module.name
-    // `auto` used to mean "collect every project library of every module of this plugin" - now only a library module does it,
-    // everything else must be provided by the platform, by a library module, or declared explicitly in the plugin layout
     val isAutoPlugin = layout is PluginLayout && layout.auto
+    // a platform product module packs its own project libraries; in an auto plugin only a library module does
     val includeProjectLib = if (layout is PluginLayout) isAutoPlugin && moduleName.startsWith(LIB_MODULE_PREFIX) else item.isProductModule()
 
     val excludedModuleLibraries = if (layout is PluginLayout) layout.excludedModuleLibraries.get(moduleName) ?: emptyList() else emptyList()
@@ -556,28 +536,28 @@ class JarPackager private constructor(
           continue
         }
 
+        if (!includeProjectLib && !isAutoPlugin) {
+          // a non-auto plugin never packs a project library implicitly; `createPlatformLayout` checks that the platform provides it
+          continue
+        }
+
+        // the platform packs it, the layout declares it, or a module of the same group already brings it
+        val isProvided = platformLayout!!.hasLibrary(libName, moduleName) ||
+                         layout.hasLibrary(libName) ||
+                         helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)
         if (!includeProjectLib) {
-          if (isAutoPlugin &&
-              !isProjectLibraryProvided(libName = libName, layout = layout, module = module, withTests = withTests)) {
+          // a library module for it exists, so `LibraryModuleValidator` is the one to make this module depend on that module
+          if (!isProvided && !context.outputProvider.getProjectLibraryToModuleMap().containsKey(libName)) {
             implicitProjectLibraryViolations.computeIfAbsent(libName) { TreeSet() }.add(moduleName)
           }
           continue
         }
 
-        if (platformLayout!!.hasLibrary(libName, moduleName) || layout.hasLibrary(libName)) {
+        if (isProvided) {
           continue
         }
 
-        if (helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)) {
-          continue
-        }
-
-        projectLibraryData = if (layout !is PluginLayout && item.isProductModule()) {
-          ProjectLibraryData(libraryName = libName, owner = item, reason = null)
-        }
-        else {
-          ProjectLibraryData(libraryName = libName, reason = "<- $moduleName", owner = item)
-        }
+        projectLibraryData = ProjectLibraryData(libraryName = libName, reason = if (layout is PluginLayout) "<- $moduleName" else null, owner = item)
       }
       else {
         projectLibraryData = null
