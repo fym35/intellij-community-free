@@ -50,6 +50,7 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       "intellij.libraries.kotlinc.symbol.light.classes",
       "intellij.libraries.kotlinc.allopen.compiler.plugin",
       "intellij.libraries.kotlinc.noarg.compiler.plugin",
+      "intellij.libraries.kotlinc.sam.with.receiver.compiler.plugin",
       "intellij.libraries.kotlinc.parcelize.compiler.plugin",
       "intellij.libraries.kotlinc.scripting.compiler.plugin",
       "intellij.libraries.kotlinc.assignment.compiler.plugin",
@@ -70,7 +71,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
     )
 
     private val COMPILER_PLUGINS = java.util.List.of(
-      "kotlinc.sam-with-receiver-compiler-plugin",
       "kotlinc.lombok-compiler-plugin",
       "kotlinc.compose-compiler-plugin",
       "kotlinc.js-plain-objects-compiler-plugin",

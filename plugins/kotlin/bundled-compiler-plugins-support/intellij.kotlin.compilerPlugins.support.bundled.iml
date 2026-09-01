@@ -30,7 +30,7 @@
     <orderEntry type="module" module-name="intellij.platform.lang" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.allopen.compiler.plugin" />
     <orderEntry type="library" name="kotlinc.compose-compiler-plugin" level="project" />
-    <orderEntry type="library" name="kotlinc.sam-with-receiver-compiler-plugin" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.sam.with.receiver.compiler.plugin" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.noarg.compiler.plugin" />
     <orderEntry type="library" name="kotlinc.lombok-compiler-plugin" level="project" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.assignment.compiler.plugin" />
