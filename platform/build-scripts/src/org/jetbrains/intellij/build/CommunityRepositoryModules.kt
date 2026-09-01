@@ -307,7 +307,7 @@ object CommunityRepositoryModules {
       spec.withModule("intellij.android.visual-lint")
 
       // libs:
-      spec.withProjectLibrary("layoutlib")
+      // layoutlib comes from the intellij.libraries.layoutlib content module, declared in this plugin's descriptor
 
       // :libs
 
