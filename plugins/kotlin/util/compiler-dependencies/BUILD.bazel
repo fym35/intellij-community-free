@@ -43,7 +43,8 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":compiler-dependencies",
-        "@lib//:kotlinc-allopen-compiler-plugin-provided",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin_test_lib",
         "//libraries/kotlinc/analysis-api-k2:libraries-kotlinc-analysis-api-k2_test_lib",
         "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api_test_lib",
         "//libraries/kotlinc/analysis-api-impl-base:libraries-kotlinc-analysis-api-impl-base_test_lib",

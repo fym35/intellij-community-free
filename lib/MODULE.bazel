@@ -5160,20 +5160,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-allopen-compiler-plugin-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "allopen-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "945f28bc0d7cb7aeb3dd2e18e54a6f66be82e00fe4d8b4363a1e055e570cf271",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/allopen-compiler-plugin-for-ide/2.5.0-dev-6810/allopen-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-allopen-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "allopen-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "a88f129388e116d41747d40fe80d921fdb64ebe13760b103830e8509d98a3b4e",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/allopen-compiler-plugin-for-ide/2.5.0-dev-6810/allopen-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810_http",
     downloaded_file_path = "compose-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
     sha256 = "31eb3914b87dd869875a08a1173f28a77a3a366a450893ddc5da7b096f035886",
@@ -10092,6 +10078,20 @@ http_file(
     downloaded_file_path = "kotest-assertions-api-jvm-5.5.4-sources.jar",
     sha256 = "4eb1c96174c9947cd02e40696ce147244ee1dba1e04372d6215546cd552d6f88",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/io/kotest/kotest-assertions-api-jvm/5.5.4/kotest-assertions-api-jvm-5.5.4-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-allopen-compiler-plugin-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "allopen-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "945f28bc0d7cb7aeb3dd2e18e54a6f66be82e00fe4d8b4363a1e055e570cf271",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/allopen-compiler-plugin-for-ide/2.5.0-dev-6810/allopen-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-allopen-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "allopen-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "a88f129388e116d41747d40fe80d921fdb64ebe13760b103830e8509d98a3b4e",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/allopen-compiler-plugin-for-ide/2.5.0-dev-6810/allopen-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(

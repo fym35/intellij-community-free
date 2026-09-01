@@ -538,6 +538,7 @@ libraries/kotlin/test
 libraries/kotlin/test-assertions-core-jvm
 libraries/kotlin/test-junit
 libraries/kotlin/tooling-core
+libraries/kotlinc/allopen-compiler-plugin
 libraries/kotlinc/analysis-api
 libraries/kotlinc/analysis-api-impl-base
 libraries/kotlinc/analysis-api-k2

@@ -10,6 +10,7 @@ dev_dist_plugin(
         "intellij.libraries.kotlin.gradle.plugin.idea.proto",
         "intellij.libraries.kotlin.gradle.plugin.idea",
         "intellij.libraries.kotlin.tooling.core",
+        "intellij.libraries.kotlinc.allopen.compiler.plugin",
         "intellij.libraries.kotlinc.analysis.api.impl.base",
         "intellij.libraries.kotlinc.analysis.api.k2",
         "intellij.libraries.kotlinc.analysis.api.platform.interface",
@@ -43,7 +44,6 @@ dev_dist_plugin(
     },
     libraries = [
         "@lib//:javax-inject",
-        "@lib//:kotlinc-allopen-compiler-plugin",
         "@lib//:kotlinc-compose-compiler-plugin",
         "@lib//:kotlinc-js-plain-objects-compiler-plugin",
         "@lib//:kotlinc-kotlin-build-tools-api",
@@ -62,6 +62,7 @@ dev_dist_plugin(
         "@lib//:libraries-kotlin-gradle-plugin-idea-kotlin-gradle-plugin-idea",
         "@lib//:libraries-kotlin-gradle-plugin-idea-proto-kotlin-gradle-plugin-idea-proto",
         "@lib//:libraries-kotlin-tooling-core-kotlin-tooling-core",
+        "@lib//:libraries-kotlinc-allopen-compiler-plugin-kotlinc-allopen-compiler-plugin",
         "@lib//:libraries-kotlinc-analysis-api-impl-base-kotlinc-analysis-api-impl-base",
         "@lib//:libraries-kotlinc-analysis-api-k2-kotlinc-analysis-api-k2",
         "@lib//:libraries-kotlinc-analysis-api-kotlinc-analysis-api",

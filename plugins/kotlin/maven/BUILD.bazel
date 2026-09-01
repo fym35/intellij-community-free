@@ -67,7 +67,7 @@ jvm_library(
         "//platform/util/progress",
         "//platform/vcs-api/vcs-api-core:vcs-core",
         "//platform/statistics",
-        "@lib//:kotlinc-allopen-compiler-plugin",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin",
         "//plugins/kotlin/references",
     ],
 )
@@ -126,6 +126,7 @@ jvm_library(
         "//platform/util/progress:progress_test_lib",
         "//platform/vcs-api/vcs-api-core:vcs-core_test_lib",
         "//platform/statistics:statistics_test_lib",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin_test_lib",
         "//plugins/kotlin/references:references_test_lib",
     ],
 )

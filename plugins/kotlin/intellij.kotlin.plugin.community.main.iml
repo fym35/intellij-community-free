@@ -137,7 +137,7 @@
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.analysis.api.impl.base" exported="" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.analysis.api.k2" exported="" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.compiler.fir" exported="" />
-    <orderEntry type="library" exported="" name="kotlinc.allopen-compiler-plugin" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.allopen.compiler.plugin" exported="" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlinx.serialization.compiler.plugin" exported="" />
     <orderEntry type="library" exported="" name="kotlinc.noarg-compiler-plugin" level="project" />
     <orderEntry type="library" exported="" name="kotlinc.sam-with-receiver-compiler-plugin" level="project" />

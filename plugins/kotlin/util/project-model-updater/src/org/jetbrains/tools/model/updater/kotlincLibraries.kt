@@ -71,7 +71,7 @@ internal fun generateKotlincLibraries(preferences: GeneratorPreferences, isCommu
     val jpsPluginCoordinates = preferences.jpsArtifactCoordinates
 
     return buildLibraryList(isCommunity) {
-        kotlincForIdeWithStandardNaming("kotlinc.allopen-compiler-plugin", kotlincCoordinates)
+        kotlincForIdeWithStandardNaming("kotlinc.allopen-compiler-plugin", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.analysis-api-k2", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.analysis-api", kotlincCoordinates, convertedToModuleLibrary = true)
         kotlincForIdeWithStandardNaming("kotlinc.analysis-api-impl-base", kotlincCoordinates, convertedToModuleLibrary = true)

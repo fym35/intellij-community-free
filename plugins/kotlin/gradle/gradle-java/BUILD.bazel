@@ -119,7 +119,7 @@ jvm_library(
         "//platform/util:util-ui",
         "//platform/statistics",
         "//platform/testRunner",
-        "@lib//:kotlinc-allopen-compiler-plugin",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin",
     ],
 )
 
@@ -215,6 +215,7 @@ jvm_library(
         "//platform/util:util-ui_test_lib",
         "//platform/statistics:statistics_test_lib",
         "//platform/testRunner:testRunner_test_lib",
+        "//libraries/kotlinc/allopen-compiler-plugin:libraries-kotlinc-allopen-compiler-plugin_test_lib",
     ],
 )
 ### auto-generated section `build kotlin.gradle.gradle-java` end
