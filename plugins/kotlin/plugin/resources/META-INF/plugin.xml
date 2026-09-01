@@ -206,6 +206,7 @@
     <module name="intellij.libraries.kotlinc.noarg.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.sam.with.receiver.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.lombok.compiler.plugin" loading="embedded"/>
+    <module name="intellij.libraries.kotlinc.compose.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.parcelize.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.low.level.api.fir" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.symbol.light.classes" loading="embedded"/>

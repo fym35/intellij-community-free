@@ -16,6 +16,7 @@ dev_dist_plugin(
         "intellij.libraries.kotlinc.analysis.api.platform.interface",
         "intellij.libraries.kotlinc.analysis.api",
         "intellij.libraries.kotlinc.assignment.compiler.plugin",
+        "intellij.libraries.kotlinc.compose.compiler.plugin",
         "intellij.libraries.kotlinc.kotlin.compiler.common",
         "intellij.libraries.kotlinc.kotlin.compiler.fir",
         "intellij.libraries.kotlinc.kotlin.jps.common",
@@ -47,7 +48,6 @@ dev_dist_plugin(
     },
     libraries = [
         "@lib//:javax-inject",
-        "@lib//:kotlinc-compose-compiler-plugin",
         "@lib//:kotlinc-js-plain-objects-compiler-plugin",
         "@lib//:kotlinc-kotlin-build-tools-api",
         "@lib//:kotlinc-kotlin-build-tools-cri-impl",
@@ -68,6 +68,7 @@ dev_dist_plugin(
         "@lib//:libraries-kotlinc-analysis-api-kotlinc-analysis-api",
         "@lib//:libraries-kotlinc-analysis-api-platform-interface-kotlinc-analysis-api-platform-interface",
         "@lib//:libraries-kotlinc-assignment-compiler-plugin-kotlinc-assignment-compiler-plugin",
+        "@lib//:libraries-kotlinc-compose-compiler-plugin-kotlinc-compose-compiler-plugin",
         "@lib//:libraries-kotlinc-kotlin-compiler-common-kotlinc-kotlin-compiler-common",
         "@lib//:libraries-kotlinc-kotlin-compiler-fir-kotlinc-kotlin-compiler-fir",
         "@lib//:libraries-kotlinc-kotlin-jps-common-kotlinc-kotlin-jps-common",

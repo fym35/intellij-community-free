@@ -6460,28 +6460,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlin/compose-compiler-plugin-for-ide-2.5.0-dev-6810.jar_copy",
-    src = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810_http//file",
-    out = "org.jetbrains.kotlin/compose-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlinc-compose-compiler-plugin",
-    jar = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810_http//file",
-    source_jar = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "kotlinc-compose-compiler-plugin-provided",
-    neverlink = True,
-    visibility = ["//visibility:public"],
-    exports = [":kotlinc-compose-compiler-plugin"],
-)
-
-copy_file(
     name = "org.jetbrains.kotlin/incremental-compilation-impl-tests-for-ide-2.5.0-dev-6810.jar_copy",
     src = "@org_jetbrains_kotlin-incremental-compilation-impl-tests-for-ide-2_5_0-dev-6810_http//file",
     out = "org.jetbrains.kotlin/incremental-compilation-impl-tests-for-ide-2.5.0-dev-6810.jar",
@@ -12623,6 +12601,21 @@ jvm_import(
     name = "libraries-kotlinc-assignment-compiler-plugin-kotlinc-assignment-compiler-plugin",
     jar = "@org_jetbrains_kotlin-assignment-compiler-plugin-for-ide-2_5_0-dev-6810_http//file",
     source_jar = "@org_jetbrains_kotlin-assignment-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.kotlin/compose-compiler-plugin-for-ide-2.5.0-dev-6810.jar_copy",
+    src = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810_http//file",
+    out = "org.jetbrains.kotlin/compose-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlinc-compose-compiler-plugin-kotlinc-compose-compiler-plugin",
+    jar = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810_http//file",
+    source_jar = "@org_jetbrains_kotlin-compose-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

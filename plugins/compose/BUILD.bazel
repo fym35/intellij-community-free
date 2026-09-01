@@ -21,7 +21,6 @@ dev_dist_plugin(
         "intellij.compose.ide.plugin.shared.android",
     ],
     libraries = [
-        "@lib//:kotlinc-compose-compiler-plugin",
         "@lib//:kotlinc-kotlin-compiler-tests",
         "@lib//:studio-platform",
     ],

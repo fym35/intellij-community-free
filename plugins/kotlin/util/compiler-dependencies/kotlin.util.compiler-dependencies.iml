@@ -28,7 +28,7 @@
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.sam.with.receiver.compiler.plugin" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.assignment.compiler.plugin" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.scripting.compiler.plugin" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.compose-compiler-plugin" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.compose.compiler.plugin" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.js-plain-objects-compiler-plugin" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-dataframe-compiler-plugin" level="project" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.jps.common" />
