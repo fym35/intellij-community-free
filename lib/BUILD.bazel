@@ -15757,6 +15757,59 @@ jvm_import(
 )
 
 copy_file(
+    name = "org.testng/testng-7.8.0.jar_copy",
+    src = "@org_testng-testng-7_8_0_http//file",
+    out = "org.testng/testng-7.8.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "com.beust/jcommander-1.82.jar_copy",
+    src = "@com_beust-jcommander-1_82_http//file",
+    out = "com.beust/jcommander-1.82.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.webjars/jquery-3.6.1.jar_copy",
+    src = "@org_webjars-jquery-3_6_1_http//file",
+    out = "org.webjars/jquery-3.6.1.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-testng-_test_n_g",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":org_testng-testng-7_8_0_http_import",
+        ":com_beust-jcommander-1_82_http_import",
+        ":org_webjars-jquery-3_6_1_http_import",
+    ],
+)
+
+jvm_import(
+    name = "org_testng-testng-7_8_0_http_import",
+    jar = "@org_testng-testng-7_8_0_http//file",
+    source_jar = "@org_testng-testng-7_8_0-sources_http//file",
+)
+
+jvm_import(
+    name = "com_beust-jcommander-1_82_http_import",
+    jar = "@com_beust-jcommander-1_82_http//file",
+    source_jar = "@com_beust-jcommander-1_82-sources_http//file",
+)
+
+jvm_import(
+    name = "org_webjars-jquery-3_6_1_http_import",
+    jar = "@org_webjars-jquery-3_6_1_http//file",
+    source_jar = "@org_webjars-jquery-3_6_1-sources_http//file",
+)
+
+copy_file(
     name = "io.consensys.tuweni/tuweni-toml-2.7.1.jar_copy",
     src = "@io_consensys_tuweni-tuweni-toml-2_7_1_http//file",
     out = "io.consensys.tuweni/tuweni-toml-2.7.1.jar",
@@ -21462,66 +21515,6 @@ jvm_import(
     jar = "@org_jetbrains_testDiscovery-test-discovery-plugin-base-0_1_191_http//file",
     source_jar = "@org_jetbrains_testDiscovery-test-discovery-plugin-base-0_1_191-sources_http//file",
     visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.testng/testng-7.8.0.jar_copy",
-    src = "@org_testng-testng-7_8_0_http//file",
-    out = "org.testng/testng-7.8.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "com.beust/jcommander-1.82.jar_copy",
-    src = "@com_beust-jcommander-1_82_http//file",
-    out = "com.beust/jcommander-1.82.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.webjars/jquery-3.6.1.jar_copy",
-    src = "@org_webjars-jquery-3_6_1_http//file",
-    out = "org.webjars/jquery-3.6.1.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "test_n_g",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":org_testng-testng-7_8_0_http_import",
-        ":com_beust-jcommander-1_82_http_import",
-        ":org_webjars-jquery-3_6_1_http_import",
-    ],
-)
-
-jvm_import(
-    name = "org_testng-testng-7_8_0_http_import",
-    jar = "@org_testng-testng-7_8_0_http//file",
-    source_jar = "@org_testng-testng-7_8_0-sources_http//file",
-)
-
-jvm_import(
-    name = "com_beust-jcommander-1_82_http_import",
-    jar = "@com_beust-jcommander-1_82_http//file",
-    source_jar = "@com_beust-jcommander-1_82-sources_http//file",
-)
-
-jvm_import(
-    name = "org_webjars-jquery-3_6_1_http_import",
-    jar = "@org_webjars-jquery-3_6_1_http//file",
-    source_jar = "@org_webjars-jquery-3_6_1-sources_http//file",
-)
-
-java_library(
-    name = "test_n_g-provided",
-    neverlink = True,
-    visibility = ["//visibility:public"],
-    exports = [":test_n_g"],
 )
 
 copy_file(

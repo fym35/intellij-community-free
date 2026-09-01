@@ -12685,6 +12685,48 @@ http_file(
 )
 
 http_file(
+    name = "org_testng-testng-7_8_0_http",
+    downloaded_file_path = "testng-7.8.0.jar",
+    sha256 = "dbbc43e2c64623661c3537f9d74061eb6c8fc3e5b4376f31fadb16de2b200f88",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testng/testng/7.8.0/testng-7.8.0.jar",
+)
+
+http_file(
+    name = "com_beust-jcommander-1_82_http",
+    downloaded_file_path = "jcommander-1.82.jar",
+    sha256 = "deeac157c8de6822878d85d0c7bc8467a19cc8484d37788f7804f039dde280b1",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/beust/jcommander/1.82/jcommander-1.82.jar",
+)
+
+http_file(
+    name = "org_webjars-jquery-3_6_1_http",
+    downloaded_file_path = "jquery-3.6.1.jar",
+    sha256 = "da2381fbee4799631ba44d1f4d6487b886b22450c7fc85842c5fdfa03429b817",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/webjars/jquery/3.6.1/jquery-3.6.1.jar",
+)
+
+http_file(
+    name = "org_testng-testng-7_8_0-sources_http",
+    downloaded_file_path = "testng-7.8.0-sources.jar",
+    sha256 = "e67f21faf87828b351c8e63e3dd229e99c0e78c1a916f4fdbe9a85f2cace8c0a",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testng/testng/7.8.0/testng-7.8.0-sources.jar",
+)
+
+http_file(
+    name = "com_beust-jcommander-1_82-sources_http",
+    downloaded_file_path = "jcommander-1.82-sources.jar",
+    sha256 = "cc39d22f3cf29c2033fb526e5600ae8fec36e316274b0c07fa14c1a4a38eca3b",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/beust/jcommander/1.82/jcommander-1.82-sources.jar",
+)
+
+http_file(
+    name = "org_webjars-jquery-3_6_1-sources_http",
+    downloaded_file_path = "jquery-3.6.1-sources.jar",
+    sha256 = "9f6acaa801d60f0316d995c396a487295c349549db51f52ce095e38ad3066106",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/webjars/jquery/3.6.1/jquery-3.6.1-sources.jar",
+)
+
+http_file(
     name = "io_consensys_tuweni-tuweni-toml-2_7_1_http",
     downloaded_file_path = "tuweni-toml-2.7.1.jar",
     sha256 = "00cfcc187ff46ce8d702a0f2cb98d6a4f2a67f8f41242b5901e46efdcb7c84b7",
@@ -16910,48 +16952,6 @@ http_file(
     downloaded_file_path = "test-discovery-plugin-base-0.1.191-sources.jar",
     sha256 = "b9da3ec255096f5b86c38a4f7a7c8b87cfcdea32f9810a0d7ee7fc8e60336fd8",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/testDiscovery/test-discovery-plugin-base/0.1.191/test-discovery-plugin-base-0.1.191-sources.jar",
-)
-
-http_file(
-    name = "org_testng-testng-7_8_0_http",
-    downloaded_file_path = "testng-7.8.0.jar",
-    sha256 = "dbbc43e2c64623661c3537f9d74061eb6c8fc3e5b4376f31fadb16de2b200f88",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testng/testng/7.8.0/testng-7.8.0.jar",
-)
-
-http_file(
-    name = "com_beust-jcommander-1_82_http",
-    downloaded_file_path = "jcommander-1.82.jar",
-    sha256 = "deeac157c8de6822878d85d0c7bc8467a19cc8484d37788f7804f039dde280b1",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/beust/jcommander/1.82/jcommander-1.82.jar",
-)
-
-http_file(
-    name = "org_webjars-jquery-3_6_1_http",
-    downloaded_file_path = "jquery-3.6.1.jar",
-    sha256 = "da2381fbee4799631ba44d1f4d6487b886b22450c7fc85842c5fdfa03429b817",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/webjars/jquery/3.6.1/jquery-3.6.1.jar",
-)
-
-http_file(
-    name = "org_testng-testng-7_8_0-sources_http",
-    downloaded_file_path = "testng-7.8.0-sources.jar",
-    sha256 = "e67f21faf87828b351c8e63e3dd229e99c0e78c1a916f4fdbe9a85f2cace8c0a",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testng/testng/7.8.0/testng-7.8.0-sources.jar",
-)
-
-http_file(
-    name = "com_beust-jcommander-1_82-sources_http",
-    downloaded_file_path = "jcommander-1.82-sources.jar",
-    sha256 = "cc39d22f3cf29c2033fb526e5600ae8fec36e316274b0c07fa14c1a4a38eca3b",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/beust/jcommander/1.82/jcommander-1.82-sources.jar",
-)
-
-http_file(
-    name = "org_webjars-jquery-3_6_1-sources_http",
-    downloaded_file_path = "jquery-3.6.1-sources.jar",
-    sha256 = "9f6acaa801d60f0316d995c396a487295c349549db51f52ce095e38ad3066106",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/webjars/jquery/3.6.1/jquery-3.6.1-sources.jar",
 )
 
 http_file(
