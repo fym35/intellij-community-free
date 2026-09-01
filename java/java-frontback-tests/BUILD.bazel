@@ -21,7 +21,7 @@ jvm_library(
     exports = [
         # do not sort,
         "@lib//:easymock",
-        "@lib//:mockito",
+        "//libraries/mockito",
         "@lib//:kotlin-test",
         "//platform/testFramework",
         "//platform/testFramework/junit5",
@@ -50,7 +50,8 @@ jvm_library(
     exports = [
         # do not sort,
         "@lib//:easymock",
-        "@lib//:mockito",
+        "//libraries/mockito",
+        "//libraries/mockito:mockito_test_lib",
         "@lib//:kotlin-test",
         "//platform/testFramework",
         "//platform/testFramework:testFramework_test_lib",
@@ -68,7 +69,8 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:easymock",
-        "@lib//:mockito",
+        "//libraries/mockito",
+        "//libraries/mockito:mockito_test_lib",
         "//libraries/assertj-core",
         "//libraries/assertj-core:assertj-core_test_lib",
         "@lib//:kotlin-test",

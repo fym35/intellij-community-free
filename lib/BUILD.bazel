@@ -13831,6 +13831,51 @@ jvm_import(
 )
 
 copy_file(
+    name = "org.mockito/mockito-core-5.19.0.jar_copy",
+    src = "@org_mockito-mockito-core-5_19_0_http//file",
+    out = "org.mockito/mockito-core-5.19.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.objenesis/objenesis-3.3.jar_copy",
+    src = "@org_objenesis-objenesis-3_3_http//file",
+    out = "org.objenesis/objenesis-3.3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-mockito-mockito",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":org_mockito-mockito-core-5_19_0_http_import",
+        ":net_bytebuddy-byte-buddy-agent-1_17_6_http_import",
+        ":org_objenesis-objenesis-3_3_http_import",
+    ],
+)
+
+jvm_import(
+    name = "org_mockito-mockito-core-5_19_0_http_import",
+    jar = "@org_mockito-mockito-core-5_19_0_http//file",
+    source_jar = "@org_mockito-mockito-core-5_19_0-sources_http//file",
+)
+
+jvm_import(
+    name = "net_bytebuddy-byte-buddy-agent-1_17_6_http_import",
+    jar = "@net_bytebuddy-byte-buddy-agent-1_17_6_http//file",
+    source_jar = "@net_bytebuddy-byte-buddy-agent-1_17_6-sources_http//file",
+)
+
+jvm_import(
+    name = "org_objenesis-objenesis-3_3_http_import",
+    jar = "@org_objenesis-objenesis-3_3_http//file",
+    source_jar = "@org_objenesis-objenesis-3_3-sources_http//file",
+)
+
+copy_file(
     name = "io.mockk/mockk-1.14.5.jar_copy",
     src = "@io_mockk-mockk-1_14_5_http//file",
     out = "io.mockk/mockk-1.14.5.jar",
@@ -19908,51 +19953,6 @@ jvm_import(
     jar = "@io_takari-maven-wrapper-0_5_5_http//file",
     source_jar = "@io_takari-maven-wrapper-0_5_5-sources_http//file",
     visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.mockito/mockito-core-5.19.0.jar_copy",
-    src = "@org_mockito-mockito-core-5_19_0_http//file",
-    out = "org.mockito/mockito-core-5.19.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.objenesis/objenesis-3.3.jar_copy",
-    src = "@org_objenesis-objenesis-3_3_http//file",
-    out = "org.objenesis/objenesis-3.3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "mockito",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":org_mockito-mockito-core-5_19_0_http_import",
-        ":net_bytebuddy-byte-buddy-agent-1_17_6_http_import",
-        ":org_objenesis-objenesis-3_3_http_import",
-    ],
-)
-
-jvm_import(
-    name = "org_mockito-mockito-core-5_19_0_http_import",
-    jar = "@org_mockito-mockito-core-5_19_0_http//file",
-    source_jar = "@org_mockito-mockito-core-5_19_0-sources_http//file",
-)
-
-jvm_import(
-    name = "net_bytebuddy-byte-buddy-agent-1_17_6_http_import",
-    jar = "@net_bytebuddy-byte-buddy-agent-1_17_6_http//file",
-    source_jar = "@net_bytebuddy-byte-buddy-agent-1_17_6-sources_http//file",
-)
-
-jvm_import(
-    name = "org_objenesis-objenesis-3_3_http_import",
-    jar = "@org_objenesis-objenesis-3_3_http//file",
-    source_jar = "@org_objenesis-objenesis-3_3-sources_http//file",
 )
 
 copy_file(

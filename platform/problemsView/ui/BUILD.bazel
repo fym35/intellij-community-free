@@ -180,7 +180,8 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:mockito",
+        "//libraries/mockito",
+        "//libraries/mockito:mockito_test_lib",
         "//platform/analysis-api:analysis",
         "//platform/analysis-api:analysis_test_lib",
         "//platform/analysis-impl",
