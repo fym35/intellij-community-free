@@ -256,6 +256,7 @@ intellij.junit	member_jar	intellij.junit.v5.rt	junit5-rt.jar
 intellij.junit	member_jar	intellij.junit.v6.rt	junit6-rt.jar
 
 intellij.jupyter.plugin	vetoed_member	intellij.jupyter.convert
+intellij.jupyter.plugin	vetoed_member	intellij.libraries.jlatexmath
 
 intellij.kmm.plugin	member_jar	kotlin-ultimate.apple-gradle-plugin-api.rt	kotlin-ultimate-apple-gradle-plugin-api-rt.jar
 intellij.kmm.plugin	member_jar	kotlin-ultimate.mobile-gradle-tooling.rt	kotlin-ultimate.mobile-gradle-tooling.rt.jar
@@ -328,6 +329,7 @@ intellij.ml.llm	merged_library	intellij.ml.llm.libraries.grazie.cloud	ai.grazie.
 intellij.ml.llm	merged_library	intellij.ml.llm.libraries.grazie.cloud	ai.grazie.indexing.indexing:indexing-server-api-jvm
 intellij.ml.llm	merged_library	intellij.ml.llm.libraries.grazie.cloud	ai.grazie.llm.llm-agg-api-model-jvm
 intellij.ml.llm	merged_library	intellij.ml.llm.libraries.grazie.cloud	ai.jetbrains.code.prompt.executor.grazie.koog.jvm.v1
+intellij.ml.llm	vetoed_member	intellij.libraries.jlatexmath
 intellij.ml.llm	vetoed_member	intellij.libraries.mlapi.catboost
 intellij.ml.llm	vetoed_member	intellij.libraries.mlapi.core
 intellij.ml.llm	vetoed_member	intellij.ml.grazie.pro
