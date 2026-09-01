@@ -13606,6 +13606,209 @@ jvm_import(
 )
 
 copy_file(
+    name = "org.apache.maven/maven-resolver-provider-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-resolver-provider-3_9_9_http//file",
+    out = "org.apache.maven/maven-resolver-provider-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven/maven-model-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-model-3_9_9_http//file",
+    out = "org.apache.maven/maven-model-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven/maven-model-builder-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-model-builder-3_9_9_http//file",
+    out = "org.apache.maven/maven-model-builder-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.codehaus.plexus/plexus-interpolation-1.27.jar_copy",
+    src = "@org_codehaus_plexus-plexus-interpolation-1_27_http//file",
+    out = "org.codehaus.plexus/plexus-interpolation-1.27.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven/maven-artifact-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-artifact-3_9_9_http//file",
+    out = "org.apache.maven/maven-artifact-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven/maven-builder-support-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-builder-support-3_9_9_http//file",
+    out = "org.apache.maven/maven-builder-support-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.eclipse.sisu/org.eclipse.sisu.inject-0.9.0.M3.jar_copy",
+    src = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http//file",
+    out = "org.eclipse.sisu/org.eclipse.sisu.inject-0.9.0.M3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven/maven-repository-metadata-3.9.9.jar_copy",
+    src = "@org_apache_maven-maven-repository-metadata-3_9_9_http//file",
+    out = "org.apache.maven/maven-repository-metadata-3.9.9.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven.resolver/maven-resolver-api-1.9.22.jar_copy",
+    src = "@org_apache_maven_resolver-maven-resolver-api-1_9_22_http//file",
+    out = "org.apache.maven.resolver/maven-resolver-api-1.9.22.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven.resolver/maven-resolver-spi-1.9.22.jar_copy",
+    src = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22_http//file",
+    out = "org.apache.maven.resolver/maven-resolver-spi-1.9.22.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven.resolver/maven-resolver-util-1.9.22.jar_copy",
+    src = "@org_apache_maven_resolver-maven-resolver-util-1_9_22_http//file",
+    out = "org.apache.maven.resolver/maven-resolver-util-1.9.22.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven.resolver/maven-resolver-impl-1.9.22.jar_copy",
+    src = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22_http//file",
+    out = "org.apache.maven.resolver/maven-resolver-impl-1.9.22.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.maven.resolver/maven-resolver-named-locks-1.9.22.jar_copy",
+    src = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http//file",
+    out = "org.apache.maven.resolver/maven-resolver-named-locks-1.9.22.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-maven-resolver-provider-maven-resolver-provider",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":org_apache_maven-maven-resolver-provider-3_9_9_http_import",
+        ":org_apache_maven-maven-model-3_9_9_http_import",
+        ":org_apache_maven-maven-model-builder-3_9_9_http_import",
+        ":org_codehaus_plexus-plexus-interpolation-1_27_http_import",
+        ":org_apache_maven-maven-artifact-3_9_9_http_import",
+        ":org_apache_maven-maven-builder-support-3_9_9_http_import",
+        ":org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http_import",
+        ":org_apache_maven-maven-repository-metadata-3_9_9_http_import",
+        ":org_apache_maven_resolver-maven-resolver-api-1_9_22_http_import",
+        ":org_apache_maven_resolver-maven-resolver-spi-1_9_22_http_import",
+        ":org_apache_maven_resolver-maven-resolver-util-1_9_22_http_import",
+        ":org_apache_maven_resolver-maven-resolver-impl-1_9_22_http_import",
+        ":org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http_import",
+    ],
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-resolver-provider-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-resolver-provider-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-resolver-provider-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-model-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-model-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-model-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-model-builder-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-model-builder-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-model-builder-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_codehaus_plexus-plexus-interpolation-1_27_http_import",
+    jar = "@org_codehaus_plexus-plexus-interpolation-1_27_http//file",
+    source_jar = "@org_codehaus_plexus-plexus-interpolation-1_27-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-artifact-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-artifact-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-artifact-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-builder-support-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-builder-support-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-builder-support-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http_import",
+    jar = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http//file",
+    source_jar = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven-maven-repository-metadata-3_9_9_http_import",
+    jar = "@org_apache_maven-maven-repository-metadata-3_9_9_http//file",
+    source_jar = "@org_apache_maven-maven-repository-metadata-3_9_9-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven_resolver-maven-resolver-api-1_9_22_http_import",
+    jar = "@org_apache_maven_resolver-maven-resolver-api-1_9_22_http//file",
+    source_jar = "@org_apache_maven_resolver-maven-resolver-api-1_9_22-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven_resolver-maven-resolver-spi-1_9_22_http_import",
+    jar = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22_http//file",
+    source_jar = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven_resolver-maven-resolver-util-1_9_22_http_import",
+    jar = "@org_apache_maven_resolver-maven-resolver-util-1_9_22_http//file",
+    source_jar = "@org_apache_maven_resolver-maven-resolver-util-1_9_22-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven_resolver-maven-resolver-impl-1_9_22_http_import",
+    jar = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22_http//file",
+    source_jar = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http_import",
+    jar = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http//file",
+    source_jar = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22-sources_http//file",
+)
+
+copy_file(
     name = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar_copy",
     src = "@org_apache_maven_resolver-maven-resolver-connector-basic-1_9_22_http//file",
     out = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar",
@@ -16329,209 +16532,6 @@ jvm_import(
     jar = "@org_codehaus_plexus-plexus-archiver-4_8_0_http//file",
     source_jar = "@org_codehaus_plexus-plexus-archiver-4_8_0-sources_http//file",
     visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-resolver-provider-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-resolver-provider-3_9_9_http//file",
-    out = "org.apache.maven/maven-resolver-provider-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-model-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-model-3_9_9_http//file",
-    out = "org.apache.maven/maven-model-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-model-builder-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-model-builder-3_9_9_http//file",
-    out = "org.apache.maven/maven-model-builder-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.codehaus.plexus/plexus-interpolation-1.27.jar_copy",
-    src = "@org_codehaus_plexus-plexus-interpolation-1_27_http//file",
-    out = "org.codehaus.plexus/plexus-interpolation-1.27.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-artifact-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-artifact-3_9_9_http//file",
-    out = "org.apache.maven/maven-artifact-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-builder-support-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-builder-support-3_9_9_http//file",
-    out = "org.apache.maven/maven-builder-support-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.eclipse.sisu/org.eclipse.sisu.inject-0.9.0.M3.jar_copy",
-    src = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http//file",
-    out = "org.eclipse.sisu/org.eclipse.sisu.inject-0.9.0.M3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven/maven-repository-metadata-3.9.9.jar_copy",
-    src = "@org_apache_maven-maven-repository-metadata-3_9_9_http//file",
-    out = "org.apache.maven/maven-repository-metadata-3.9.9.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven.resolver/maven-resolver-api-1.9.22.jar_copy",
-    src = "@org_apache_maven_resolver-maven-resolver-api-1_9_22_http//file",
-    out = "org.apache.maven.resolver/maven-resolver-api-1.9.22.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven.resolver/maven-resolver-spi-1.9.22.jar_copy",
-    src = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22_http//file",
-    out = "org.apache.maven.resolver/maven-resolver-spi-1.9.22.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven.resolver/maven-resolver-util-1.9.22.jar_copy",
-    src = "@org_apache_maven_resolver-maven-resolver-util-1_9_22_http//file",
-    out = "org.apache.maven.resolver/maven-resolver-util-1.9.22.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven.resolver/maven-resolver-impl-1.9.22.jar_copy",
-    src = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22_http//file",
-    out = "org.apache.maven.resolver/maven-resolver-impl-1.9.22.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.maven.resolver/maven-resolver-named-locks-1.9.22.jar_copy",
-    src = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http//file",
-    out = "org.apache.maven.resolver/maven-resolver-named-locks-1.9.22.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "maven-resolver-provider",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":org_apache_maven-maven-resolver-provider-3_9_9_http_import",
-        ":org_apache_maven-maven-model-3_9_9_http_import",
-        ":org_apache_maven-maven-model-builder-3_9_9_http_import",
-        ":org_codehaus_plexus-plexus-interpolation-1_27_http_import",
-        ":org_apache_maven-maven-artifact-3_9_9_http_import",
-        ":org_apache_maven-maven-builder-support-3_9_9_http_import",
-        ":org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http_import",
-        ":org_apache_maven-maven-repository-metadata-3_9_9_http_import",
-        ":org_apache_maven_resolver-maven-resolver-api-1_9_22_http_import",
-        ":org_apache_maven_resolver-maven-resolver-spi-1_9_22_http_import",
-        ":org_apache_maven_resolver-maven-resolver-util-1_9_22_http_import",
-        ":org_apache_maven_resolver-maven-resolver-impl-1_9_22_http_import",
-        ":org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http_import",
-    ],
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-resolver-provider-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-resolver-provider-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-resolver-provider-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-model-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-model-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-model-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-model-builder-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-model-builder-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-model-builder-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_codehaus_plexus-plexus-interpolation-1_27_http_import",
-    jar = "@org_codehaus_plexus-plexus-interpolation-1_27_http//file",
-    source_jar = "@org_codehaus_plexus-plexus-interpolation-1_27-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-artifact-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-artifact-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-artifact-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-builder-support-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-builder-support-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-builder-support-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http_import",
-    jar = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3_http//file",
-    source_jar = "@org_eclipse_sisu-org_eclipse_sisu_inject-0_9_0_M3-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven-maven-repository-metadata-3_9_9_http_import",
-    jar = "@org_apache_maven-maven-repository-metadata-3_9_9_http//file",
-    source_jar = "@org_apache_maven-maven-repository-metadata-3_9_9-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven_resolver-maven-resolver-api-1_9_22_http_import",
-    jar = "@org_apache_maven_resolver-maven-resolver-api-1_9_22_http//file",
-    source_jar = "@org_apache_maven_resolver-maven-resolver-api-1_9_22-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven_resolver-maven-resolver-spi-1_9_22_http_import",
-    jar = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22_http//file",
-    source_jar = "@org_apache_maven_resolver-maven-resolver-spi-1_9_22-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven_resolver-maven-resolver-util-1_9_22_http_import",
-    jar = "@org_apache_maven_resolver-maven-resolver-util-1_9_22_http//file",
-    source_jar = "@org_apache_maven_resolver-maven-resolver-util-1_9_22-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven_resolver-maven-resolver-impl-1_9_22_http_import",
-    jar = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22_http//file",
-    source_jar = "@org_apache_maven_resolver-maven-resolver-impl-1_9_22-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http_import",
-    jar = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22_http//file",
-    source_jar = "@org_apache_maven_resolver-maven-resolver-named-locks-1_9_22-sources_http//file",
 )
 
 copy_file(

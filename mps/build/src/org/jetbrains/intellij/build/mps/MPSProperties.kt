@@ -17,7 +17,6 @@ import org.jetbrains.intellij.build.NativeBinaryDownloader
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.impl.BuildUtils.checkedReplace
-import org.jetbrains.intellij.build.impl.LibraryPackMode
 import org.jetbrains.intellij.build.impl.PlatformLayout
 import org.jetbrains.intellij.build.impl.PluginLayout
 import org.jetbrains.intellij.build.productLayout.CommunityModuleSets
@@ -121,7 +120,8 @@ class MPSProperties : JetBrainsProductProperties() {
             layout.withProjectLibrary("http-client", "lib.jar", "withProjectLibrary")
 //            layout.withoutProjectLibrary("Ant")
             layout.withoutProjectLibrary("Gradle")
-            layout.withProjectLibrary("maven-resolver-provider", LibraryPackMode.STANDALONE_MERGED)
+            // the JPS build process reads the library from lib/; the wrapper module itself ships with the aether dependency resolver plugin
+            layout.withModuleLibrary("maven-resolver-provider", "intellij.libraries.maven.resolver.provider", "")
         }
 
         modulesToCompileTests = persistentListOf(

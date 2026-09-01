@@ -14,16 +14,16 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:maven-resolver-provider"],
+    exports = ["@lib//:libraries-maven-resolver-provider-maven-resolver-provider"],
     runtime_deps = [
         # do not sort,
-        "@lib//:maven-resolver-provider",
+        "@lib//:libraries-maven-resolver-provider-maven-resolver-provider",
         "//libraries/plexus-utils",
     ],
 )
 
 content_module_jar(
-    libraries = ["@lib//:maven-resolver-provider"],
+    libraries = ["@lib//:libraries-maven-resolver-provider-maven-resolver-provider"],
     module = ":maven-resolver-provider",
 )
 
@@ -37,7 +37,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.maven.resolver.provider",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:maven-resolver-provider"],
+    exports = ["@lib//:libraries-maven-resolver-provider-maven-resolver-provider"],
     runtime_deps = [
         # do not sort,
         ":maven-resolver-provider",

@@ -177,8 +177,6 @@ intellij.hibernate	member_jar	intellij.hibernate.console.v4	hibernate4-console.j
 intellij.hibernate	member_jar	intellij.hibernate.console.v5	hibernate5-console.jar
 intellij.hibernate	member_jar	intellij.hibernate.console.v52	hibernate52-console.jar
 
-intellij.java.aetherDependencyResolver.plugin	vetoed_member	intellij.libraries.maven.resolver.provider
-intellij.java.aetherDependencyResolver.plugin	vetoed_member	intellij.repository.search.common
 
 intellij.java.guiForms.designer	member_jar	intellij.java.guiForms.jps	jps/java-guiForms-jps.jar
 
