@@ -54,6 +54,7 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       "intellij.libraries.kotlinc.lombok.compiler.plugin",
       "intellij.libraries.kotlinc.compose.compiler.plugin",
       "intellij.libraries.kotlinc.js.plain.objects.compiler.plugin",
+      "intellij.libraries.kotlinc.kotlin.dataframe.compiler.plugin",
       "intellij.libraries.kotlinc.parcelize.compiler.plugin",
       "intellij.libraries.kotlinc.scripting.compiler.plugin",
       "intellij.libraries.kotlinc.assignment.compiler.plugin",
@@ -73,9 +74,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       "javax-inject",
     )
 
-    private val COMPILER_PLUGINS = java.util.List.of(
-      "kotlinc.kotlin-dataframe-compiler-plugin",
-    )
   }
 
   open fun kotlinPlugin(addition: ((PluginLayout.PluginLayoutSpec) -> Unit)? = null): PluginLayout {
@@ -119,9 +117,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
     )
     for (libraryName in LIBRARIES_UNPACKED) {
       spec.withProjectLibraryUnpackedIntoJar(libraryName, spec.mainJarName)
-    }
-    for (library in COMPILER_PLUGINS) {
-      spec.withProjectLibrary(library)
     }
     withKotlincKotlinCompilerCommonLibrary(spec, spec.mainModule)
     for (library in LIBRARIES) {

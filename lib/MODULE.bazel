@@ -5286,20 +5286,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-kotlin-dataframe-compiler-plugin-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "4955ac1876c67f6731e834f18011f5d4fb05809e2419e340c2627130c0f8a1f1",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-dataframe-compiler-plugin-for-ide/2.5.0-dev-6810/kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-kotlin-dataframe-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "94a07e291891a8f833f604b2e81333ab304bd37afbc46870b0b24bf9ba5dc31c",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-dataframe-compiler-plugin-for-ide/2.5.0-dev-6810/kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-dist-for-ide-2_4_10_http",
     downloaded_file_path = "kotlin-dist-for-ide-2.4.10.jar",
     sha256 = "0e80ea565f51f00e20a3135c7e266e1383d02a08fcada4267408f22fb1d9f522",
@@ -10148,6 +10134,20 @@ http_file(
     downloaded_file_path = "kotlin-compiler-fir-for-ide-2.5.0-dev-6810-sources.jar",
     sha256 = "c3a88a2bf479381072df47881e4aecf580997ff6cf61ebe9392742f45b80d7c0",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-fir-for-ide/2.5.0-dev-6810/kotlin-compiler-fir-for-ide-2.5.0-dev-6810-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-dataframe-compiler-plugin-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "4955ac1876c67f6731e834f18011f5d4fb05809e2419e340c2627130c0f8a1f1",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-dataframe-compiler-plugin-for-ide/2.5.0-dev-6810/kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-dataframe-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "94a07e291891a8f833f604b2e81333ab304bd37afbc46870b0b24bf9ba5dc31c",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-dataframe-compiler-plugin-for-ide/2.5.0-dev-6810/kotlin-dataframe-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(

@@ -208,6 +208,7 @@
     <module name="intellij.libraries.kotlinc.lombok.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.compose.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.js.plain.objects.compiler.plugin" loading="embedded"/>
+    <module name="intellij.libraries.kotlinc.kotlin.dataframe.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.parcelize.compiler.plugin" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.low.level.api.fir" loading="embedded"/>
     <module name="intellij.libraries.kotlinc.symbol.light.classes" loading="embedded"/>

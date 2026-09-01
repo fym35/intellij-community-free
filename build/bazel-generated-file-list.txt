@@ -548,6 +548,7 @@ libraries/kotlinc/compose-compiler-plugin
 libraries/kotlinc/js-plain-objects-compiler-plugin
 libraries/kotlinc/kotlin-compiler-common
 libraries/kotlinc/kotlin-compiler-fir
+libraries/kotlinc/kotlin-dataframe-compiler-plugin
 libraries/kotlinc/kotlin-jps-common
 libraries/kotlinc/kotlin-script-runtime
 libraries/kotlinc/kotlin-scripting-common
