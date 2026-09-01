@@ -117,10 +117,6 @@ open class IdeaFrameUI(data: ComponentData) : WindowUiComponent(data) {
     }
   }
 
-  fun clickEmptyToolbarArea() {
-    toolbar.click(emptyMainToolbarAreaPointOnScreen().relativeTo(toolbar))
-  }
-
   fun doubleClickEmptyToolbarArea() {
     toolbar.doubleClick(emptyMainToolbarAreaPointOnScreen().relativeTo(toolbar))
   }
