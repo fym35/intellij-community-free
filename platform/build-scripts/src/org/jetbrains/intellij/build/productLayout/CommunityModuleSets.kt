@@ -379,6 +379,7 @@ object CommunityModuleSets {
     module("intellij.libraries.javax.activation")
     module("intellij.libraries.opencsv")
     module("intellij.libraries.squareup.okio.jvm")
+    module("intellij.libraries.okhttp")
     module("intellij.libraries.lucene.common")
     module("intellij.libraries.jettison")
     module("intellij.libraries.oshi.core")
