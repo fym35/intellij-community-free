@@ -107,7 +107,6 @@ private val IMPLICIT_PLUGIN_PROJECT_LIBRARY_ALLOWLIST: Set<String> = java.util.S
   "okhttp",
   "org.apache.ivy",
   "org.scilab.forge:jlatexmath",
-  "squareup.okio.jvm",
 )
 
 class JarPackager private constructor(

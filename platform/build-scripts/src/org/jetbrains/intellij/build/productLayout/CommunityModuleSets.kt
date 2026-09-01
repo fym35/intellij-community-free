@@ -378,6 +378,7 @@ object CommunityModuleSets {
   fun librariesIdeCommon(): ModuleSet = moduleSet("libraries.ide.common") {
     module("intellij.libraries.javax.activation")
     module("intellij.libraries.opencsv")
+    module("intellij.libraries.squareup.okio.jvm")
     module("intellij.libraries.lucene.common")
     module("intellij.libraries.jettison")
     module("intellij.libraries.oshi.core")

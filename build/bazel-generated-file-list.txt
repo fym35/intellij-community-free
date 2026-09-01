@@ -613,6 +613,7 @@ libraries/netty/handler-proxy
 libraries/netty/tcnative-boringssl
 libraries/night-config-toml
 libraries/objenesis
+libraries/okio
 libraries/opencsv
 libraries/opentelemetry
 libraries/opentelemetry-exporter-otlp

@@ -34,6 +34,6 @@
     <orderEntry type="module" module-name="intellij.platform.util.jdom" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.serialization.core" />
     <orderEntry type="module" module-name="intellij.libraries.kaml" />
-    <orderEntry type="library" scope="RUNTIME" name="squareup.okio.jvm" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.squareup.okio.jvm" scope="RUNTIME" />
   </component>
 </module>

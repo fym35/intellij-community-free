@@ -15185,6 +15185,21 @@ jvm_import(
 )
 
 copy_file(
+    name = "com.squareup.okio/okio-jvm-3.16.0.jar_copy",
+    src = "@com_squareup_okio-okio-jvm-3_16_0_http//file",
+    out = "com.squareup.okio/okio-jvm-3.16.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-squareup-okio-jvm-squareup-okio-jvm",
+    jar = "@com_squareup_okio-okio-jvm-3_16_0_http//file",
+    source_jar = "@com_squareup_okio-okio-jvm-3_16_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
     name = "org.apache.sshd/sshd-osgi-2.15.0.jar_copy",
     src = "@org_apache_sshd-sshd-osgi-2_15_0_http//file",
     out = "org.apache.sshd/sshd-osgi-2.15.0.jar",
@@ -21344,21 +21359,6 @@ jvm_import(
     name = "slf4j-jdk14",
     jar = "@org_slf4j-slf4j-jdk14-2_0_13_http//file",
     source_jar = "@org_slf4j-slf4j-jdk14-2_0_13-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "com.squareup.okio/okio-jvm-3.16.0.jar_copy",
-    src = "@com_squareup_okio-okio-jvm-3_16_0_http//file",
-    out = "com.squareup.okio/okio-jvm-3.16.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "squareup-okio-jvm",
-    jar = "@com_squareup_okio-okio-jvm-3_16_0_http//file",
-    source_jar = "@com_squareup_okio-okio-jvm-3_16_0-sources_http//file",
     visibility = ["//visibility:public"],
 )
 
