@@ -91,7 +91,6 @@ dev_dist_plugin(
     descriptor_module = ":plugin",
     libraries = [
         "@lib//:javax-inject",
-        "@lib//:kotlin-metadata",
         "@lib//:kotlinc-allopen-compiler-plugin",
         "@lib//:kotlinc-compose-compiler-plugin",
         "@lib//:kotlinc-js-plain-objects-compiler-plugin",

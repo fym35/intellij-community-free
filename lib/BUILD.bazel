@@ -6666,21 +6666,6 @@ java_library(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlin/kotlin-metadata-jvm-2.4.20-RC3.jar_copy",
-    src = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http//file",
-    out = "org.jetbrains.kotlin/kotlin-metadata-jvm-2.4.20-RC3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlin-metadata",
-    jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http//file",
-    source_jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.jetbrains.kotlin/kotlin-project-model-1.6.0.jar_copy",
     src = "@org_jetbrains_kotlin-kotlin-project-model-1_6_0_http//file",
     out = "org.jetbrains.kotlin/kotlin-project-model-1.6.0.jar",
@@ -12819,6 +12804,21 @@ jvm_import(
     name = "libraries-kotlin-logging-io-github-oshai-kotlin-logging-jvm",
     jar = "@io_github_oshai-kotlin-logging-jvm-7_0_3_http//file",
     source_jar = "@io_github_oshai-kotlin-logging-jvm-7_0_3-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.kotlin/kotlin-metadata-jvm-2.4.20-RC3.jar_copy",
+    src = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http//file",
+    out = "org.jetbrains.kotlin/kotlin-metadata-jvm-2.4.20-RC3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlin-metadata-kotlin-metadata",
+    jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http//file",
+    source_jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

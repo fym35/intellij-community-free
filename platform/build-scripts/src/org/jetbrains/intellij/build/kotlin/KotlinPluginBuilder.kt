@@ -54,7 +54,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
 
     private val LIBRARIES_UNPACKED = java.util.List.of(
       "kotlinc.kotlin-gradle-statistics",
-      "kotlin-metadata",
       "kotlinc.kotlin-build-tools-api",
       "kotlinc.kotlin-build-tools-impl",
       "kotlinc.kotlin-build-tools-cri-impl",

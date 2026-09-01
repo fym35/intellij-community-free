@@ -90,19 +90,6 @@ fun interface DistributionAssetFilter {
   fun accept(relativeOutputFile: String): Boolean
 }
 
-/**
- * Project libraries that plugin modules still get implicitly, only because such a dependency was packaged this way before
- * the implicit collection was restricted to library modules (see [computeSourcesForModuleLibs]).
- *
- * Each entry must be converted to a library module (`intellij.libraries.*`) and removed from this list - IJPL-252908.
- * Do not add new entries: a project library must be provided by the platform, by a library module,
- * or declared explicitly in the plugin layout.
- */
-private val IMPLICIT_PLUGIN_PROJECT_LIBRARY_ALLOWLIST: Set<String> = java.util.Set.of(
-  // declared by the platform layout of the ultimate-family products only, so a plugin of another product needs its own copy
-  "kotlin-metadata",
-)
-
 class JarPackager private constructor(
   private val outDir: Path,
   private val context: BuildContext,
@@ -569,7 +556,7 @@ class JarPackager private constructor(
           continue
         }
 
-        if (!includeProjectLib && !(isAutoPlugin && IMPLICIT_PLUGIN_PROJECT_LIBRARY_ALLOWLIST.contains(libName))) {
+        if (!includeProjectLib) {
           if (isAutoPlugin &&
               !isProjectLibraryProvided(libName = libName, layout = layout, module = module, withTests = withTests)) {
             implicitProjectLibraryViolations.computeIfAbsent(libName) { TreeSet() }.add(moduleName)

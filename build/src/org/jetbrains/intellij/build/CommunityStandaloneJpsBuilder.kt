@@ -85,6 +85,7 @@ fun buildCommunityStandaloneJpsBuilder(
   layout.withModuleLibrary("jetbrains-annotations", "intellij.libraries.jetbrains.annotations", "")
   layout.withModuleLibrary("zstd-jni", "intellij.libraries.zstd.jni", "")
   layout.withModuleLibrary("jps-javac-extension", "intellij.libraries.jps.javac.extension", "")
+  layout.withModuleLibrary("kotlin-metadata", "intellij.libraries.kotlin.metadata", "")
 
   // layout of groovy jars must be consistent with GroovyBuilder.getGroovyRtRoots method
   layout.withModule("intellij.libraries.groovy", "groovy.jar")
@@ -111,7 +112,6 @@ fun buildCommunityStandaloneJpsBuilder(
     "slf4j-api",
     "kotlin-stdlib",
     "kotlinx-coroutines-core",
-    "kotlin-metadata",
   )) {
     layout.withProjectLibrary(it, LibraryPackMode.STANDALONE_MERGED)
   }

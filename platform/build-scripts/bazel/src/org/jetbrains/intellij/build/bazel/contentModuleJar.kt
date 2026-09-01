@@ -861,9 +861,9 @@ private fun isMergedIntoContentModuleJar(
  * The second branch - a same-group module that is *not* in the layout - is why the original needs
  * `layout.includedModules`, which the generator does not have. [ModuleList.contentModuleNames] stands in for it: a
  * module owns a content-module jar exactly when a recipe sits beside it, and a module that owns a jar is in the layout.
- * `intellij.platform.jps.build` is why the distinction matters - it declares `kotlin-metadata` and depends on
- * `intellij.platform.jps.build.dependencyGraph`, which declares it too, and both jars carry it because both modules are
- * in the layout.
+ * `intellij.platform.jps.build` and `intellij.platform.jps.build.dependencyGraph` were the worked example, because both
+ * declared `kotlin-metadata` and both jars carried it. The conversion of that library to a library module ended the
+ * case, so the branch has no example in the repository today.
  */
 private fun hasLibraryInDependencyChainOfModuleDependencies(
   dependentModule: ModuleDescriptor,

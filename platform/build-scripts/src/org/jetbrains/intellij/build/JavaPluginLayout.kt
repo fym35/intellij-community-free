@@ -16,7 +16,6 @@ object JavaPluginLayout {
       spec.withModuleLibrary("debugger-agent", "intellij.java.debugger.agent.holder", "rt")
 
       spec.withProjectLibrary("Eclipse", "ecj")
-      spec.withProjectLibrary("kotlin-metadata")
 
       spec.withModuleLibrary("debugger-memory-agent", "intellij.java.debugger.memory.agent", "")
       // explicitly pack and sa-jdwp as a separate JARs

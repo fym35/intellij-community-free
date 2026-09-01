@@ -53,6 +53,9 @@ object CoreModuleSets {
     embeddedModule("intellij.libraries.jetbrains.annotations")
 
     embeddedModule("intellij.libraries.kotlin.reflect")
+    // core, because no plugin can own the copy: the Java, Kotlin and API Watcher plugins all need it, and four
+    // products bundle the Kotlin plugin without the Java plugin. Not embedded: only plugin content reads it.
+    module("intellij.libraries.kotlin.metadata")
     // intellij.platform.wsl.impl and intellij.platform.util.http uses it
     embeddedModule("intellij.libraries.kotlinx.io")
 

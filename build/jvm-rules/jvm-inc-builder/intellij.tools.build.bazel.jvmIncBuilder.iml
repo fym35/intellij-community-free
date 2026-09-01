@@ -15,7 +15,7 @@
     <orderEntry type="library" name="mvstore" level="project" />
     <orderEntry type="library" name="hash4j" level="project" />
     <orderEntry type="library" name="ASM" level="project" />
-    <orderEntry type="library" name="kotlin-metadata" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlin.metadata" />
     <orderEntry type="module" module-name="intellij.libraries.caffeine" />
     <orderEntry type="module-library">
       <library name="qdox-java-parser" type="repository">

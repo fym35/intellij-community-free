@@ -274,7 +274,6 @@ intellij.kotlin.jsr223.plugin	member_jar	intellij.libraries.kotlinc.kotlin.compi
 intellij.kotlin.jsr223.plugin	project_library	kotlinc.kotlin-compiler-fe10
 
 intellij.kotlin.plugin	project_library	javax-inject
-intellij.kotlin.plugin	project_library	kotlin-metadata
 intellij.kotlin.plugin	project_library	kotlinc.allopen-compiler-plugin
 intellij.kotlin.plugin	project_library	kotlinc.assignment-compiler-plugin
 intellij.kotlin.plugin	project_library	kotlinc.compose-compiler-plugin
@@ -401,7 +400,6 @@ language-server.plugins.java	member_jar	intellij.platform.jps.build.launcher	jps
 language-server.plugins.java	vetoed_member	intellij.libraries.completion.ranking.java
 
 language-server.plugins.kotlin	project_library	javax-inject
-language-server.plugins.kotlin	project_library	kotlin-metadata
 language-server.plugins.kotlin	project_library	kotlinc.allopen-compiler-plugin
 language-server.plugins.kotlin	project_library	kotlinc.assignment-compiler-plugin
 language-server.plugins.kotlin	project_library	kotlinc.compose-compiler-plugin

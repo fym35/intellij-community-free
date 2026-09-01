@@ -332,7 +332,7 @@ jvm_library(
         # do not sort,
         "@community//build:build-javac-rt",
         "//libraries/jetbrains/annotations",
-        "@lib//:kotlin-metadata",
+        "//libraries/kotlin/metadata",
         "//libraries/caffeine",
         "//libraries/asm",
         "//libraries/hash4j",
@@ -341,10 +341,7 @@ jvm_library(
     ],
 )
 
-content_module_jar(
-    libraries = ["@lib//:kotlin-metadata"],
-    module = ":dependency-graph",
-)
+content_module_jar(module = ":dependency-graph")
 
 jvm_library(
     name = "dependency-graph_test_lib",
@@ -361,6 +358,7 @@ jvm_library(
         ":dependency-graph",
         "@community//build:build-javac-rt_test_lib",
         "//libraries/jetbrains/annotations:annotations_test_lib",
+        "//libraries/kotlin/metadata:metadata_test_lib",
         "//libraries/caffeine:caffeine_test_lib",
         "//libraries/asm:asm_test_lib",
         "//libraries/hash4j:hash4j_test_lib",

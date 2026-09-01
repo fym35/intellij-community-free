@@ -64,7 +64,7 @@ jvm_library(
         "//libraries/netty/codec-protobuf:libraries-netty-codec-protobuf",
         "//libraries/netty/codec-http:libraries-netty-codec-http",
         "//libraries/netty/buffer",
-        "@lib//:kotlin-metadata",
+        "//libraries/kotlin/metadata",
         "//libraries/kotlinx/coroutines/core",
         "//platform/eel",
         "//platform/eel-nioFs",
@@ -72,11 +72,7 @@ jvm_library(
 )
 
 content_module_jar(
-    libraries = [
-        # do not sort,
-        "@lib//:platform-jps-build-qdox-java-parser",
-        "@lib//:kotlin-metadata",
-    ],
+    libraries = ["@lib//:platform-jps-build-qdox-java-parser"],
     module = ":build",
 )
 
@@ -129,6 +125,7 @@ jvm_library(
         "//libraries/netty/codec-protobuf:libraries-netty-codec-protobuf_test_lib",
         "//libraries/netty/codec-http:libraries-netty-codec-http_test_lib",
         "//libraries/netty/buffer:buffer_test_lib",
+        "//libraries/kotlin/metadata:metadata_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//platform/eel:eel_test_lib",
         "//platform/eel-nioFs:eel-nioFs_test_lib",

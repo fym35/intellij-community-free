@@ -5314,20 +5314,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http",
-    downloaded_file_path = "kotlin-metadata-jvm-2.4.20-RC3.jar",
-    sha256 = "62c1a1542883031c6cade865b036c63c1048bed7430f8724e8036d3e0a168ba1",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-metadata-jvm/2.4.20-RC3/kotlin-metadata-jvm-2.4.20-RC3.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3-sources_http",
-    downloaded_file_path = "kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
-    sha256 = "084094bc2bdeda110da57c8c44747aa6a8a31bdf233e9ef49388992315443624",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-metadata-jvm/2.4.20-RC3/kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-project-model-1_6_0_http",
     downloaded_file_path = "kotlin-project-model-1.6.0.jar",
     sha256 = "38135d3f995fc505d604aed2e82ac5ba858b2a6a3e476899c3b8be47fd222b68",
@@ -10232,6 +10218,20 @@ http_file(
     downloaded_file_path = "kotlin-logging-jvm-7.0.3-sources.jar",
     sha256 = "9e447b4e7765d7ad558422976b9b4d54b0f605185ede77214df6bb98e8bd82f8",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/io/github/oshai/kotlin-logging-jvm/7.0.3/kotlin-logging-jvm-7.0.3-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http",
+    downloaded_file_path = "kotlin-metadata-jvm-2.4.20-RC3.jar",
+    sha256 = "62c1a1542883031c6cade865b036c63c1048bed7430f8724e8036d3e0a168ba1",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-metadata-jvm/2.4.20-RC3/kotlin-metadata-jvm-2.4.20-RC3.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3-sources_http",
+    downloaded_file_path = "kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
+    sha256 = "084094bc2bdeda110da57c8c44747aa6a8a31bdf233e9ef49388992315443624",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-metadata-jvm/2.4.20-RC3/kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
 )
 
 http_file(
