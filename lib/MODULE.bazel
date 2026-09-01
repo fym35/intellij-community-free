@@ -5468,20 +5468,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-parcelize-compiler-plugin-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "parcelize-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "96cb59ddd773de7231655fb967c88ad28a0cec9c43eb4ca20b210ad546220e7d",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/parcelize-compiler-plugin-for-ide/2.5.0-dev-6810/parcelize-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-parcelize-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "parcelize-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "b488e5754a14826d01ee80fe5fef7bf1d4b2e70c678a771a00ffee21e9bce2c8",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/parcelize-compiler-plugin-for-ide/2.5.0-dev-6810/parcelize-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-sam-with-receiver-compiler-plugin-for-ide-2_5_0-dev-6810_http",
     downloaded_file_path = "sam-with-receiver-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
     sha256 = "b493687c8ee61ee52cf4b75ec09a317ba4278e59a893eb325d93b3cdf5980be4",
@@ -10316,6 +10302,20 @@ http_file(
     downloaded_file_path = "low-level-api-fir-for-ide-2.5.0-dev-6810-sources.jar",
     sha256 = "31a7698b8174efd22169e32ea8cf2762845216ccfa06cf0cfd4e87db8f29db26",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/low-level-api-fir-for-ide/2.5.0-dev-6810/low-level-api-fir-for-ide-2.5.0-dev-6810-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-parcelize-compiler-plugin-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "parcelize-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "96cb59ddd773de7231655fb967c88ad28a0cec9c43eb4ca20b210ad546220e7d",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/parcelize-compiler-plugin-for-ide/2.5.0-dev-6810/parcelize-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-parcelize-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "parcelize-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "b488e5754a14826d01ee80fe5fef7bf1d4b2e70c678a771a00ffee21e9bce2c8",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/parcelize-compiler-plugin-for-ide/2.5.0-dev-6810/parcelize-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(
