@@ -436,7 +436,7 @@ object CommunityLibraryLicenses {
       .apache("https://github.com/gradle/gradle/blob/master/LICENSE")
       .suppliedByOrganizations("Gradle Inc."),
 
-    LibraryLicense(libraryName = "Gradle Tooling API", url = "https://gradle.org/")
+    LibraryLicense("Gradle Tooling API", libraryName = "gradle-tooling-api", url = "https://gradle.org/")
       .apache("https://github.com/gradle/gradle/blob/master/LICENSE")
       .suppliedByOrganizations("Gradle Inc."),
 

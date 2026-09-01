@@ -425,7 +425,6 @@ language-server.plugins.kotlin-dap.lsp	member_jar	intellij.kotlin.jvm.debugger.e
 language-server.plugins.kotlin-dap.lsp	member_jar	kotlin.jvm-debugger.evaluation	kotlin.jvm-debugger.evaluation.jar
 
 language-server.plugins.kotlin.lsp	member_jar	language-server.workspace-import.maven-plugin	workspace-import-maven-plugin.jar
-language-server.plugins.kotlin.lsp	vetoed_member	intellij.libraries.gradle.tooling
 
 language-server.plugins.mcp	vetoed_member	intellij.mcpserver.stdio
 
