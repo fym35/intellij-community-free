@@ -12,16 +12,30 @@ import com.jetbrains.python.statistics.executionType
 
 object PyTypeEngineUtils {
   /**
+   * The registry key that removes the single-module restriction on the external type engine. The key
+   * lets a multi-module project use the engine. It is off by default.
+   */
+  const val MULTI_MODULE_REGISTRY_KEY: String = "pycharm.type.engine.multi.module"
+
+  /** Whether the external type engine may be used on a project with more than one module. */
+  val isMultiModuleSupportEnabled: Boolean
+    get() = Registry.`is`(MULTI_MODULE_REGISTRY_KEY, false)
+
+  /**
    * Whether the external **type engine** may be used for [project]. The engine is single-module
-   * only; multi-module support is not implemented yet (PY-89705). For the per-module check used by
-   * the Pyrefly/ty **tool** (which is allowed in multi-module projects) see [isLocalNonReadOnlySdk].
+   * only unless [MULTI_MODULE_REGISTRY_KEY] is set. For the per-module check
+   * used by the Pyrefly/ty **tool** (which is always allowed in multi-module projects) see
+   * [isLocalNonReadOnlySdk].
    */
   fun isExternalTypeEngineSupported(project: Project): Boolean {
     if (!Registry.`is`("pycharm.type.engine", true))
       return false
 
-    val module = project.modules.singleOrNull() ?: return false
-    return isLocalNonReadOnlySdk(module)
+    val modules = project.modules
+    val multiModuleAllowed = modules.size <= 1 || isMultiModuleSupportEnabled
+    // A multi-module project only needs one module the engine can serve: the others are skipped
+    // per-module (see PyreflyLspTypeEngineProvider) instead of disabling the engine project-wide.
+    return multiModuleAllowed && modules.any { isLocalNonReadOnlySdk(it) }
   }
 
   /**

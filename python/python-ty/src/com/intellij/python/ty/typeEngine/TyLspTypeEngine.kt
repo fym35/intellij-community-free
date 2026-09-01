@@ -1,5 +1,6 @@
 package com.intellij.python.ty.typeEngine
 
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.Ref
 import com.intellij.python.lsp.core.type.PyLspTypeEngine
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings
@@ -7,7 +8,7 @@ import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.jetbrains.python.psi.PyTypedElement
 import com.jetbrains.python.psi.types.PyType
 
-internal class TyLspTypeEngine : PyLspTypeEngine {
+internal class TyLspTypeEngine(override val module: Module) : PyLspTypeEngine {
   override val name: String = PyTypeEngineType.TY.name
 
   override fun isSupportedForResolve(pyTypedElement: PyTypedElement): Boolean {

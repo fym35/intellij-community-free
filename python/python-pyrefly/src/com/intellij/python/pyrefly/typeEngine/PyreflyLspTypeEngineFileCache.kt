@@ -30,16 +30,16 @@ internal class PyreflyLspTypeEngineFileCache(val project: Project) : Disposable.
 
 
   private val cachedMapStorage = CachedValuesManager.getManager(project).createCachedValue {
-    val map = ContainerUtil.createConcurrentSoftValueMap<PsiFile, LspTypeEvalContext>()
+    val map = ContainerUtil.createConcurrentSoftValueMap<ContextKey, LspTypeEvalContext>()
     CachedValueProvider.Result.create(map,
                                       PsiModificationTracker.getInstance(project ),
                                       lowMemoryModificationTracker,
                                       PyLspServerModificationTracker.getInstance(project))
   }
 
-  private val librariesCachedMapStorage: CachedValue<ConcurrentMap<PsiFile, LspTypeEvalContext>> =
+  private val librariesCachedMapStorage: CachedValue<ConcurrentMap<ContextKey, LspTypeEvalContext>> =
     CachedValuesManager.getManager(project).createCachedValue {
-      val map = ContainerUtil.createConcurrentSoftValueMap<PsiFile, LspTypeEvalContext>()
+      val map = ContainerUtil.createConcurrentSoftValueMap<ContextKey, LspTypeEvalContext>()
       CachedValueProvider.Result.create(map,
                                         PyLibraryModificationTracker.getInstance(project),
                                         lowMemoryModificationTracker,
@@ -60,8 +60,15 @@ internal class PyreflyLspTypeEngineFileCache(val project: Project) : Disposable.
   fun getContext(file: PsiFile, lspClient: LspClient, isLibrary: Boolean): LspTypeEvalContext {
     val storage = if (isLibrary) librariesCachedMapStorage else cachedMapStorage
     val cache = storage.value
-    return cache.getOrPut(file) { PyreflyTypeEvalContext(lspClient, file) }
+    return cache.getOrPut(ContextKey(file, lspClient)) { PyreflyTypeEvalContext(lspClient, file) }
   }
+
+  /**
+   * The client is part of the key because a multi-module project runs one Pyrefly server per module.
+   * With the file alone as the key, the first module to resolve a file would bind its
+   * own client for every later requester, and the other modules would resolve to `Any`.
+   */
+  private data class ContextKey(val file: PsiFile, val lspClient: LspClient)
 
   companion object {
     fun getInstance(project: Project): PyreflyLspTypeEngineFileCache = project.service()

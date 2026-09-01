@@ -7,6 +7,7 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.ensureClientStarted
 import com.intellij.platform.lsp.api.getClients
+import com.intellij.python.lsp.core.PyLspToolDescriptor
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineUtils
 import com.intellij.python.pyrefly.PyreflyPyTool
 import com.intellij.python.pyrefly.lsp.PyreflyLspClientDescriptor
@@ -34,9 +35,21 @@ class PyreflyLspTypeEngineProvider : PyTypeEngineProvider {
     if (!PyreflyPyTool.getInstance().isSelectedAsTypeEngine(module.project)) {
       return null
     }
+
+    // Skip a module whose interpreter Pyrefly cannot drive: PyreflyLspClientDescriptor
+    // .startServerProcess would throw. `isAvailable` above does not imply this, because the
+    // `pyrefly.type.engine` key and unit-test mode both bypass the interpreter check.
+    if (!PyTypeEngineUtils.isLocalNonReadOnlySdk(module)) {
+      return null
+    }
+
     val lspServerManager = LspClientManager.getInstance(module.project)
     lspServerManager.ensureClientStarted<PyreflyLspIntegrationProvider>(PyreflyLspClientDescriptor(module))
-    val server = lspServerManager.getClients<PyreflyLspIntegrationProvider>().firstOrNull() ?: return null
+    // Take the client serving *this* module: with several servers running, the first one would
+    // answer for another module's content roots and resolve everything to `Any`.
+    val server = lspServerManager.getClients<PyreflyLspIntegrationProvider>()
+                   .firstOrNull { (it.descriptor as? PyLspToolDescriptor)?.module == module }
+                 ?: return null
 
     return PyreflyLspTypeEngine(module, server)
   }

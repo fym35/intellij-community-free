@@ -29,7 +29,7 @@ class TyLspTypeEngineProvider : PyTypeEngineProvider {
     if (!lspServerExists) {
       return null
     }
-    return TyLspTypeEngine()
+    return TyLspTypeEngine(module)
   }
 
 }

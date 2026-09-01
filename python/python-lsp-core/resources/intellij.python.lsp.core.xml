@@ -40,6 +40,10 @@
                  defaultValue="false"
                  description="Enable Python LSP-backed type engines in notebooks"/>
 
+    <registryKey key="pycharm.type.engine.multi.module"
+                 defaultValue="false"
+                 description="Let a multi-module project use an external type engine"/>
+
     <statistics.counterUsagesCollector implementationClass="com.intellij.python.lsp.core.typeEngine.PyTypeEngineUsageCollector"/>
     <projectSettings service="com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings"/>
     <notificationGroup id="Python LSP Tools" displayType="STICKY_BALLOON" isLogByDefault="true" bundle="messages.PyBundle"
