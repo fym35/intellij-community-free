@@ -5804,20 +5804,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-test-jvm-1_10_2-intellij-2_http",
-    downloaded_file_path = "kotlinx-coroutines-test-jvm-1.10.2-intellij-2.jar",
-    sha256 = "4d1f02a6866849a71a84e2f1571bfcae26f9577d487f956934046c97a283a2a0",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-test-jvm/1.10.2-intellij-2/kotlinx-coroutines-test-jvm-1.10.2-intellij-2.jar",
-)
-
-http_file(
-    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-test-jvm-1_10_2-intellij-2-sources_http",
-    downloaded_file_path = "kotlinx-coroutines-test-jvm-1.10.2-intellij-2-sources.jar",
-    sha256 = "03c2bbc551541ef7b7fdcda0c3be67a51e4ddb0e553fdb9df0493acdaebf7ba7",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-test-jvm/1.10.2-intellij-2/kotlinx-coroutines-test-jvm-1.10.2-intellij-2-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlinx-kotlinx-io-core-jvm-0_7_0_http",
     downloaded_file_path = "kotlinx-io-core-jvm-0.7.0.jar",
     sha256 = "6ededc9be4d878aea80c7dd609f91bfc47fcd3d36cc91fd0f3f328fbd6656c8f",
@@ -10568,6 +10554,20 @@ http_file(
     downloaded_file_path = "binary-compatibility-validator-0.17.0-sources.jar",
     sha256 = "5257cdca3d1e7ad4b47fdb5b928a364710b792fe134d3feea58ec17813ac5f63",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlinx/binary-compatibility-validator/0.17.0/binary-compatibility-validator-0.17.0-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-test-jvm-1_10_2-intellij-2_http",
+    downloaded_file_path = "kotlinx-coroutines-test-jvm-1.10.2-intellij-2.jar",
+    sha256 = "4d1f02a6866849a71a84e2f1571bfcae26f9577d487f956934046c97a283a2a0",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-test-jvm/1.10.2-intellij-2/kotlinx-coroutines-test-jvm-1.10.2-intellij-2.jar",
+)
+
+http_file(
+    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-test-jvm-1_10_2-intellij-2-sources_http",
+    downloaded_file_path = "kotlinx-coroutines-test-jvm-1.10.2-intellij-2-sources.jar",
+    sha256 = "03c2bbc551541ef7b7fdcda0c3be67a51e4ddb0e553fdb9df0493acdaebf7ba7",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-test-jvm/1.10.2-intellij-2/kotlinx-coroutines-test-jvm-1.10.2-intellij-2-sources.jar",
 )
 
 http_file(

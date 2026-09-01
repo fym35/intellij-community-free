@@ -32,6 +32,6 @@
     <orderEntry type="library" name="fleet:aws.sdk.kotlin.s3.jvm" level="project" />
     <orderEntry type="library" name="slf4j-api" level="project" />
     <orderEntry type="module" module-name="fleet.test.runtime" scope="TEST" />
-    <orderEntry type="library" scope="TEST" name="kotlinx-coroutines-test" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinx.coroutines.test" scope="TEST" />
   </component>
 </module>

@@ -74,6 +74,9 @@ kotlin {
     implementation(project(":fleet.build.fs"))
   }
   sourceSets.commonTest.dependencies {
+    implementation(jps.org.jetbrains.intellij.deps.kotlinx.kotlinx.coroutines.core.jvm930800474.get().let { "${it.group}:kotlinx-coroutines-core:${it.version}" }) {
+      isTransitive = false
+    }
     implementation(jps.org.jetbrains.intellij.deps.kotlinx.kotlinx.coroutines.test.jvm1610416103.get().let { "${it.group}:kotlinx-coroutines-test:${it.version}" }) {
       isTransitive = false
     }
