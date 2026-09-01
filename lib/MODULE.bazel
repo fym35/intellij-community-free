@@ -5174,20 +5174,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-js-plain-objects-compiler-plugin-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "3fa2e419218133b7c6ec6f205d4a0bc43a444542266d79c6737cfd2fcae90af1",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/js-plain-objects-compiler-plugin-for-ide/2.5.0-dev-6810/js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-js-plain-objects-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "58409a3544632c8fda136f0f8069ab9e1d9369e2ecca0b1f80218f7c8fa95651",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/js-plain-objects-compiler-plugin-for-ide/2.5.0-dev-6810/js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-build-common-tests-for-ide-2_5_0-dev-6810_http",
     downloaded_file_path = "kotlin-build-common-tests-for-ide-2.5.0-dev-6810.jar",
     sha256 = "d490ee663f53a009119e37d92580ccbe43b7fe09c996221bc46837d08747270b",
@@ -10120,6 +10106,20 @@ http_file(
     downloaded_file_path = "compose-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
     sha256 = "942fcf2b6773c141ca99b3cd8be9baedb85b14ad6c696c877454f397a0910b99",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.5.0-dev-6810/compose-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-js-plain-objects-compiler-plugin-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "3fa2e419218133b7c6ec6f205d4a0bc43a444542266d79c6737cfd2fcae90af1",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/js-plain-objects-compiler-plugin-for-ide/2.5.0-dev-6810/js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-js-plain-objects-compiler-plugin-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "58409a3544632c8fda136f0f8069ab9e1d9369e2ecca0b1f80218f7c8fa95651",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/js-plain-objects-compiler-plugin-for-ide/2.5.0-dev-6810/js-plain-objects-compiler-plugin-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(
