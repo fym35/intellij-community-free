@@ -1,6 +1,6 @@
 # Golden action-group structure: child id sequences observed via getChildActionsOrStubs.
 # Regenerate: (cd community && ./tests.cmd --module intellij.idea.community.main.tests --test com.intellij.openapi.actionSystem.CommunityActionGroupStructureTest -Dpass.actions.golden.regenerate=true)
-# Risky group ids not registered in this run (0 of 320):
+# Risky group ids not registered in this run (0 of 319):
 [tree MainMenu]
   FileMenu
     FileOpenGroup
@@ -1318,18 +1318,6 @@
       MoveTabRight
       SplitHorizontally
       MoveTabDown
-      SplitChooser
-      SplitChooser.Actions
-        SplitChooser.NextWindow
-        SplitChooser.PreviousWindow
-        SplitChooser.Exit
-        SplitChooser.Split
-        SplitChooser.Duplicate
-        SplitChooser.SplitCenter
-        SplitChooser.SplitTop
-        SplitChooser.SplitLeft
-        SplitChooser.SplitDown
-        SplitChooser.SplitRight
       StretchSplitToTop
       StretchSplitToLeft
       StretchSplitToBottom
@@ -2041,8 +2029,6 @@
   MoveTabRight
   SplitHorizontally
   MoveTabDown
-  SplitChooser
-  SplitChooser.Actions
   StretchSplitToTop
   StretchSplitToLeft
   StretchSplitToBottom
@@ -3037,20 +3023,8 @@
   <separator>
 [group ShowRecentFindUsagesGroup]
 [group ShowUsagesPinGroup]
-[group SplitChooser.Actions]
-  SplitChooser.NextWindow
-  SplitChooser.PreviousWindow
-  SplitChooser.Exit
-  SplitChooser.Split
-  SplitChooser.Duplicate
-  SplitChooser.SplitCenter
-  SplitChooser.SplitTop
-  SplitChooser.SplitLeft
-  SplitChooser.SplitDown
-  SplitChooser.SplitRight
 [group SplitRevealGroup]
   OpenInRightSplit
-  SplitChooser
   RevealGroup
 [group StandardMacroActions]
   PlaybackLastMacro

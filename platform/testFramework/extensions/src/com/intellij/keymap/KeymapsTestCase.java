@@ -638,7 +638,8 @@ public abstract class KeymapsTestCase extends KeymapsTestCaseBase {
     "ActivateUnitTestsToolWindow", "ActivateDatabaseToolWindow", "ActivateBuildToolWindow", "ActivateNuGetToolWindow",
     "RiderBackendAction-EncapsulateField", "SwitchHeaderSource", "BuildProject", "RebuildProject", "BuildSolutionAction",
     "RebuildSolutionAction", "SaveAs",
-    "ActivateInspectionResultsToolWindow", ""
+    "ActivateInspectionResultsToolWindow",
+    ""
   );
 
   private static final Set<String> DEFAULT_BOUND_ACTIONS = Set.of(

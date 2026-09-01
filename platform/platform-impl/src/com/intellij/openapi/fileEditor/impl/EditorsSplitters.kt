@@ -1090,7 +1090,8 @@ open class EditorsSplitters internal constructor(
   fun windows(): Sequence<EditorWindow> = windows.asSequence()
 
   // collector for windows in tree ordering: get a root component and traverse splitters tree
-  internal fun getOrderedWindows(): MutableList<EditorWindow> {
+  @Internal
+  fun getOrderedWindows(): MutableList<EditorWindow> {
     val result = ArrayList<EditorWindow>()
 
     fun collectWindow(component: JComponent) {
