@@ -23,12 +23,7 @@ import java.util.List;
 import static com.intellij.openapi.externalSystem.util.ExternalSystemLoggerUtilKt.debugTrace;
 
 
-/**
- * @see ExternalSystemProjectTracker#markDirty
- * @see ExternalSystemProjectTracker#markDirtyAllProjects
- * @see ExternalSystemProjectTracker#scheduleChangeProcessing
- * @deprecated use {@link ExternalSystemProjectTracker} instead
- */
+/// @deprecated use {@link ExternalSystemProjectTracker} instead
 @ApiStatus.Internal
 @SuppressWarnings("DeprecatedIsStillUsed")
 @Deprecated

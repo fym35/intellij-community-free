@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.ApiStatus.Internal
 
 @ApiStatus.NonExtendable
 interface ExternalSystemProjectTracker {
@@ -40,29 +41,50 @@ interface ExternalSystemProjectTracker {
   fun remove(id: ExternalSystemProjectId)
 
   /**
-   * Marks project settings as dirty.
+   * Marks that project [id] has undefined modifications.
+   *
+   * Also, it schedules auto-sync with:
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.ALL],
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.SELECTIVE];
+   * Also, it shows notification with:
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.NONE].
    */
   fun markDirty(id: ExternalSystemProjectId)
 
   /**
-   * Marks all external project settings as dirty
-   * @see markDirty(ExternalSystemProjectId)
+   * Marks that all projects have undefined modifications.
+   *
+   * @see markDirty
    */
   fun markDirtyAllProjects()
 
   /**
-   * Schedules project reload, may be skipped if project is up-to-date, project is being reloaded or VCS is being updated.
-   * Use [markDirtyAllProjects] for force project reload.
+   * Marks that project [id] has an internal undefined modification.
+   *
+   * Also, it schedules auto-sync with:
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.ALL];
+   * Also, it shows notification with:
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.SELECTIVE],
+   *  - [ExternalSystemProjectTrackerSettings.AutoReloadType.NONE].
+   *
+   * @see markDirty
    */
-  fun scheduleProjectRefresh()
+  @Internal
+  fun markDirtyInternal(id: ExternalSystemProjectId)
 
   /**
-   * Schedules project reload or notification update.
-   * I.e. marks this place as safe to start auto-reload.
+   * Schedules sync for all dirty or modified project.
    *
-   * @see scheduleProjectRefresh
+   * This method ignores the [ExternalSystemProjectTrackerSettings.AutoReloadType] setting.
+   *
+   * Call this method to sync only projects that already have modifications.
+   *
+   * Call this method right after [markDirty] to include all marked projects to sync (force sync).
+   *
+   * @see markDirty
+   * @see markDirtyAllProjects
    */
-  fun scheduleChangeProcessing()
+  fun scheduleProjectRefresh()
 
   companion object {
     @JvmStatic
