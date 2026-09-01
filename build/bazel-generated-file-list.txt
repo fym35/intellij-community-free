@@ -554,6 +554,7 @@ libraries/kotlinc/kotlin-scripting-dependencies
 libraries/kotlinc/kotlin-scripting-jvm
 libraries/kotlinc/kotlinx-serialization-compiler-plugin
 libraries/kotlinc/low-level-api-fir
+libraries/kotlinc/noarg-compiler-plugin
 libraries/kotlinc/parcelize-compiler-plugin
 libraries/kotlinc/scripting-compiler-plugin
 libraries/kotlinc/symbol-light-classes
