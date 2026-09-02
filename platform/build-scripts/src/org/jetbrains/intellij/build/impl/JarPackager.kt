@@ -69,7 +69,6 @@ import java.nio.file.Path
 import java.nio.file.PathMatcher
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.TreeMap
-import java.util.TreeSet
 import kotlin.io.path.invariantSeparatorsPathString
 
 private fun isJarPreSigned(file: Path, context: BuildContext): Boolean {
@@ -100,9 +99,6 @@ class JarPackager private constructor(
   private val assets = LinkedHashMap<Path, AssetDescriptor>()
 
   private val copiedFiles = LibraryFileCopyTracker()
-
-  /** project library name to the names of the auto plugin modules that depend on it, but do not get it packaged - see [checkImplicitProjectLibraries] */
-  private val implicitProjectLibraryViolations = TreeMap<String, MutableSet<String>>()
 
   private val helper = (context as BuildContextImpl).jarPackagerDependencyHelper
 
@@ -286,7 +282,6 @@ class JarPackager private constructor(
         searchableOptionSet = searchableOptionSet,
         context = context,
       )
-      checkImplicitProjectLibraries(layout)
     }
 
     if (layout is PluginLayout) {
@@ -360,19 +355,6 @@ class JarPackager private constructor(
       expected = prepackedPluginContent.filterKeys { it.pluginMainModule == layout.mainModule },
       claimed = prepackedContentJars.associate { it.jar.key to claimedPrepackedMembers.getValue(it.jar.key) },
     )
-  }
-
-  /**
-   * A project library referenced by a module of an auto plugin, but neither provided by the platform nor by a library module,
-   * would be silently missing from the distribution - fail the build instead, listing everything to be converted.
-   */
-  private fun checkImplicitProjectLibraries(layout: PluginLayout) {
-    check(implicitProjectLibraryViolations.isEmpty()) {
-      "Project libraries used by modules of $layout must be converted to content modules:\n" +
-      implicitProjectLibraryViolations.entries.joinToString(separator = "\n") { (libraryName, moduleNames) ->
-        "  '$libraryName' used by " + moduleNames.joinToString { "'$it'" }
-      }
-    }
   }
 
   internal fun computeSourcesForModule(item: ModuleItem, layout: BaseLayout?, searchableOptionSet: SearchableOptionSetDescriptor?) {
@@ -519,40 +501,19 @@ class JarPackager private constructor(
     withTests: Boolean,
   ) {
     val moduleName = module.name
-    val isAutoPlugin = layout is PluginLayout && layout.auto
-    // only a platform product module packs its own project libraries; no plugin module does
-    val includeProjectLib = layout !is PluginLayout && item.isProductModule()
-
     val excludedModuleLibraries = if (layout is PluginLayout) layout.excludedModuleLibraries.get(moduleName) ?: emptyList() else emptyList()
-    val excludedProjectLibraries = if (layout is PluginLayout) layout.excludedProjectLibraries else emptySet()
     for (element in helper.getLibraryDependencies(module, withTests = withTests)) {
       val libRef = element.libraryReference
       val isProjectLibrary = libRef.parentReference !is JpsModuleReference
       val projectLibraryData: ProjectLibraryData?
       if (isProjectLibrary) {
         val libName = libRef.libraryName
-        if (excludedProjectLibraries.contains(libName)) {
-          continue
-        }
-
-        if (!includeProjectLib && !isAutoPlugin) {
-          // a non-auto plugin never packs a project library implicitly; `createPlatformLayout` checks that the platform provides it
-          continue
-        }
-
-        // the platform packs it, the layout declares it, or a module of the same group already brings it
-        val isProvided = platformLayout!!.hasLibrary(libName) ||
-                         layout.hasLibrary(libName) ||
-                         helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)
-        if (!includeProjectLib) {
-          // no module wraps a project library any more, so nothing but the platform or the layout can provide it
-          if (!isProvided) {
-            implicitProjectLibraryViolations.computeIfAbsent(libName) { TreeSet() }.add(moduleName)
-          }
-          continue
-        }
-
-        if (isProvided) {
+        // only a platform product module packs its own project library, and only when the layout does not declare it
+        // and no module of the same group already brings it; a plugin module never packs one
+        if (layout is PluginLayout ||
+            !item.isProductModule() ||
+            layout.hasLibrary(libName) ||
+            helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)) {
           continue
         }
 

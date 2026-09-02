@@ -18,9 +18,6 @@ import org.jetbrains.intellij.build.forEachConcurrent
 import org.jetbrains.intellij.build.impl.PlatformJarNames.TEST_FRAMEWORK_JAR
 import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
 import org.jetbrains.jps.model.module.JpsModuleDependency
-import org.jetbrains.jps.model.module.JpsModuleReference
-import java.util.TreeMap
-import java.util.TreeSet
 
 private fun addModule(relativeJarPath: String, moduleNames: Sequence<String>, productLayout: ProductModulesLayout, layout: PlatformLayout) {
   layout.withModules(
@@ -31,20 +28,9 @@ private fun addModule(relativeJarPath: String, moduleNames: Sequence<String>, pr
 }
 
 fun createPlatformLayout(context: BuildContext): PlatformLayout {
-  val enabledPluginModules = context.getBundledPluginModules().toHashSet()
-  return createPlatformLayout(
-    projectLibrariesUsedByPlugins = computeProjectLibsUsedByPlugins(enabledPluginModules = enabledPluginModules, context = context),
-    context = context,
-  )
-}
-
-internal fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set<String>>, context: BuildContext): PlatformLayout {
   val productLayout = context.productProperties.productLayout
   val descriptorCacheContainer = DescriptorCacheContainer()
   val layout = PlatformLayout(descriptorCacheContainer)
-  // used only in modules that packed into Java
-  layout.withoutProjectLibrary("Eclipse")
-
   for (customizer in productLayout.platformLayoutSpec) {
     customizer(layout, context)
   }
@@ -231,21 +217,6 @@ internal fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set
       .sortedBy { it.moduleName },
   )
 
-  val violations = TreeMap<String, Set<String>>()
-  for ((libName, dependentModules) in projectLibrariesUsedByPlugins) {
-    if (layout.hasLibrary(libName) || layout.isProjectLibraryExcluded(libName)) {
-      continue
-    }
-
-    violations.put(libName, dependentModules)
-  }
-  check(violations.isEmpty()) {
-    "Project libraries used by plugins must be converted to content modules:\n" +
-    violations.entries.joinToString(separator = "\n") { (libraryName, moduleNames) ->
-      "  '$libraryName' used by " + moduleNames.joinToString { "'$it'" }
-    }
-  }
-
   val platformMainModule = "intellij.platform.starter"
   if (context.isEmbeddedFrontendEnabled && layout.includedModules.none { it.moduleName == platformMainModule }) {
     /* this module is used by JetBrains Client, but it isn't packed in commercial IDEs, so let's put it in a separate JAR which won't be
@@ -274,43 +245,6 @@ private fun computePartialListToResolveIncludesAndCollectProductModules(
     runtimeDependencyResolver = runtimeDependencyResolver,
   ).mapTo(result) { it.first }
   result.addAll(explicitModuleNames)
-  return result
-}
-
-/**
- * Project library name to the names of the modules of non-`auto` plugins which depend on it.
- * Such a library must be provided by the platform - see the check in [createPlatformLayout].
- *
- * `auto` plugins are skipped here, as their content modules are known only during packaging (read from `plugin.xml`);
- * such a library is checked by `JarPackager.checkImplicitProjectLibraries` instead.
- */
-internal fun computeProjectLibsUsedByPlugins(enabledPluginModules: Set<String>, context: BuildContext): Map<String, Set<String>> {
-  val result = TreeMap<String, MutableSet<String>>()
-  val pluginLayoutsByJpsModuleNames = getPluginLayoutsByJpsModuleNames(modules = enabledPluginModules, productLayout = context.productProperties.productLayout)
-
-  val helper = (context as BuildContextImpl).jarPackagerDependencyHelper
-  for (plugin in pluginLayoutsByJpsModuleNames) {
-    if (plugin.auto) {
-      continue
-    }
-
-    for (moduleName in plugin.includedModules.asSequence().map { it.moduleName }.distinct()) {
-      val module = context.outputProvider.findRequiredModule(moduleName)
-      for (element in helper.getLibraryDependencies(module, withTests = false)) {
-        val libRef = element.libraryReference
-        if (libRef.parentReference is JpsModuleReference) {
-          continue
-        }
-
-        val libName = libRef.libraryName
-        if (plugin.hasLibrary(libName)) {
-          continue
-        }
-
-        result.computeIfAbsent(libName) { TreeSet() }.add(moduleName)
-      }
-    }
-  }
   return result
 }
 

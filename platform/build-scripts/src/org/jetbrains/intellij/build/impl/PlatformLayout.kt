@@ -11,14 +11,10 @@ import org.jetbrains.intellij.build.impl.PlatformJarNames.APP_BACKEND_JAR
  * It includes all modules specified in [org.jetbrains.intellij.build.productLayout.ProductModulesLayout] and the module libraries they depend on.
  *
  * Project libraries are never added implicitly - only the ones declared by [BaseLayoutSpec.withProjectLibrary] are packed.
- * A project library referenced by a plugin module, but not provided by the platform, fails the build - it must be converted to a content module
- * (see IJPL-252372).
+ * A project library that a plugin module references is not packed for the plugin; the platform or the plugin layout declares it.
  */
 class PlatformLayout(@JvmField val descriptorCacheContainer: DescriptorCacheContainer = DescriptorCacheContainer()) : BaseLayout() {
-  private val excludedProjectLibraries: MutableSet<String> = HashSet()
   private val productModuleOutputFileOverrides: MutableMap<String, String> = HashMap()
-
-  fun isProjectLibraryExcluded(name: String): Boolean = excludedProjectLibraries.contains(name)
 
   override fun getRelativeJarPath(moduleName: String): String = APP_BACKEND_JAR
 
@@ -41,8 +37,4 @@ class PlatformLayout(@JvmField val descriptorCacheContainer: DescriptorCacheCont
   }
 
   internal fun getProductModuleOutputFile(moduleName: String): String? = productModuleOutputFileOverrides.get(moduleName)
-
-  fun withoutProjectLibrary(libraryName: String) {
-    excludedProjectLibraries.add(libraryName)
-  }
 }

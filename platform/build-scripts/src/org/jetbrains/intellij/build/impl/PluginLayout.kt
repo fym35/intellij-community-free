@@ -38,10 +38,8 @@ typealias DeprecatedPostScrambleProcessor = (String, ByteArray, PluginLayout, Pl
 /**
  * Describes layout of a plugin in the product distribution.
  *
- * [auto] controls two things in `JarPackager`. The direct dependencies of [mainModule] in the same module group are packed
- * (`inferModuleSources`). No project library is packed for a plugin module, and the build fails for a project library
- * that nobody provides (`checkImplicitProjectLibraries`).
- * A non-auto plugin packs no project library implicitly, and `createPlatformLayout` checks that the platform provides it.
+ * [auto] controls one thing in `JarPackager`: the direct dependencies of [mainModule] in the same module group are packed
+ * (`inferModuleSources`). No plugin module packs a project library implicitly; the platform or the plugin layout declares it.
  */
 class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean = false) : BaseLayout() {
   private val mainJarNameWithoutExtension: String = convertModuleNameToFileName(mainModule)
@@ -50,14 +48,6 @@ class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean
   /** module name to file names of that module's own libraries which must not be packed */
   @JvmField
   internal val excludedModuleLibraries: MutableMap<String, MutableList<String>> = HashMap()
-
-  /** names of project libraries which must not be packed into this plugin */
-  @JvmField
-  internal val excludedProjectLibraries: MutableSet<String> = LinkedHashSet()
-
-  internal fun excludeProjectLibrary(libraryName: String) {
-    excludedProjectLibraries.add(libraryName)
-  }
 
   var directoryName: String = mainJarNameWithoutExtension
     private set
@@ -374,14 +364,6 @@ class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean
     @Obsolete
     fun excludeModuleLibrary(libraryName: String, moduleName: String) {
       layout.excludedModuleLibraries.computeIfAbsent(moduleName) { ArrayList() }.add(libraryName)
-    }
-
-    /**
-     * Excludes a module-level library from the plugin. This shouldn't be used in new code; mark the dependency as 'Provided' instead.
-     */
-    @Obsolete
-    fun excludeProjectLibrary(libraryName: String) {
-      layout.excludeProjectLibrary(libraryName)
     }
 
     /**

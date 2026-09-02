@@ -111,7 +111,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
     }
   }
 
-  /** paired with [excludeKotlinLibraries] */
   fun basePluginsAndLibraries(spec: PluginLayout.PluginLayoutSpec) {
     spec.withModules(KOTLINC_LIBRARY_MODULES)
     spec.withModule(
@@ -127,19 +126,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
     withKotlincKotlinCompilerCommonLibrary(spec, spec.mainModule)
     for (library in LIBRARIES) {
       spec.withProjectLibrary(library)
-    }
-  }
-
-  /** paired with [basePluginsAndLibraries] */
-  fun excludeKotlinLibraries(spec: PluginLayout.PluginLayoutSpec) {
-    for (libraryName in LIBRARIES_UNPACKED) {
-      spec.excludeProjectLibrary(libraryName)
-    }
-    for (library in COMPILER_PLUGINS) {
-      spec.excludeProjectLibrary(library)
-    }
-    for (library in LIBRARIES) {
-      spec.excludeProjectLibrary(library)
     }
   }
 

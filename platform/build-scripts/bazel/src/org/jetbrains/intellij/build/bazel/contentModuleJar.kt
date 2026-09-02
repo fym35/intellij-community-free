@@ -812,8 +812,7 @@ internal fun isConventionalPrepackedPath(moduleName: String, relativeOutputFile:
  * [packedModule], reproducing `JarPackager.computeSourcesForModuleLibs` for it. See [MergeRules.PLATFORM].
  *
  * Everything the platform path of that function tests is here. What is *not* here is deliberate, because it is the plugin
- * path: the implicit-library check of an auto plugin, and `excludedProjectLibraries`/`excludedModuleLibraries`, which are
- * `PluginLayout` fields that are empty for the platform.
+ * path: `excludedModuleLibraries`, a `PluginLayout` field that is empty for the platform.
  *
  * The caller has already applied the scope filter and dropped application-level libraries.
  */

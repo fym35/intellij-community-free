@@ -89,9 +89,6 @@ fun configurePropertiesForAllEditionsOfIntelliJIdea(properties: JetBrainsProduct
 
     //todo currently intellij.platform.testFramework included into idea.jar depends on this jar so it cannot be moved to java plugin
     layout.withModule("intellij.java.rt", "idea_rt.jar")
-    layout.withoutProjectLibrary("Ant")
-
-    layout.withoutProjectLibrary("hamcrest")
   }
 
   properties.productLayout.compatiblePluginsToIgnore = persistentListOf(

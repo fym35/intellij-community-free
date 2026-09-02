@@ -388,10 +388,7 @@ internal fun createDistributionState(context: BuildContext): DistributionBuilder
   val pluginsToPublish = getPluginLayoutsByJpsModuleNames(modules = productLayout.pluginModulesToPublish, productLayout = productLayout, toPublish = true)
   filterPluginsToPublish(pluginsToPublish, context)
 
-  val enabledPluginModules = getEnabledPluginModules(pluginsToPublish, context)
-  // computed only based on a bundled and plugins to publish lists; by intention, compatible plugins are not taken in an account
-  val projectLibrariesUsedByPlugins = computeProjectLibsUsedByPlugins(enabledPluginModules, context)
-  val platform = createPlatformLayout(projectLibrariesUsedByPlugins = projectLibrariesUsedByPlugins, context = context)
+  val platform = createPlatformLayout(context)
 
   if (context.shouldBuildDistributions() && productLayout.buildAllCompatiblePlugins) {
     spanBuilder("collecting compatible plugins").use {
@@ -671,12 +668,6 @@ private fun checkBaseLayout(layout: BaseLayout, description: String, context: Co
         check(libraries.any { getLibraryFileName(it) == libraryName }) {
           "Cannot find library '$libraryName' in module '$moduleName' (used in 'excludeModuleLibrary' in $description)"
         }
-      }
-    }
-
-    for (libraryName in layout.excludedProjectLibraries) {
-      check(context.project.libraryCollection.findLibrary(libraryName) != null) {
-        "Cannot find project library '$libraryName' (used in 'excludeProjectLibrary' in $description)"
       }
     }
 
