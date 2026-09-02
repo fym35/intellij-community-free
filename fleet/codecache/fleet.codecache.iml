@@ -40,7 +40,7 @@
     <orderEntry type="library" name="kotlinx-serialization-core" level="project" />
     <orderEntry type="library" name="kotlinx-serialization-json" level="project" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.collections.immutable" />
-    <orderEntry type="library" name="kotlinx-io-core" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinx.io" />
     <orderEntry type="module" module-name="fleet.ktor.client.core" />
     <orderEntry type="module" module-name="fleet.modules.api" />
   </component>

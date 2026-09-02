@@ -80,7 +80,7 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "@lib//:kotlinx-coroutines-core",
         "//libraries/kotlinx/coroutines/slf4j",
-        "@lib//:kotlinx-io-core",
+        "//libraries/io",
         "@lib//:kotlinx-serialization-core",
         "@lib//:slf4j-api",
     ],
@@ -115,6 +115,7 @@ jvm_library(
         ":core",
         "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/kotlinx/coroutines/slf4j:slf4j_test_lib",
+        "//libraries/io:io_test_lib",
     ],
 )
 ### auto-generated section `build fleet.ktor.client.core` end

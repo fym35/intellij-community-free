@@ -37,6 +37,6 @@
     <orderEntry type="library" name="kotlinx-serialization-json" level="project" />
     <orderEntry type="module" module-name="fleet.util.core" />
     <orderEntry type="module" module-name="intellij.libraries.jetbrains.annotations" />
-    <orderEntry type="library" name="kotlinx-io-core" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinx.io" />
   </component>
 </module>

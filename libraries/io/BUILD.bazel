@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-io-core"],
-    runtime_deps = ["@lib//:kotlinx-io-core"],
+    exports = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
+    runtime_deps = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlinx-io-core"],
+    libraries = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
     module = ":io",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlinx.io",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-io-core"],
+    exports = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
     runtime_deps = [":io"],
 )
 ### auto-generated section `build intellij.libraries.kotlinx.io` end

@@ -34,7 +34,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-io-core",
+        "//libraries/io",
         "@lib//:kotlinx-coroutines-core",
         "@lib//:fleet-google-devtools-ksp-symbol-processing-api",
     ],
@@ -50,7 +50,11 @@ jvm_library(
     kotlinc_opts = ":custom_kernel.plugins.processor",
     module_name = "fleet.build.kernel.plugins.processor",
     visibility = ["//visibility:public"],
-    runtime_deps = [":kernel.plugins.processor"],
+    runtime_deps = [
+        # do not sort,
+        ":kernel.plugins.processor",
+        "//libraries/io:io_test_lib",
+    ],
 )
 ### auto-generated section `build fleet.build.kernel.plugins.processor` end
 
