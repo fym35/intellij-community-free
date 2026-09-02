@@ -5955,21 +5955,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains.jediterm/jediterm-core-3.74.jar_copy",
-    src = "@org_jetbrains_jediterm-jediterm-core-3_74_http//file",
-    out = "org.jetbrains.jediterm/jediterm-core-3.74.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "jediterm-core",
-    jar = "@org_jetbrains_jediterm-jediterm-core-3_74_http//file",
-    source_jar = "@org_jetbrains_jediterm-jediterm-core-3_74-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.jetbrains.compose.components/components-ui-tooling-preview-desktop-1.9.0.jar_copy",
     src = "@org_jetbrains_compose_components-components-ui-tooling-preview-desktop-1_9_0_http//file",
     out = "org.jetbrains.compose.components/components-ui-tooling-preview-desktop-1.9.0.jar",
@@ -11740,6 +11725,21 @@ jvm_import(
     name = "libraries-jcip-jcip",
     jar = "@net_jcip-jcip-annotations-1_0_http//file",
     source_jar = "@net_jcip-jcip-annotations-1_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.jediterm/jediterm-core-3.74.jar_copy",
+    src = "@org_jetbrains_jediterm-jediterm-core-3_74_http//file",
+    out = "org.jetbrains.jediterm/jediterm-core-3.74.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-jediterm-core-jediterm-core",
+    jar = "@org_jetbrains_jediterm-jediterm-core-3_74_http//file",
+    source_jar = "@org_jetbrains_jediterm-jediterm-core-3_74-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

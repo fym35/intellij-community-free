@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jediterm-core"],
-    runtime_deps = ["@lib//:jediterm-core"],
+    exports = ["@lib//:libraries-jediterm-core-jediterm-core"],
+    runtime_deps = ["@lib//:libraries-jediterm-core-jediterm-core"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:jediterm-core"],
+    libraries = ["@lib//:libraries-jediterm-core-jediterm-core"],
     module = ":jediterm-core",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.jediterm.core",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jediterm-core"],
+    exports = ["@lib//:libraries-jediterm-core-jediterm-core"],
     runtime_deps = [":jediterm-core"],
 )
 ### auto-generated section `build intellij.libraries.jediterm.core` end
