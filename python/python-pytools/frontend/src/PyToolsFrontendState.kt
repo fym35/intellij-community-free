@@ -9,7 +9,6 @@ import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolEnabledStateDto
 import com.intellij.python.pytools.common.PyToolId
-import com.intellij.python.pytools.common.PyToolsInitializationRequest
 import fleet.rpc.client.durable
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -27,10 +26,7 @@ class PyToolsFrontendState(project: Project, scope: CoroutineScope) {
       durable {
         val api = PyToolApi.getInstance()
         if (!api.isStateInitialized(project.projectId())) {
-          val migrated = PyToolFrontend.EP_NAME.extensionList.mapNotNull { tool ->
-            tool.migrateLegacyState(project)?.let { PyToolEnabledStateDto(tool.toolId, it) }
-          }
-          api.initializeState(PyToolsInitializationRequest(project.projectId(), migrated))
+          api.initializeState(project.projectId())
         }
         api.observeEnabledStates(project.projectId()).collect { states ->
           enabled.set(states.associate { it.toolId to it.enabled })

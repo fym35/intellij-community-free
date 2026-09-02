@@ -33,7 +33,6 @@
     <orderEntry type="module" module-name="intellij.libraries.eclipse.lsp4j.jsonrpc" />
     <orderEntry type="module" module-name="intellij.platform.analysis" />
     <orderEntry type="module" module-name="intellij.python.lsp.core" />
-    <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
     <orderEntry type="module" module-name="intellij.platform.core.impl" />
     <orderEntry type="module" module-name="intellij.platform.statistics" />
     <orderEntry type="module" module-name="intellij.libraries.jackson" />

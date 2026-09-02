@@ -2,60 +2,35 @@
 package com.intellij.python.pyrefly
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.stopAndRestartClientsIfNeeded
 import com.intellij.platform.lsp.api.stopClients
+import com.intellij.python.lsp.core.PyLspTool
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
 import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.frontend.isActiveOn
-import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
-import com.intellij.python.pytools.frontend.PyToolFrontend
-import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
+import com.intellij.python.pytools.backend.isActiveOn
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
-import javax.swing.Icon
 
 /**
  * [Pyrefly](https://pyrefly.org/) — a fast Python type checker written in Rust by Meta, providing type
  * checking and IDE features through a language server.
  */
 @ApiStatus.Internal
-class PyreflyPyTool : PyTool {
+class PyreflyPyTool : PyLspTool<PyreflyConfiguration>() {
+  override val lspServerName: String = "Pyrefly"
   override val packageName: PyPackageName = PyPackageName.from("pyrefly")
 
-  companion object {
-    fun getInstance(): PyreflyPyTool = PyTool.EP_NAME.findExtensionOrFail(PyreflyPyTool::class.java)
-  }
-}
-
-@ApiStatus.Internal
-class PyreflyPyToolFrontend : PyLspTool<PyreflyConfiguration>(), ExternalPyTool {
-  override val presentableName: String = "Pyrefly"
-  override val description: String get() = PyreflyBundle.message("pyrefly.tool.description")
-  override val packageName: PyPackageName = PyPackageName.from("pyrefly")
-
-  override fun configuration(project: Project): PyreflyConfiguration = project.service<PyreflyConfiguration>()
-
-  override val icon: Icon = PyreflyUtil.getDefaultPyreflyIcon()
-
-  override fun createConfigurable(project: Project): UnnamedConfigurable = PyreflyDetailConfigurable(project)
-
-  override fun summaryFor(project: Project): String = pyLspToolFeaturesSummary(configuration(project))
+  override fun configuration(project: Project): PyreflyConfiguration = project.service()
 
   override fun onEnabledChanged(project: Project, enabled: Boolean) {
-    // Turning Pyrefly off while it is the selected type engine falls back to the built-in engine —
-    // otherwise `isActiveOn` would keep it running as the engine and the toggle would have no effect.
     if (!enabled && isSelectedAsTypeEngine(project)) {
       PyTypeEngineProjectSettings.getInstance(project).typeEngine = PyTypeEngineType.PYCHARM
     }
-    // Drive the shared LSP server off `isActiveOn` rather than the raw flag: when Pyrefly is the
-    // selected type engine the server must keep running even though the tool flag is off.
     val manager = LspClientManager.getInstance(project)
     if (isActiveOn(project)) manager.stopAndRestartClientsIfNeeded<PyreflyLspIntegrationProvider>()
     else manager.stopClients<PyreflyLspIntegrationProvider>()
@@ -65,8 +40,7 @@ class PyreflyPyToolFrontend : PyLspTool<PyreflyConfiguration>(), ExternalPyTool 
     Registry.`is`("pyrefly.type.engine") ||
     PyTypeEngineProjectSettings.getInstance(project).typeEngine == PyTypeEngineType.PYREFLY
 
-  @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): PyreflyPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(PyreflyPyToolFrontend::class.java)
+    fun getInstance(): PyreflyPyTool = PyTool.EP_NAME.findExtensionOrFail(PyreflyPyTool::class.java)
   }
 }

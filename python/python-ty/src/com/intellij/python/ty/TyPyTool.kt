@@ -4,48 +4,26 @@ package com.intellij.python.ty
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.platform.lsp.api.LspClientManager
+import com.intellij.python.lsp.core.PyLspTool
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.frontend.isActiveOn
-import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
-import com.intellij.python.pytools.frontend.PyToolFrontend
-import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
+import com.intellij.python.pytools.backend.isActiveOn
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
-import javax.swing.Icon
 
 /**
  * [ty](https://github.com/astral-sh/ty) — an extremely fast Python type checker and language server
  * written in Rust by Astral (currently in preview).
  */
 @ApiStatus.Internal
-class TyPyTool : PyTool {
+class TyPyTool : PyLspTool<TyConfiguration>() {
+  override val lspServerName: String = "ty"
   override val packageName: PyPackageName = PyPackageName.from("ty")
 
-  companion object {
-    fun getInstance(): TyPyTool = PyTool.EP_NAME.findExtensionOrFail(TyPyTool::class.java)
-  }
-}
-
-@ApiStatus.Internal
-class TyPyToolFrontend : PyLspTool<TyConfiguration>(), ExternalPyTool {
-  override val presentableName: String = "ty"
-  override val description: String get() = TyBundle.message("ty.tool.description")
-  override val packageName: PyPackageName = PyPackageName.from("ty")
-
-  override fun configuration(project: Project): TyConfiguration = project.service<TyConfiguration>()
-
-  override val icon: Icon = TyUtil.getDefaultTyIcon()
-
-  override fun createConfigurable(project: Project): TyConfigurable = TyConfigurable(project)
-
-  override fun summaryFor(project: Project): String = pyLspToolFeaturesSummary(configuration(project))
+  override fun configuration(project: Project): TyConfiguration = project.service()
 
   override fun onEnabledChanged(project: Project, enabled: Boolean) {
-    // Drive the shared LSP server off `isActiveOn` rather than the raw flag: when ty is the selected
-    // type engine the server must keep running even though the tool flag is off.
     val manager = LspClientManager.getInstance(project)
     if (isActiveOn(project)) manager.startClientsIfNeeded(TyLspIntegrationProvider::class.java)
     else manager.stopClients(TyLspIntegrationProvider::class.java)
@@ -54,8 +32,7 @@ class TyPyToolFrontend : PyLspTool<TyConfiguration>(), ExternalPyTool {
   override fun isSelectedAsTypeEngine(project: Project): Boolean =
     PyTypeEngineProjectSettings.getInstance(project).typeEngine == PyTypeEngineType.TY
 
-  @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): TyPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(TyPyToolFrontend::class.java)
+    fun getInstance(): TyPyTool = PyTool.EP_NAME.findExtensionOrFail(TyPyTool::class.java)
   }
 }

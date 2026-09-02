@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.python.pytools.backend.PyExecutable
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.jetbrains.python.packaging.PyPackageName
 
 interface PyTool : PyExecutable {
@@ -20,6 +21,10 @@ interface PyTool : PyExecutable {
   fun onEnabledChanged(project: Project, enabled: Boolean) {}
 
   fun isSelectedAsTypeEngine(project: Project): Boolean = false
+
+  fun configurationState(project: Project): PyToolConfigurationDto? = null
+
+  fun applyConfigurationState(project: Project, state: PyToolConfigurationDto) {}
 
   fun configurationFusSnapshot(project: Project): PyToolFusSnapshot = PyToolFusSnapshot(
     enabled = PyToolsState.getInstance(project).isEnabled(this),
@@ -41,3 +46,7 @@ interface PyTool : PyExecutable {
 
 /** A backend tool whose executable participates in package-manager detection. */
 interface PackageManagerPyTool : PyTool
+
+fun PyTool.isEnabledOn(project: Project): Boolean = PyToolsState.getInstance(project).isEnabled(this)
+
+fun PyTool.isActiveOn(project: Project): Boolean = isEnabledOn(project) || isSelectedAsTypeEngine(project)

@@ -42,6 +42,17 @@ The Python plug-in provides smart editing for Python scripts. The feature set of
     <module name="intellij.python.pytools.common"/>
     <module name="intellij.python.pytools.backend"/>
     <module name="intellij.python.pytools.frontend"/>
+    <module name="intellij.python.community.impl.conda.frontend"/>
+    <module name="intellij.python.community.impl.pipenv.frontend"/>
+    <module name="intellij.python.hatch.frontend"/>
+    <module name="intellij.python.community.impl.poetry.frontend"/>
+    <module name="intellij.python.uv.frontend"/>
+    <module name="intellij.python.venv.frontend"/>
+    <module name="intellij.python.black.frontend"/>
+    <module name="intellij.python.pyright.frontend"/>
+    <module name="intellij.python.pyrefly.frontend"/>
+    <module name="intellij.python.ruff.frontend"/>
+    <module name="intellij.python.ty.frontend"/>
 
     <!-- Backend-only modules: load only when intellij.platform.backend is available -->
     <module name="intellij.python.psi"/>
@@ -97,8 +108,12 @@ The Python plug-in provides smart editing for Python scripts. The feature set of
     <module name="intellij.python.terminal.frontend"/>
     <module name="intellij.python.black"/>
     <module name="intellij.python.lsp.core"/>
+    <module name="intellij.python.lsp.core.frontend"/>
     <module name="intellij.python.lsp.impl"/>
+    <module name="intellij.python.lsp.impl.frontend"/>
     <module name="intellij.python.typeEngine"/>
+    <module name="intellij.python.typeEngine.common"/>
+    <module name="intellij.python.typeEngine.frontend"/>
     <module name="intellij.python.ty"/>
     <module name="intellij.python.ruff"/>
     <module name="intellij.python.pyrefly"/>

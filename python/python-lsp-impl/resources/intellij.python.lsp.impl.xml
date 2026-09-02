@@ -7,20 +7,19 @@
     <module name="intellij.platform.ide.core"/>
     <module name="intellij.platform.ide.impl"/>
     <module name="intellij.platform.lsp"/>
+    <module name="intellij.platform.project"/>
     <module name="intellij.platform.projectModel"/>
+    <module name="intellij.platform.rpc"/>
     <module name="intellij.python.community.impl"/>
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.pyrefly"/>
     <module name="intellij.python.pyright"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
+    <module name="intellij.python.pytools.common"/>
     <module name="intellij.python.ruff"/>
     <module name="intellij.python.sdk.backend"/>
     <module name="intellij.python.ty"/>
   </dependencies>
   <!-- endregion -->
 
-  <extensions defaultExtensionNs="com.intellij">
-    <postStartupActivity implementation="com.intellij.python.lsp.impl.PyLspToolAdvertiserStartupActivity"/>
-  </extensions>
 </idea-plugin>

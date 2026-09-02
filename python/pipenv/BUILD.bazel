@@ -42,7 +42,6 @@ jvm_library(
         "//python/python-process-output/common",
         "//python/openapi:community",
         "//python/python-pytools/backend",
-        "//python/python-pytools/frontend",
     ],
 )
 
@@ -66,7 +65,6 @@ jvm_library(
         "//python/python-process-output/common:common_test_lib",
         "//python/openapi:community_test_lib",
         "//python/python-pytools/backend:backend_test_lib",
-        "//python/python-pytools/frontend:frontend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.community.impl.pipenv` end

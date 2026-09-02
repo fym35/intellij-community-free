@@ -2,55 +2,58 @@
 package com.intellij.python.pytools.frontend.ui
 
 import com.intellij.openapi.options.BoundConfigurable
+import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.frontend.lsp.PyLspToolConfiguration
-import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
-import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
-import com.intellij.ui.dsl.builder.Panel
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import com.intellij.platform.project.projectId
+import com.intellij.python.pytools.common.PyToolActionSource
+import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolLogEventRequest
+import com.intellij.python.pytools.common.PyLspToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolRequest
+import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
+import com.intellij.python.pytools.common.PyToolsRequest
+import com.intellij.python.pytools.frontend.LspPyToolFrontend
+import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 
-/**
- * Shared base for every LSP-backed tool's detail configurable. Subclasses supply only the
- * concrete [PyLspTool] (whose [PyLspTool.configuration] supplies [settings]), an optional
- * [inlayHintLabel] override, and optional tool-specific rows via [extraRows] (Ruff uses this for
- * its `formatting` and `sortImports` checkboxes).
- *
- * Logging happens automatically in [apply] via [PyToolUsagesCollector.Helper.logConfigurationChanged],
- * which pulls field values from the tool's `configurationFusSnapshot`. A new tool that extends this
- * base therefore cannot accidentally skip FUS reporting — there is no per-subclass `apply` to
- * forget.
- */
-abstract class PyLspToolDetailConfigurable<C : PyLspToolConfiguration<C>>(
-  protected val project: Project,
-  private val tool: PyLspTool<C>,
+internal fun createLspToolConfigurable(project: Project, tool: LspPyToolFrontend): UnnamedConfigurable =
+  PyLspToolDetailConfigurable(project, tool)
+
+private class PyLspToolDetailConfigurable(
+  private val project: Project,
+  private val tool: LspPyToolFrontend,
 ) : BoundConfigurable(tool.presentableName) {
-
-  /** This tool's settings, taken straight from [PyLspTool.configuration] (the single source). */
-  protected val settings: C get() = tool.configuration(project)
-
-  /** Label used for the inlay-hint row. Override when the tool needs a custom string. */
-  protected open val inlayHintLabel: String = PyToolsUiBundle.message("checkbox.inlay.hints")
-
-  /** Override to append tool-specific rows after the standard LSP feature block. */
-  protected open fun Panel.extraRows() {}
-
-  final override fun createPanel(): DialogPanel = panel {
-    PyLspToolFeatureRows.build(
-      panel = this,
-      settings = settings,
-      inlayHintLabel = inlayHintLabel,
-      extra = { extraRows() },
-    )
+  private val request = PyToolRequest(project.projectId(), tool.toolId)
+  private val settings: PyLspToolSettingsModel by lazy {
+    val state = runWithModalProgressBlocking(project, PyToolsUiBundle.message("settings.external.tools.apply.progress")) {
+      PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), listOf(tool.toolId))).single()
+    }
+    PyLspToolSettingsModel(state.configuration as PyLspToolConfigurationDto)
   }
 
-  final override fun apply() {
+  override fun createPanel(): DialogPanel = panel {
+    PyLspToolFeatureRows.build(this, settings)
+    settings.formatting?.let {
+      row("") {
+        checkBox(requireNotNull(tool.formattingLabel)).bindSelected(settings::formatting.toSafeProperty())
+      }
+    }
+    settings.sortImports?.let {
+      row("") {
+        checkBox(requireNotNull(tool.sortImportsLabel)).bindSelected(settings::sortImports.toSafeProperty())
+      }
+    }
+  }
+
+  override fun apply() {
     super.apply()
-    PyToolUsagesCollector.Helper.logConfigurationChanged(
-      project = project,
-      tool = tool,
-      source = PyToolActionSource.SETTINGS_DETAIL,
-    )
+    runWithModalProgressBlocking(project, PyToolsUiBundle.message("settings.external.tools.apply.progress")) {
+      val api = PyToolApi.getInstance()
+      api.setConfiguration(PyToolSetConfigurationRequest(request, settings.toDto()))
+      api.logEvent(PyToolLogEventRequest(request, PyToolActionSource.SETTINGS_DETAIL, PyToolEventKind.CONFIGURATION_CHANGED))
+    }
   }
 }

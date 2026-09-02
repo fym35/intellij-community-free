@@ -25,7 +25,6 @@
     <orderEntry type="module" module-name="intellij.python.pyright" />
     <orderEntry type="module" module-name="intellij.python.pyrefly" />
     <orderEntry type="module" module-name="intellij.python.ty" />
-    <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
     <orderEntry type="module" module-name="intellij.platform.project" />
     <orderEntry type="module" module-name="intellij.platform.rpc" />
   </component>

@@ -9,6 +9,7 @@ import com.intellij.python.lsp.core.typeEngine.PyTypeEngineUtils
 import com.intellij.python.ty.TyLspIntegrationProvider
 import com.jetbrains.python.psi.types.engine.PyTypeEngine
 import com.jetbrains.python.psi.types.engine.PyTypeEngineProvider
+import org.jetbrains.annotations.ApiStatus.Internal
 
 /**
  * External type provider that delegates to ty's LSP endpoint.
@@ -33,7 +34,8 @@ class TyLspTypeEngineProvider : PyTypeEngineProvider {
 
 }
 
-internal fun isTyTypeEngineFeatureEnabled(project: Project): Boolean =
+@Internal
+fun isTyTypeEngineFeatureEnabled(project: Project): Boolean =
   ApplicationManager.getApplication().isUnitTestMode ||
   PyTypeEngineUtils.isExternalTypeEngineSupported(project) &&
   Registry.`is`("ty.type.engine.support")

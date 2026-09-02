@@ -17,7 +17,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiEditorUtil
-import com.intellij.python.pytools.frontend.isEnabledOn
+import com.intellij.python.pytools.backend.isEnabledOn
 import com.intellij.ui.LightweightHint
 import com.intellij.util.application
 import com.jetbrains.python.PythonFileType
@@ -48,7 +48,7 @@ class BlackFormattingService : AsyncDocumentFormattingService() {
 
   override fun canFormat(source: PsiFile): Boolean {
     return source.virtualFile?.isBlackFormattingSupported() == true
-           && BlackPyToolFrontend.getInstance().isEnabledOn(source.project)
+           && BlackPyTool.getInstance().isEnabledOn(source.project)
   }
 
   override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {

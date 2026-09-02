@@ -1,0 +1,13 @@
+<idea-plugin>
+  <dependencies>
+    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <module name="intellij.platform.core"/>
+    <module name="intellij.platform.frontend"/>
+    <module name="intellij.python.community"/>
+    <module name="intellij.python.pytools.frontend"/>
+    <!-- endregion -->
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <python.pytools.pyToolFrontend implementation="com.intellij.python.community.impl.conda.frontend.CondaPyToolFrontend"/>
+  </extensions>
+</idea-plugin>

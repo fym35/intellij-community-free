@@ -19,8 +19,9 @@ import com.intellij.python.pytools.common.PyToolSdkOperationResultDto
 import com.intellij.python.pytools.common.PyToolSdkRequest
 import com.intellij.python.pytools.common.PyToolStateDto
 import com.intellij.python.pytools.common.PyToolsRequest
-import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
-import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
+import com.intellij.python.pytools.common.PyToolActionSource
+import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.dsl.listCellRenderer.LcrInitParams
 import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
@@ -58,7 +59,7 @@ internal class PyToolManagementController(
     ) {
       PyToolApi.getInstance().install(toolRow.request())
     } ?: return
-    PyToolUsagesCollector.Helper.logToolInstalled(project, toolRow.tool, source)
+    logEvent(toolRow, source, PyToolEventKind.INSTALLED)
     toolRow.lastSuccessMessage = toolRow.version?.let {
       PyToolsUiBundle.message("settings.external.tools.install.success.to.version.balloon", toolRow.packageName(), it)
     } ?: PyToolsUiBundle.message("settings.external.tools.install.success.balloon", toolRow.packageName())
@@ -73,7 +74,7 @@ internal class PyToolManagementController(
     ) {
       PyToolApi.getInstance().upgrade(toolRow.request())
     } ?: return
-    PyToolUsagesCollector.Helper.logToolUpdated(project, toolRow.tool, source)
+    logEvent(toolRow, source, PyToolEventKind.UPDATED)
     toolRow.lastSuccessMessage = upgradeFeedbackMessage(toolRow, previousVersion, toolRow.version)
   }
 
@@ -123,7 +124,7 @@ internal class PyToolManagementController(
         return
       }
     }
-    PyToolUsagesCollector.Helper.logToolInstalled(project, toolRow.tool, source)
+    logEvent(toolRow, source, PyToolEventKind.INSTALLED)
     scope?.launch {
       toolRow.sdkAvailability = SdkAvailability(PyToolApi.getInstance().getSdkStates(toolRow.request()))
       refreshRow(toolRow)
@@ -217,6 +218,12 @@ internal class PyToolManagementController(
   }
 
   private fun ToolRow.request(): PyToolRequest = PyToolRequest(project.projectId(), tool.toolId)
+
+  private fun logEvent(toolRow: ToolRow, source: PyToolActionSource, event: PyToolEventKind) {
+    runWithModalProgressBlocking(project, toolRow.tool.presentableName) {
+      PyToolApi.getInstance().logEvent(PyToolLogEventRequest(toolRow.request(), source, event))
+    }
+  }
 
   private fun ToolRow.packageName(): String = tool.packageName.name
 }

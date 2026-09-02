@@ -15,8 +15,9 @@ import com.intellij.python.pytools.common.PyToolsRequest
 import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
 import com.intellij.python.pytools.frontend.PyToolsFrontendState
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
-import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
-import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
+import com.intellij.python.pytools.common.PyToolActionSource
+import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.components.panels.VerticalLayout
@@ -80,7 +81,7 @@ internal class PyExternalToolsList(
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
     .filter { it is ExternalPyTool }
     .sortedBy { it.presentableName.lowercase() }
-    .map { ToolRow(it, RowState(enabled = isEngineFor(it), customPath = null)) }
+    .map { ToolRow(it, RowState(enabled = false, customPath = null)) }
 
   private val rowPanels: Map<ToolRow, PyExternalToolRowPanel> =
     rows.associateWith { PyExternalToolRowPanel(it, this) }
@@ -261,7 +262,6 @@ internal class PyExternalToolsList(
         PyToolsFrontendState.getInstance(project).apply(
           com.intellij.python.pytools.common.PyToolEnabledStateDto(backendState.toolId, backendState.enabled),
         )
-        row.tool.onEnabledChanged(project, row.staged.enabled)
       }
       if (row.staged.customPath != current.customPath) {
         val backendState = runWithModalProgressBlocking(
@@ -286,11 +286,15 @@ internal class PyExternalToolsList(
         }
       }
       if (rowChanged) {
-        PyToolUsagesCollector.Helper.logConfigurationChanged(
-          project = project,
-          tool = row.tool,
-          source = PyToolActionSource.SETTINGS_TABLE,
-        )
+        runWithModalProgressBlocking(project, PyToolsUiBundle.message("settings.external.tools.apply.progress")) {
+          PyToolApi.getInstance().logEvent(
+            PyToolLogEventRequest(
+              PyToolRequest(project.projectId(), row.tool.toolId),
+              PyToolActionSource.SETTINGS_TABLE,
+              PyToolEventKind.CONFIGURATION_CHANGED,
+            ),
+          )
+        }
       }
     }
     rows.forEach { refreshRow(it) }
@@ -379,6 +383,6 @@ internal class PyExternalToolsList(
    */
   private fun isEngineFor(tool: PyTool): Boolean {
     val staged = PyToolTypeEnginePreview.getInstance(project).stagedEnginePackage.get()
-    return if (staged != null) staged == tool.packageName.name else tool.isSelectedAsTypeEngine(project)
+    return if (staged != null) staged == tool.packageName.name else rows.first { it.tool == tool }.selectedAsTypeEngine
   }
 }

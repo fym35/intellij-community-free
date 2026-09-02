@@ -1,12 +1,39 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.python.pytools.frontend.ui
 
-import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
+import com.intellij.python.pytools.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle.message
 import com.intellij.ui.dsl.builder.MutableProperty
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindSelected
 import kotlin.reflect.KMutableProperty0
+
+internal interface PyLspToolSettings {
+  var inspections: Boolean
+  var completions: Boolean?
+  var inlayHints: Boolean?
+  var documentation: Boolean?
+  var formatting: Boolean?
+  var sortImports: Boolean?
+}
+
+internal class PyLspToolSettingsModel(state: PyLspToolConfigurationDto) : PyLspToolSettings {
+  override var inspections: Boolean = state.inspections
+  override var completions: Boolean? = state.completions
+  override var inlayHints: Boolean? = state.inlayHints
+  override var documentation: Boolean? = state.documentation
+  override var formatting: Boolean? = state.formatting
+  override var sortImports: Boolean? = state.sortImports
+
+  fun toDto(): PyLspToolConfigurationDto = PyLspToolConfigurationDto(
+    inspections = inspections,
+    completions = completions,
+    inlayHints = inlayHints,
+    documentation = documentation,
+    formatting = formatting,
+    sortImports = sortImports,
+  )
+}
 
 fun KMutableProperty0<Boolean?>.toSafeProperty(default: Boolean = false): MutableProperty<Boolean> =
   MutableProperty({ get() ?: default }, { set(it) })
@@ -16,7 +43,7 @@ fun KMutableProperty0<Boolean?>.toSafeProperty(default: Boolean = false): Mutabl
  * shown in each LSP-backed tool's detail dialog. The Enable / installation rows are now owned by the
  * `External Tools` table — this helper only renders feature toggles.
  */
-object PyLspToolFeatureRows {
+internal object PyLspToolFeatureRows {
   fun build(
     panel: Panel,
     settings: PyLspToolSettings,

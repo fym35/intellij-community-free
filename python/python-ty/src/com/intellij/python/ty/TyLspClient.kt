@@ -8,14 +8,14 @@ import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
 import com.intellij.python.lsp.core.PyLspToolCustomization
 import com.intellij.python.lsp.core.PyLspToolIntegrationProvider
 import com.intellij.python.lsp.core.PyLspToolDescriptor
-import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
+import com.intellij.python.lsp.core.PyLspToolSettings
 
 class TyLspIntegrationProvider : PyLspToolIntegrationProvider() {
   override fun getDescriptor(module: Module): PyLspToolDescriptor =
     TyLspClientDescriptor(module)
 }
 
-class TyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, TyPyToolFrontend.getInstance()) {
+class TyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, TyPyTool.getInstance()) {
   override fun lspArguments(): List<String> =
     listOf("server")
 

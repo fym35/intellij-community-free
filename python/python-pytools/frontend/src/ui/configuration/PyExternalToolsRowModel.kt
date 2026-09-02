@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Version as PlatformVersion
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolPathKind
 import com.intellij.python.pytools.common.PyToolPathRequest
 import com.intellij.python.pytools.common.PyToolRequest
@@ -87,6 +88,8 @@ internal class ToolRow(
   var sdkAvailability: SdkAvailability? = null,
   var canInstall: Boolean = false,
   var latestVersion: String? = null,
+  var configuration: PyToolConfigurationDto? = null,
+  var selectedAsTypeEngine: Boolean = false,
 ) {
   /** This tool's detail-panel provider, or `null` when the tool has no detail configurable. */
   val detailConfigurableProvider: ExternalPyTool? = tool as? ExternalPyTool
@@ -228,6 +231,8 @@ internal fun ToolRow.applyBackendState(
   belowMinVersionMessage = computeBelowMinMessage(tool, state.version)
   canInstall = state.canInstall
   latestVersion = state.latestVersion
+  configuration = state.configuration
+  selectedAsTypeEngine = state.selectedAsTypeEngine
 }
 
 /**

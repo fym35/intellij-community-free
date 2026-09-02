@@ -11,7 +11,7 @@ import com.intellij.python.pytools.common.PyToolSetPathRequest
 import com.intellij.python.pytools.common.PyToolsRequest
 import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
 import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend as PackageManagerPyTool
-import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
+import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.configuration.PyToolManagementController
 import com.intellij.python.pytools.frontend.ui.configuration.RowState

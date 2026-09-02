@@ -12,7 +12,7 @@ import com.intellij.python.lsp.core.PyLspToolIntegrationProvider
 import com.intellij.python.lsp.core.PyLspToolDescriptor
 import com.intellij.python.ruff.RuffBundle
 import com.intellij.python.ruff.RuffConfiguration
-import com.intellij.python.ruff.RuffPyToolFrontend
+import com.intellij.python.ruff.RuffPyTool
 import com.intellij.python.ruff.RuffService
 import com.intellij.python.ruff.RuffSettings
 import com.intellij.python.ruff.codeinsight.actions.RuffDisableRuleForFileIntentionAction
@@ -28,7 +28,7 @@ class RuffLspIntegrationProvider : PyLspToolIntegrationProvider() {
     RuffLspClientDescriptor(module)
 }
 
-class RuffLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, RuffPyToolFrontend.getInstance()) {
+class RuffLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, RuffPyTool.getInstance()) {
   override val toolConfig: RuffSettings
     get() = project.service<RuffConfiguration>()
 

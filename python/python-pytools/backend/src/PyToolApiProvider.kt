@@ -8,7 +8,12 @@ import com.intellij.platform.project.findProject
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.rpc.backend.RemoteApiProvider
 import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolEnabledStateDto
+import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolId
+import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.common.PyToolSetEnabledRequest
+import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
 import com.intellij.python.pytools.common.PyToolOperationResultDto
 import com.intellij.python.pytools.common.PyToolPathKind
 import com.intellij.python.pytools.common.PyToolPathRequest
@@ -21,7 +26,7 @@ import com.intellij.python.pytools.common.PyToolSetPathRequest
 import com.intellij.python.pytools.common.PyToolStateDto
 import com.intellij.python.pytools.common.PyToolValidationDto
 import com.intellij.python.pytools.common.PyToolsRequest
-import com.intellij.python.pytools.common.PyToolsInitializationRequest
+import com.intellij.python.pytools.backend.statistics.PyToolUsagesCollector
 import com.intellij.python.requirements.PyPackageVersionComparator
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
@@ -38,8 +43,12 @@ private object PyToolApiImpl : PyToolApi {
   override suspend fun isStateInitialized(projectId: ProjectId): Boolean =
     PyToolsState.getInstance(projectId.findProject()).isInitialized()
 
-  override suspend fun initializeState(request: PyToolsInitializationRequest) {
-    PyToolsState.getInstance(request.projectId.findProject()).initialize(request.tools)
+  override suspend fun initializeState(projectId: ProjectId) {
+    val project = projectId.findProject()
+    val entries = PyTool.EP_NAME.extensionList.mapNotNull { tool ->
+      tool.migrateLegacyState(project)?.let { PyToolEnabledStateDto(PyToolId(tool.packageName.name), it.enabled) }
+    }
+    PyToolsState.getInstance(project).initialize(entries)
   }
 
   override suspend fun observeEnabledStates(projectId: ProjectId) =
@@ -82,6 +91,14 @@ private object PyToolApiImpl : PyToolApi {
     val project = request.tool.projectId.findProject()
     val tool = requireTool(request.tool)
     PyToolsState.getInstance(project).setEnabled(request.tool.toolId, request.enabled)
+    tool.onEnabledChanged(project, request.enabled)
+    return state(project, tool)
+  }
+
+  override suspend fun setConfiguration(request: PyToolSetConfigurationRequest): PyToolStateDto {
+    val project = request.tool.projectId.findProject()
+    val tool = requireTool(request.tool)
+    tool.applyConfigurationState(project, request.configuration)
     return state(project, tool)
   }
 
@@ -102,6 +119,16 @@ private object PyToolApiImpl : PyToolApi {
   override suspend fun installIntoSdk(request: PyToolSdkInstallRequest): PyToolSdkOperationResultDto {
     val project = request.target.tool.projectId.findProject()
     return PyToolSdkBackendService.getInstance().install(project, requireTool(request.target.tool), request)
+  }
+
+  override suspend fun logEvent(request: PyToolLogEventRequest) {
+    val project = request.tool.projectId.findProject()
+    val tool = requireTool(request.tool)
+    when (request.event) {
+      PyToolEventKind.CONFIGURATION_CHANGED -> PyToolUsagesCollector.Helper.logConfigurationChanged(project, tool, request.source)
+      PyToolEventKind.INSTALLED -> PyToolUsagesCollector.Helper.logToolInstalled(project, tool, request.source)
+      PyToolEventKind.UPDATED -> PyToolUsagesCollector.Helper.logToolUpdated(project, tool, request.source)
+    }
   }
 
   private suspend fun operate(
@@ -142,6 +169,8 @@ private object PyToolApiImpl : PyToolApi {
       version = version,
       canInstall = tool?.manager?.canInstall(descriptor) == true,
       latestVersion = latestVersion,
+      configuration = tool?.configurationState(project),
+      selectedAsTypeEngine = tool?.isSelectedAsTypeEngine(project) == true,
     )
   }
 

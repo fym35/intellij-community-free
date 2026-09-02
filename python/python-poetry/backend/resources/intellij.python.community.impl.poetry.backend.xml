@@ -11,7 +11,6 @@
     <module name="intellij.python.community.impl.poetry.common"/>
     <module name="intellij.python.pyproject"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
   </dependencies>
   <!-- endregion -->
   <extensions defaultExtensionNs="Pythonid">
@@ -21,6 +20,5 @@
   </extensions>
   <extensions defaultExtensionNs="com.intellij">
     <python.pytools.pyTool implementation="com.intellij.python.community.impl.poetry.backend.PoetryPyTool"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.community.impl.poetry.backend.PoetryPyToolFrontend"/>
   </extensions>
 </idea-plugin>

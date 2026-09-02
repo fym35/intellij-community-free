@@ -206,7 +206,7 @@ internal class PyExternalToolRowPanel(
     @NlsSafe val options: String? = when {
       !row.staged.enabled -> null
       checkBoxes.isNotEmpty() -> checkBoxes.filter { it.isSelected }.joinToString(", ") { it.text }.ifBlank { null }
-      else -> tool.summaryFor(project).takeIf { it.isNotBlank() }
+      else -> tool.summary(project, row.configuration).takeIf { it.isNotBlank() }
     }
     val noFeatures = row.staged.enabled && options == null
     summaryLabel.text = when {

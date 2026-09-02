@@ -2,9 +2,12 @@
 package com.intellij.python.lsp.core
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
+import com.intellij.python.pytools.common.PyLspToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 
 /**
  * Base for every LSP-backed [PyTool]. Captures the shared, non-UI wiring around a per-project
@@ -15,6 +18,8 @@ import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
  * are not part of this base.
  */
 abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool {
+  abstract val lspServerName: @NlsSafe String
+
   /** Per-project settings service backing this tool — the single source of its configuration. */
   abstract fun configuration(project: Project): C
 
@@ -29,5 +34,24 @@ abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool {
       inlayHints = cfg.inlayHints,
       documentation = cfg.documentation,
     )
+  }
+
+  override fun configurationState(project: Project): PyLspToolConfigurationDto {
+    val cfg = configuration(project)
+    return PyLspToolConfigurationDto(
+      inspections = cfg.inspections,
+      completions = cfg.completions,
+      inlayHints = cfg.inlayHints,
+      documentation = cfg.documentation,
+    )
+  }
+
+  override fun applyConfigurationState(project: Project, state: PyToolConfigurationDto) {
+    require(state is PyLspToolConfigurationDto)
+    val cfg = configuration(project)
+    cfg.inspections = state.inspections
+    cfg.completions = state.completions
+    cfg.inlayHints = state.inlayHints
+    cfg.documentation = state.documentation
   }
 }

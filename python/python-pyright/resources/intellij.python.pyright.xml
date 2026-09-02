@@ -21,7 +21,6 @@
     <module name="intellij.platform.smRunner"/>
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.xml.parser"/>
   </dependencies>
   <!-- endregion -->
@@ -32,7 +31,5 @@
     <projectSettings service="com.intellij.python.pyright.BasedpyrightConfiguration"/>
     <python.pytools.pyTool implementation="com.intellij.python.pyright.PyrightPyTool"/>
     <python.pytools.pyTool implementation="com.intellij.python.pyright.BasedpyrightPyTool"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.pyright.PyrightPyToolFrontend"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.pyright.BasedpyrightPyToolFrontend"/>
   </extensions>
 </idea-plugin>

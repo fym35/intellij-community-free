@@ -8,11 +8,8 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.LocalEelMachine
 import com.intellij.platform.eel.provider.getResolvedEelMachine
 import com.intellij.platform.eel.provider.localEel
-import com.intellij.python.community.impl.conda.icons.PythonCommunityImplCondaIcons
 import com.intellij.python.community.impl.installer.CondaInstallManager
 import com.intellij.python.pytools.backend.PackageManagerPyTool
-import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
-import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.backend.PyExecutableCache
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolManager
@@ -22,7 +19,6 @@ import com.intellij.python.pytools.backend.pyExecutableSpec
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.packaging.PyPackageName
 import java.nio.file.Path
-import javax.swing.Icon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -55,17 +51,6 @@ class CondaPyTool : PackageManagerPyTool {
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): CondaPyTool = PyTool.EP_NAME.findExtensionOrFail(CondaPyTool::class.java)
-  }
-}
-
-class CondaPyToolFrontend : PackageManagerPyToolFrontend {
-  override val presentableName: String = "Conda"
-  override val packageName: PyPackageName = PyPackageName.from("conda")
-  override val description: String get() = PyCondaBundle.message("python.conda.tool.description")
-  override val icon: Icon get() = PythonCommunityImplCondaIcons.Anaconda
-
-  companion object {
-    fun getInstance(): CondaPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(CondaPyToolFrontend::class.java)
   }
 }
 

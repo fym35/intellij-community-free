@@ -59,7 +59,12 @@ jvm_library(
         "//platform/lang-api:lang",
         "//platform/statistics",
         "//python/python-pytools/backend",
-        "//python/python-pytools/frontend",
+        "//python/python-type-engine/common",
+        "//platform/project/shared:project",
+        "//platform/kernel/rpc.backend",
+        "//platform/kernel/backend",
+        "//platform/platform-impl/rpc",
+        "//platform/backend",
     ],
 )
 
@@ -114,7 +119,12 @@ jvm_library(
         "//platform/lang-api:lang_test_lib",
         "//platform/statistics:statistics_test_lib",
         "//python/python-pytools/backend:backend_test_lib",
-        "//python/python-pytools/frontend:frontend_test_lib",
+        "//python/python-type-engine/common:common_test_lib",
+        "//platform/project/shared:project_test_lib",
+        "//platform/kernel/rpc.backend:rpc.backend_test_lib",
+        "//platform/kernel/backend:backend_test_lib",
+        "//platform/platform-impl/rpc:rpc_test_lib",
+        "//platform/backend:backend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.typeEngine` end

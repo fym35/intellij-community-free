@@ -15,9 +15,9 @@ import com.intellij.python.lsp.core.PyLspToolDescriptor
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineUtils
 import com.intellij.python.lsp.core.utils.PyLspServerModificationTracker
 import com.intellij.python.pyrefly.PyreflyConfiguration
-import com.intellij.python.pyrefly.PyreflyPyToolFrontend
+import com.intellij.python.pyrefly.PyreflyPyTool
 import com.intellij.python.pyrefly.PyreflyUsageCollector
-import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
+import com.intellij.python.lsp.core.PyLspToolSettings
 import com.jetbrains.python.codeInsight.typing.PyTypeShed
 import com.jetbrains.python.sdk.pythonSdk
 import org.eclipse.lsp4j.ConfigurationItem
@@ -25,7 +25,7 @@ import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.InitializeResult
 
 @Suppress("UsagesOfObsoleteApi")
-class PyreflyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, PyreflyPyToolFrontend.getInstance()) {
+class PyreflyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, PyreflyPyTool.getInstance()) {
   override val toolConfig: PyLspToolSettings
     get() = project.service<PyreflyConfiguration>()
 

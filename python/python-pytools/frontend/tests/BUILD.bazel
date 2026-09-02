@@ -97,6 +97,8 @@ jvm_library(
         "//platform/util/jdom:jdom_test_lib",
         "//python/openapi:community",
         "//python/openapi:community_test_lib",
+        "//python/python-lsp-core:lsp-core",
+        "//python/python-lsp-core:lsp-core_test_lib",
         "//python/python-pytools/backend",
         "//python/python-pytools/backend:backend_test_lib",
         "//python/python-pytools/common",

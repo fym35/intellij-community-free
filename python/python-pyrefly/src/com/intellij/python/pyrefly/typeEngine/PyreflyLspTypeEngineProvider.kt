@@ -8,7 +8,7 @@ import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.ensureClientStarted
 import com.intellij.platform.lsp.api.getClients
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineUtils
-import com.intellij.python.pyrefly.PyreflyPyToolFrontend
+import com.intellij.python.pyrefly.PyreflyPyTool
 import com.intellij.python.pyrefly.lsp.PyreflyLspClientDescriptor
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
 import com.jetbrains.python.psi.types.engine.PyTypeEngine
@@ -31,7 +31,7 @@ class PyreflyLspTypeEngineProvider : PyTypeEngineProvider {
 
     // Provide types only when Pyrefly is the selected type engine — not merely enabled as an LSP
     // tool. This decouples type inference from the External Tools toggle (PY-90550).
-    if (!PyreflyPyToolFrontend.getInstance().isSelectedAsTypeEngine(module.project)) {
+    if (!PyreflyPyTool.getInstance().isSelectedAsTypeEngine(module.project)) {
       return null
     }
     val lspServerManager = LspClientManager.getInstance(module.project)

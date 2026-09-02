@@ -42,17 +42,16 @@ class PyExternalToolsConfigurable(private val project: Project) : BoundSearchabl
     refreshRow = ::refreshRow,
   )
 
-  /** Initialized once in [createPanel]; every method that touches it is invoked while the UI is live. */
-  private lateinit var toolsList: PyExternalToolsList
+  private var toolsList: PyExternalToolsList? = null
 
   /** Wired in as [PyToolManagementController.onStateChanged]; refresh the rows on EDT. The hint footer rebinds via [PyToolManagementController.uvAvailable]. */
   private fun onUvStateChanged() {
-    toolsList.fireAllRowsChanged()
+    toolsList?.fireAllRowsChanged()
   }
 
   /** Wired in as [PyToolManagementController.refreshRow]; delegate to the list. */
   private fun refreshRow(item: ToolRow) {
-    toolsList.refreshRow(item)
+    toolsList?.refreshRow(item)
   }
 
   /**
@@ -62,7 +61,7 @@ class PyExternalToolsConfigurable(private val project: Project) : BoundSearchabl
   override fun enableSearch(option: String?): Runnable? {
     // The Settings framework may call this from the searchable-options index builder before the
     // page is visible, i.e. before [createPanel] has run; bail out cleanly in that case.
-    if (!::toolsList.isInitialized) return null
+    val toolsList = toolsList ?: return null
     // Settings calls this on every search-text change, including the transition back to an empty
     // query when the user clears the field. Return a Runnable for empty/no-match input so we can
     // drop the spotlight border in lock-step with the search field, instead of leaving it
@@ -78,10 +77,11 @@ class PyExternalToolsConfigurable(private val project: Project) : BoundSearchabl
   }
 
   /** Give focus to the list when the page opens. */
-  override fun getPreferredFocusedComponent(): JComponent = toolsList.view
+  override fun getPreferredFocusedComponent(): JComponent? = toolsList?.view
 
   override fun createPanel(): DialogPanel {
-    toolsList = PyExternalToolsList(project, uv)
+    val toolsList = PyExternalToolsList(project, uv)
+    this.toolsList = toolsList
 
     val scrollPane = JBScrollPane(toolsList.view).apply {
       border = JBUI.Borders.empty()
@@ -138,14 +138,19 @@ class PyExternalToolsConfigurable(private val project: Project) : BoundSearchabl
     return resultPanel
   }
 
-  override fun isModified(): Boolean = toolsList.isModified()
+  override fun isModified(): Boolean = toolsList?.isModified() == true
 
-  override fun apply(): Unit = toolsList.apply()
+  override fun apply() {
+    toolsList?.apply()
+  }
 
-  override fun reset(): Unit = toolsList.reset()
+  override fun reset() {
+    toolsList?.reset()
+  }
 
   override fun disposeUIResources() {
-    toolsList.disposeUIResources()
+    toolsList?.disposeUIResources()
+    toolsList = null
     super.disposeUIResources()
   }
 

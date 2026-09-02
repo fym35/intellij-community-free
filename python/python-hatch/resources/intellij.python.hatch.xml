@@ -17,7 +17,6 @@
     <module name="intellij.python.processOutput.common"/>
     <module name="intellij.python.pyproject"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.sdk.backend"/>
     <module name="intellij.python.sdk.common"/>
   </dependencies>
@@ -35,7 +34,6 @@
   </extensions>
   <extensions defaultExtensionNs="com.intellij">
     <python.pytools.pyTool implementation="com.intellij.python.hatch.HatchPyTool"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.hatch.HatchPyToolFrontend"/>
     <python.community.common.toolToIconMapper implementation="com.intellij.python.hatch.impl.HatchIdMapper"/>
     <python.processOutput.common.processOutputIconMapping implementation="com.intellij.python.hatch.impl.HatchIconMapping"/>
   </extensions>

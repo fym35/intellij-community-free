@@ -35,7 +35,6 @@
     <orderEntry type="module" module-name="intellij.python.sdk.backend" />
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.python.pytools.backend" />
-    <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
     <orderEntry type="module" module-name="intellij.platform.core" />
     <orderEntry type="module" module-name="intellij.platform.util" />
   </component>

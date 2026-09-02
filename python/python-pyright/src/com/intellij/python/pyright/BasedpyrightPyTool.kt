@@ -3,47 +3,25 @@ package com.intellij.python.pyright
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.python.lsp.core.PyLspTool
 import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
-import com.intellij.python.pytools.frontend.PyToolFrontend
-import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
-import javax.swing.Icon
 
 /**
  * [Basedpyright](https://docs.basedpyright.com/) — an open-source fork of Pyright that adds features
  * such as stricter type inference and language-server capabilities otherwise exclusive to Pylance.
  */
 @ApiStatus.Internal
-class BasedpyrightPyTool : PyTool {
+class BasedpyrightPyTool : PyLspTool<BasedpyrightConfiguration>() {
+  override val lspServerName: String = "Basedpyright"
   override val packageName: PyPackageName = PyPackageName.from("basedpyright")
 
-  companion object {
-    fun getInstance(): BasedpyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(BasedpyrightPyTool::class.java)
-  }
-}
-
-@ApiStatus.Internal
-class BasedpyrightPyToolFrontend : PyLspTool<BasedpyrightConfiguration>(), ExternalPyTool {
-  override val presentableName: String = "Basedpyright"
-  override val description: String get() = PyrightBundle.message("basedpyright.tool.description")
-  override val packageName: PyPackageName = PyPackageName.from("basedpyright")
-
-  override fun configuration(project: Project): BasedpyrightConfiguration = project.service<BasedpyrightConfiguration>()
-
-  override val icon: Icon = PyrightUtil.getDefaultBasedPyrightIcon()
-
-  override fun createConfigurable(project: Project): BasedpyrightConfigurable = BasedpyrightConfigurable(project)
-
-  override fun summaryFor(project: Project): String = pyLspToolFeaturesSummary(configuration(project))
+  override fun configuration(project: Project): BasedpyrightConfiguration = project.service()
 
   override fun onEnabledChanged(project: Project, enabled: Boolean): Unit = restartOrStopPyrightProvider(project)
 
-  @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): BasedpyrightPyToolFrontend =
-      PyToolFrontend.EP_NAME.findExtensionOrFail(BasedpyrightPyToolFrontend::class.java)
+    fun getInstance(): BasedpyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(BasedpyrightPyTool::class.java)
   }
 }

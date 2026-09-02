@@ -52,7 +52,6 @@ jvm_library(
         "//platform/analysis-api:analysis",
         "//platform/code-style-api:codeStyle",
         "//python/python-lsp-core:lsp-core",
-        "//python/python-pytools/frontend",
         "//plugins/toml/core",
         "//libraries/gson",
         "//platform/indexing-api:indexing",
@@ -60,6 +59,7 @@ jvm_library(
         "//python/python-pyproject:pyproject",
         "//platform/lang-api:lang",
         "//python/python-pytools/backend",
+        "//python/python-pytools/common",
         "//python/python-exec-service:community-execService",
     ],
 )
@@ -106,7 +106,6 @@ jvm_library(
         "//platform/analysis-api:analysis_test_lib",
         "//platform/code-style-api:codeStyle_test_lib",
         "//python/python-lsp-core:lsp-core_test_lib",
-        "//python/python-pytools/frontend:frontend_test_lib",
         "//plugins/toml/core:core_test_lib",
         "//libraries/gson:gson_test_lib",
         "//platform/indexing-api:indexing_test_lib",
@@ -114,6 +113,7 @@ jvm_library(
         "//python/python-pyproject:pyproject_test_lib",
         "//platform/lang-api:lang_test_lib",
         "//python/python-pytools/backend:backend_test_lib",
+        "//python/python-pytools/common:common_test_lib",
         "//python/python-exec-service:community-execService_test_lib",
     ],
 )

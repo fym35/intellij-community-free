@@ -29,7 +29,7 @@
     <module name="intellij.python.community.execService"/>
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
+    <module name="intellij.python.pytools.common"/>
     <module name="intellij.toml.core"/>
     <module name="intellij.xml.parser"/>
   </dependencies>
@@ -66,6 +66,5 @@
     <externalAnnotator language="TOML" implementationClass="com.intellij.python.ruff.codeinsight.RuffConfigExternalAnnotator"/>
     <projectSettings service="com.intellij.python.ruff.RuffConfiguration"/>
     <python.pytools.pyTool implementation="com.intellij.python.ruff.RuffPyTool"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.ruff.RuffPyToolFrontend"/>
   </extensions>
 </idea-plugin>

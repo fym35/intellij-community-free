@@ -6,7 +6,7 @@ import com.intellij.platform.lsp.api.LspClient
 import com.intellij.psi.util.parents
 import com.intellij.python.lsp.core.type.PyLspTypeEngine
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
-import com.intellij.python.pyrefly.PyreflyPyToolFrontend
+import com.intellij.python.pyrefly.PyreflyPyTool
 import com.jetbrains.python.psi.PyFromImportStatement
 import com.jetbrains.python.psi.PyQualifiedExpression
 import com.jetbrains.python.psi.PyTypedElement
@@ -28,7 +28,7 @@ internal class PyreflyLspTypeEngine(private val module: Module, val lspClient: L
     ) {
       return false
     }
-    return PyreflyPyToolFrontend.getInstance().isSelectedAsTypeEngine(module.project)
+    return PyreflyPyTool.getInstance().isSelectedAsTypeEngine(module.project)
   }
 
   override fun resolveType(pyTypedElement: PyTypedElement, isLibrary: Boolean, isUserInitiated: Boolean): Ref<PyType?>? {

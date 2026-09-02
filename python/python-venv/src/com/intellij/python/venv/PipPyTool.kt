@@ -3,12 +3,8 @@ package com.intellij.python.venv
 
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolManager
-import com.intellij.python.pytools.frontend.PyToolFrontend
-import com.intellij.python.venv.PyVenvBundle.message
-import com.intellij.python.venv.icons.PythonVenvIcons
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
-import javax.swing.Icon
 
 /**
  * [pip](https://pip.pypa.io/) — the standard package installer for Python, maintained under the PyPA. It installs
@@ -26,17 +22,5 @@ class PipPyTool : PyTool {
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): PipPyTool = PyTool.EP_NAME.findExtensionOrFail(PipPyTool::class.java)
-  }
-}
-
-@ApiStatus.Internal
-class PipPyToolFrontend : PyToolFrontend {
-  override val presentableName: String = "pip"
-  override val packageName: PyPackageName = PyPackageName.from("pip")
-  override val description: String get() = message("py.venv.pip.tool.description")
-  override val icon: Icon get() = PythonVenvIcons.VirtualEnv
-
-  companion object {
-    fun getInstance(): PipPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(PipPyToolFrontend::class.java)
   }
 }

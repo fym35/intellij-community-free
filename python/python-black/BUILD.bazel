@@ -10,8 +10,6 @@ jvm_library(
     name = "black",
     srcs = glob(
         [
-            "gen/**/*.kt",
-            "gen/**/*.java",
             "src/**/*.kt",
             "src/**/*.java",
             "src/**/*.form",
@@ -50,7 +48,7 @@ jvm_library(
         "//platform/vcs-impl",
         "//python/python-exec-service:community-execService",
         "//python/python-pytools/backend",
-        "//python/python-pytools/frontend",
+        "//python/python-pytools/common",
         "//python/openapi:community",
         "//python/python-sdk/backend",
         "//platform/projectModel-impl",
@@ -93,7 +91,7 @@ jvm_library(
         "//platform/vcs-impl:vcs-impl_test_lib",
         "//python/python-exec-service:community-execService_test_lib",
         "//python/python-pytools/backend:backend_test_lib",
-        "//python/python-pytools/frontend:frontend_test_lib",
+        "//python/python-pytools/common:common_test_lib",
         "//python/openapi:community_test_lib",
         "//python/python-sdk/backend:backend_test_lib",
         "//platform/projectModel-impl:projectModel-impl_test_lib",

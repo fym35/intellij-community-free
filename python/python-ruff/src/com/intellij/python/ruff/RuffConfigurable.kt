@@ -4,33 +4,10 @@ package com.intellij.python.ruff
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
-import com.intellij.openapi.project.Project
-import com.intellij.python.pytools.frontend.lsp.LSP_TOOLS_STORAGE_FILE
-import com.intellij.python.pytools.frontend.lsp.PyLspToolConfiguration
-import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
-import com.intellij.python.pytools.frontend.ui.PyLspToolDetailConfigurable
-import com.intellij.ui.dsl.builder.Panel
-import com.intellij.ui.dsl.builder.bindSelected
+import com.intellij.python.lsp.core.LSP_TOOLS_STORAGE_FILE
+import com.intellij.python.lsp.core.PyLspToolConfiguration
+import com.intellij.python.lsp.core.PyLspToolSettings
 import com.intellij.util.xmlb.XmlSerializerUtil
-
-/**
- * Project-wide Ruff detail configurable.
- *
- * Path, discovery, and enabled state are backend-owned and are edited from the
- * `External Tools` table; this dialog only exposes the tool-specific feature toggles.
- */
-class RuffConfigurable(project: Project) :
-  PyLspToolDetailConfigurable<RuffConfiguration>(project, RuffPyToolFrontend.getInstance()) {
-
-  override fun Panel.extraRows() {
-    row("") {
-      checkBox(RuffBundle.message("checkbox.formatting")).bindSelected(settings::formatting)
-    }
-    row("") {
-      checkBox(RuffBundle.message("checkbox.import.optimizer")).bindSelected(settings::sortImports)
-    }
-  }
-}
 
 interface RuffSettings : PyLspToolSettings {
   var sortImports: Boolean

@@ -6,6 +6,7 @@ import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.service.fus.collectors.CounterUsagesCollector
 import com.intellij.openapi.project.Project
 import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.util.ThreeState
 
 class PyToolUsagesCollector : CounterUsagesCollector() {
@@ -55,13 +56,6 @@ private val GROUP = EventLogGroup("python.lsp", 8)
  * triggered. Extend when new entry points (notifications, intentions, editor banners, ...)
  * start logging these events.
  */
-enum class PyToolActionSource {
-  /** The Python External Tools settings page — the table itself (path-column icons and the page-level apply). */
-  SETTINGS_TABLE,
-  /** A per-tool detail configurable nested inside the Python External Tools settings page. */
-  SETTINGS_DETAIL,
-}
-
 private val toolNameField = EventFields.StringValidatedByDictionary("tool_name", "python_packages.ndjson")
 private val sourceField = EventFields.Enum("source", PyToolActionSource::class.java)
 private val enabledField = EventFields.Boolean("enabled")

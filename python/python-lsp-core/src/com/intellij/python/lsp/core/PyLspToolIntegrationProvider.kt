@@ -54,16 +54,12 @@ import com.intellij.platform.lsp.api.customization.LspHoverSupport
 import com.intellij.platform.lsp.api.customization.LspInlayHintSupport
 import com.intellij.platform.lsp.api.customization.LspOptimizeImportsCustomizer
 import com.intellij.platform.lsp.api.customization.LspOptimizeImportsDisabled
-import com.intellij.platform.lsp.api.lsWidget.LspClientWidgetItem
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.python.community.execService.asGeneralCommandLine
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.getExecutableWithBaseArgs
-import com.intellij.python.pytools.frontend.isActiveOn
-import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
-import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
+import com.intellij.python.pytools.backend.isActiveOn
 import com.intellij.ui.JBColor
 import com.jetbrains.python.PythonPluginDisposable
 import com.jetbrains.python.onFailure
@@ -78,7 +74,6 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.InitializeResult
 import org.jetbrains.annotations.Nls
 import java.util.Collections
-import javax.swing.Icon
 
 abstract class PyLspToolIntegrationProvider : LspIntegrationProvider {
   private val listenerConnectedForProjects: MutableSet<Project> = Collections.synchronizedSet(HashSet<Project>())
@@ -100,34 +95,20 @@ abstract class PyLspToolIntegrationProvider : LspIntegrationProvider {
       Disposer.register(listenerDisposable) {
         listenerConnectedForProjects.remove(project)
       }
-      subscribeOnChanges(descriptor.pyTool.backendTool, project, listenerDisposable)
+      subscribeOnChanges(descriptor.pyTool, project, listenerDisposable)
       // The set is app-level (the provider is an application extension); drop the project when it is
       // disposed so we don't retain disposed projects (caught by the test-framework leak checker).
       Disposer.register(PythonPluginDisposable.getInstance(project), Disposable { listenerConnectedForProjects.remove(project) })
     }
 
     runBlockingMaybeCancellable {
-      descriptor.pyTool.backendTool.getExecutableWithBaseArgs(moduleOrProject, descriptor.executableName)
+      descriptor.pyTool.getExecutableWithBaseArgs(moduleOrProject, descriptor.executableName)
     }.onFailure { return }
 
     clientStarter.ensureClientStarted(descriptor)
   }
 
-  override fun createWidgetItem(lspClient: LspClient, currentFile: VirtualFile?): LspClientWidgetItem? {
-    return object : LspClientWidgetItem(
-      lspClient = lspClient,
-      currentFile = currentFile,
-      icon = getIcon(lspClient),
-      settingsPageClass = PyExternalToolsConfigurable::class.java
-    ) {
-      override val itemLabel: @NlsSafe String
-        get() = presentableName(lspClient) + versionPostfix + rootPostfix
-    }
-  }
-
   abstract fun getDescriptor(module: Module): PyLspToolDescriptor
-
-  fun getIcon(lspClient: LspClient): Icon = (lspClient.descriptor as PyLspToolDescriptor).pyTool.icon
 
   fun presentableName(lspClient: LspClient): @NlsSafe String = lspClient.initializeResult?.serverInfo?.name
                                                                ?: lspClient.descriptor.presentableName
@@ -168,7 +149,7 @@ abstract class PyLspToolIntegrationProvider : LspIntegrationProvider {
 abstract class PyLspToolDescriptor(
   val module: Module,
   val pyTool: PyLspTool<*>,
-) : LspClientDescriptor(module.project, pyTool.presentableName, *ModuleRootManager.getInstance(module).contentRoots) {
+) : LspClientDescriptor(module.project, pyTool.lspServerName, *ModuleRootManager.getInstance(module).contentRoots) {
   /**
    * Whether this python LSP tool can serve Jupyter notebooks. Defaults to `true` because all current Python LSP tools support notebooks.
    */
@@ -189,7 +170,7 @@ abstract class PyLspToolDescriptor(
   override fun createCommandLine(): GeneralCommandLine {
     val moduleOrProject = ModuleOrProject.ModuleAndProject(module)
     val executable = runBlockingMaybeCancellable {
-      pyTool.backendTool.getExecutableWithBaseArgs(moduleOrProject, executableName)
+      pyTool.getExecutableWithBaseArgs(moduleOrProject, executableName)
     }
     val (binary, baseArgs) = executable.getOr { throw ExecutionException(it.error.message) }
     val cmd = binary.asGeneralCommandLine().getOr { throw ExecutionException(it.error.message) }
@@ -425,9 +406,6 @@ open class PyLspToolCustomization(
 
   open fun codeCustomizer(@Nls code: String): @Nls String = code
 }
-
-private val PyLspTool<*>.backendTool: PyTool
-  get() = requireNotNull(PyTool.findByPackageName(packageName.name))
 
 @Service(Service.Level.PROJECT)
 class PyLspService(val cs: CoroutineScope)

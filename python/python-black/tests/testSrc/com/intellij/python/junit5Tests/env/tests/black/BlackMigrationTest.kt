@@ -1,7 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.python.junit5Tests.env.tests.black
 
-import com.intellij.python.black.BlackPyToolFrontend
+import com.intellij.python.black.BlackPyTool
 import com.intellij.python.black.configuration.BlackFormatterConfiguration
 import com.intellij.python.junit5Tests.framework.env.PyEnvTestCase
 import com.intellij.testFramework.junit5.fixture.projectFixture
@@ -29,12 +29,12 @@ internal class BlackMigrationTest {
       pathToExecutable = "/usr/local/bin/black"
     }
 
-    assertEquals(true, BlackPyToolFrontend.getInstance().migrateLegacyState(project))
+    assertEquals(true, BlackPyTool.getInstance().migrateLegacyState(project).enabled)
 
     // old settings are wiped, so a second migration (e.g. after the file was emptied on reset) imports nothing
     assertEquals(false, cfg.enabledOnReformat)
     assertEquals(BlackFormatterConfiguration.ExecutionMode.PACKAGE, cfg.executionMode)
     assertNull(cfg.pathToExecutable)
-    assertEquals(false, BlackPyToolFrontend.getInstance().migrateLegacyState(project))
+    assertEquals(false, BlackPyTool.getInstance().migrateLegacyState(project).enabled)
   }
 }

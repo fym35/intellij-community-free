@@ -7,8 +7,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.Version
 import com.intellij.python.pytools.common.PyToolId
-import com.intellij.python.pytools.frontend.statistics.PyToolFusSnapshot
+import com.intellij.python.pytools.common.PyLspToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.ui.createLspToolConfigurable
+import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
@@ -20,17 +23,10 @@ interface PyToolFrontend {
   val description: @Nls String
   val minimumSupportedVersion: Version? get() = null
 
+  fun summary(project: Project, configuration: PyToolConfigurationDto?): @NlsSafe String = ""
+
   val toolId: PyToolId get() = PyToolId(packageName.name)
   val fusId: String get() = packageName.name
-
-  fun migrateLegacyState(project: Project): Boolean? = null
-  fun summaryFor(project: Project): @NlsSafe String = ""
-  fun onEnabledChanged(project: Project, enabled: Boolean) {}
-  fun isSelectedAsTypeEngine(project: Project): Boolean = false
-
-  fun configurationFusSnapshot(project: Project): PyToolFusSnapshot {
-    return PyToolFusSnapshot(enabled = PyToolsFrontendState.getInstance(project).isEnabled(toolId), customPath = false)
-  }
 
   companion object {
     val EP_NAME: ExtensionPointName<PyToolFrontend> = ExtensionPointName.create("com.intellij.python.pytools.pyToolFrontend")
@@ -53,6 +49,14 @@ interface ExternalPyToolFrontend : PyToolFrontend {
 
 interface PackageManagerPyToolFrontend : PyToolFrontend
 
-fun PyToolFrontend.isEnabledOn(project: Project): Boolean = PyToolsFrontendState.getInstance(project).isEnabled(toolId)
+interface LspPyToolFrontend : ExternalPyToolFrontend {
+  override fun createConfigurable(project: Project): UnnamedConfigurable = createLspToolConfigurable(project, this)
+  override fun summary(project: Project, configuration: PyToolConfigurationDto?): String {
+    val state = configuration as? PyLspToolConfigurationDto ?: return ""
+    return pyLspToolFeaturesSummary(state, this)
+  }
+  val formattingLabel: @Nls String? get() = null
+  val sortImportsLabel: @Nls String? get() = null
+}
 
-fun PyToolFrontend.isActiveOn(project: Project): Boolean = isEnabledOn(project) || isSelectedAsTypeEngine(project)
+fun PyToolFrontend.isEnabledOn(project: Project): Boolean = PyToolsFrontendState.getInstance(project).isEnabled(toolId)

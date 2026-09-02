@@ -24,10 +24,39 @@ data class PyToolsRequest(val projectId: ProjectId, val toolIds: List<PyToolId>)
 data class PyToolEnabledStateDto(val toolId: PyToolId, val enabled: Boolean)
 
 @Serializable
-data class PyToolsInitializationRequest(val projectId: ProjectId, val tools: List<PyToolEnabledStateDto>)
+data class PyToolSetEnabledRequest(val tool: PyToolRequest, val enabled: Boolean)
 
 @Serializable
-data class PyToolSetEnabledRequest(val tool: PyToolRequest, val enabled: Boolean)
+sealed interface PyToolConfigurationDto
+
+@Serializable
+data class PyLspToolConfigurationDto(
+  val inspections: Boolean,
+  val completions: Boolean?,
+  val inlayHints: Boolean?,
+  val documentation: Boolean?,
+  val formatting: Boolean? = null,
+  val sortImports: Boolean? = null,
+) : PyToolConfigurationDto
+
+@Serializable
+data class PyBlackToolConfigurationDto(val arguments: String) : PyToolConfigurationDto
+
+@Serializable
+data class PyToolSetConfigurationRequest(val tool: PyToolRequest, val configuration: PyToolConfigurationDto)
+
+@Serializable
+enum class PyToolActionSource { SETTINGS_TABLE, SETTINGS_DETAIL }
+
+@Serializable
+enum class PyToolEventKind { CONFIGURATION_CHANGED, INSTALLED, UPDATED }
+
+@Serializable
+data class PyToolLogEventRequest(
+  val tool: PyToolRequest,
+  val source: PyToolActionSource,
+  val event: PyToolEventKind,
+)
 
 @Serializable
 enum class PyToolPathKind { CUSTOM, DETECTED }
@@ -41,6 +70,8 @@ data class PyToolStateDto(
   val version: String?,
   val canInstall: Boolean,
   val latestVersion: String? = null,
+  val configuration: PyToolConfigurationDto? = null,
+  val selectedAsTypeEngine: Boolean = false,
 )
 
 @Serializable
@@ -93,10 +124,11 @@ data class PyToolSdkInstallRequest(
 @Rpc
 interface PyToolApi : RemoteApi<Unit> {
   suspend fun isStateInitialized(projectId: ProjectId): Boolean
-  suspend fun initializeState(request: PyToolsInitializationRequest)
+  suspend fun initializeState(projectId: ProjectId)
   suspend fun observeEnabledStates(projectId: ProjectId): Flow<List<PyToolEnabledStateDto>>
   suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto>
   suspend fun setEnabled(request: PyToolSetEnabledRequest): PyToolStateDto
+  suspend fun setConfiguration(request: PyToolSetConfigurationRequest): PyToolStateDto
   suspend fun validatePath(request: PyToolPathRequest): PyToolValidationDto
   suspend fun setPath(request: PyToolSetPathRequest): PyToolStateDto
   suspend fun install(request: PyToolRequest): PyToolOperationResultDto
@@ -104,6 +136,7 @@ interface PyToolApi : RemoteApi<Unit> {
   suspend fun getSdkStates(request: PyToolRequest): List<PyToolSdkStateDto>
   suspend fun getDependencyGroups(request: PyToolSdkRequest): List<PyToolDependencyGroupDto>
   suspend fun installIntoSdk(request: PyToolSdkInstallRequest): PyToolSdkOperationResultDto
+  suspend fun logEvent(request: PyToolLogEventRequest)
 
   companion object {
     suspend fun getInstance(): PyToolApi = RemoteApiProviderService.resolve(remoteApiDescriptor<PyToolApi>())

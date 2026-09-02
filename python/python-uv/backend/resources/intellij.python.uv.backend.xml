@@ -15,7 +15,6 @@
     <module name="intellij.python.community.execService"/>
     <module name="intellij.python.pyproject"/>
     <module name="intellij.python.pytools.backend"/>
-    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.uv.common"/>
   </dependencies>
   <!-- endregion -->
@@ -25,7 +24,6 @@
   </extensions>
   <extensions defaultExtensionNs="com.intellij">
     <python.pytools.pyTool implementation="com.intellij.python.uv.backend.UvPyTool"/>
-    <python.pytools.pyToolFrontend implementation="com.intellij.python.uv.backend.UvPyToolFrontend"/>
     <python.pytools.genericPyToolManagerProvider implementation="com.intellij.python.uv.backend.UvToolManagerProvider" order="first"/>
   </extensions>
 </idea-plugin>
