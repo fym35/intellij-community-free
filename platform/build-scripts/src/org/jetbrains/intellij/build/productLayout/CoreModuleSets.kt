@@ -334,6 +334,7 @@ object CoreModuleSets {
    * Included transitively by `librariesPlatform()`.
    */
   fun librariesKtor(): ModuleSet = moduleSet("libraries.ktor") {
+    embeddedModule("intellij.libraries.kotlinx.serialization.json.io")
     embeddedModule("intellij.libraries.ktor.io")
     embeddedModule("intellij.libraries.ktor.utils")
     embeddedModule("intellij.libraries.ktor.network.tls")

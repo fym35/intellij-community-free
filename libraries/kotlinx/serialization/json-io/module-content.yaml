@@ -1,0 +1,6 @@
+- name: dist.all/lib/intellij.libraries.kotlinx.serialization.json.io.jar
+  modules:
+  - name: intellij.libraries.kotlinx.serialization.json.io
+    libraries:
+      kotlinx-serialization-json-io:
+      - name: $MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-serialization-json-io-jvm/1/kotlinx-serialization-json-io-jvm-1.jar

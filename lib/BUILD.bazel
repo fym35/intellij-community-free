@@ -7177,21 +7177,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm-1.9.0.jar_copy",
-    src = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0_http//file",
-    out = "org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm-1.9.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlinx-serialization-json-io",
-    jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0_http//file",
-    source_jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "io.ktor/ktor-client-cio-jvm-3.4.1.jar_copy",
     src = "@io_ktor-ktor-client-cio-jvm-3_4_1_http//file",
     out = "io.ktor/ktor-client-cio-jvm-3.4.1.jar",
@@ -7307,37 +7292,6 @@ jvm_import(
 )
 
 java_library(
-    name = "ktor-client-core",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":io_ktor-ktor-client-core-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-http-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-http-cio-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-events-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-websocket-serialization-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-serialization-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-websockets-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-sse-jvm-3_4_1_http_import",
-    ],
-)
-
-copy_file(
-    name = "io.ktor/ktor-client-java-jvm-3.4.1.jar_copy",
-    src = "@io_ktor-ktor-client-java-jvm-3_4_1_http//file",
-    out = "io.ktor/ktor-client-java-jvm-3.4.1.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "ktor-client-java",
-    jar = "@io_ktor-ktor-client-java-jvm-3_4_1_http//file",
-    source_jar = "@io_ktor-ktor-client-java-jvm-3_4_1-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-java_library(
     name = "ktor-client-mock",
     visibility = ["//visibility:public"],
     exports = [
@@ -7361,44 +7315,6 @@ jvm_import(
     name = "io_ktor-ktor-client-mock-jvm-3_4_1_http_import",
     jar = "@io_ktor-ktor-client-mock-jvm-3_4_1_http//file",
     source_jar = "@io_ktor-ktor-client-mock-jvm-3_4_1-sources_http//file",
-)
-
-copy_file(
-    name = "io.ktor/ktor-serialization-kotlinx-json-jvm-3.4.1.jar_copy",
-    src = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http//file",
-    out = "io.ktor/ktor-serialization-kotlinx-json-jvm-3.4.1.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.ktor/ktor-serialization-kotlinx-jvm-3.4.1.jar_copy",
-    src = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http//file",
-    out = "io.ktor/ktor-serialization-kotlinx-jvm-3.4.1.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "ktor-serialization-kotlinx-json",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http_import",
-    ],
-)
-
-jvm_import(
-    name = "io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http_import",
-    jar = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http//file",
-    source_jar = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1-sources_http//file",
-)
-
-jvm_import(
-    name = "io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http_import",
-    jar = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http//file",
-    source_jar = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1-sources_http//file",
 )
 
 copy_file(
@@ -13243,6 +13159,21 @@ jvm_import(
 )
 
 copy_file(
+    name = "org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm-1.9.0.jar_copy",
+    src = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0_http//file",
+    out = "org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm-1.9.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io",
+    jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0_http//file",
+    source_jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
     name = "org.jetbrains.kotlinx/kotlinx-serialization-protobuf-jvm-1.9.0.jar_copy",
     src = "@org_jetbrains_kotlinx-kotlinx-serialization-protobuf-jvm-1_9_0_http//file",
     out = "org.jetbrains.kotlinx/kotlinx-serialization-protobuf-jvm-1.9.0.jar",
@@ -13354,6 +13285,22 @@ jvm_import(
     visibility = ["//visibility:public"],
 )
 
+java_library(
+    name = "libraries-ktor-client-ktor-client-core",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":io_ktor-ktor-client-core-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-http-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-http-cio-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-events-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-websocket-serialization-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-serialization-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-websockets-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-sse-jvm-3_4_1_http_import",
+    ],
+)
+
 copy_file(
     name = "io.ktor/ktor-client-encoding-jvm-3.4.1.jar_copy",
     src = "@io_ktor-ktor-client-encoding-jvm-3_4_1_http//file",
@@ -13369,11 +13316,64 @@ jvm_import(
     visibility = ["//visibility:public"],
 )
 
+copy_file(
+    name = "io.ktor/ktor-client-java-jvm-3.4.1.jar_copy",
+    src = "@io_ktor-ktor-client-java-jvm-3_4_1_http//file",
+    out = "io.ktor/ktor-client-java-jvm-3.4.1.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-ktor-client-ktor-client-java",
+    jar = "@io_ktor-ktor-client-java-jvm-3_4_1_http//file",
+    source_jar = "@io_ktor-ktor-client-java-jvm-3_4_1-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
 jvm_import(
     name = "libraries-ktor-client-ktor-client-logging",
     jar = "@io_ktor-ktor-client-logging-jvm-3_4_1_http//file",
     source_jar = "@io_ktor-ktor-client-logging-jvm-3_4_1-sources_http//file",
     visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.ktor/ktor-serialization-kotlinx-json-jvm-3.4.1.jar_copy",
+    src = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http//file",
+    out = "io.ktor/ktor-serialization-kotlinx-json-jvm-3.4.1.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.ktor/ktor-serialization-kotlinx-jvm-3.4.1.jar_copy",
+    src = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http//file",
+    out = "io.ktor/ktor-serialization-kotlinx-jvm-3.4.1.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-ktor-client-ktor-serialization-kotlinx-json",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http_import",
+    ],
+)
+
+jvm_import(
+    name = "io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http_import",
+    jar = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http//file",
+    source_jar = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1-sources_http//file",
+)
+
+jvm_import(
+    name = "io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http_import",
+    jar = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1_http//file",
+    source_jar = "@io_ktor-ktor-serialization-kotlinx-jvm-3_4_1-sources_http//file",
 )
 
 jvm_import(

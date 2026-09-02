@@ -569,6 +569,7 @@ libraries/kotlinx/html
 libraries/kotlinx/serialization/cbor
 libraries/kotlinx/serialization/core
 libraries/kotlinx/serialization/json
+libraries/kotlinx/serialization/json-io
 libraries/kotlinx/serialization/protobuf
 libraries/kryo2
 libraries/kryo5

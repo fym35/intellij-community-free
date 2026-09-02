@@ -30,6 +30,7 @@
     <!-- endregion -->
 
     <!-- region nested: core.ide > core.platform > libraries.platform > libraries.ktor -->
+    <module name="intellij.libraries.kotlinx.serialization.json.io" loading="embedded"/>
     <module name="intellij.libraries.ktor.io" loading="embedded"/>
     <module name="intellij.libraries.ktor.utils" loading="embedded"/>
     <module name="intellij.libraries.ktor.network.tls" loading="embedded"/>
