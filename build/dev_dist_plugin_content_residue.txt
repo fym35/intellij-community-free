@@ -79,7 +79,7 @@ intellij.android.plugin.descriptor	member_jar	intellij.android.projectSystem.gra
 intellij.android.plugin.descriptor	member_jar	intellij.android.projectSystem.gradle.sync	android-gradle.jar
 intellij.android.plugin.descriptor	member_jar	intellij.android.transportDatabase	android-profilers.jar
 intellij.android.plugin.descriptor	member_jar	intellij.android.utp	utp.jar
-intellij.android.plugin.descriptor	project_library	kotlinx-coroutines-guava
+intellij.android.plugin.descriptor	module_library	intellij.libraries.kotlinx.coroutines.guava	kotlinx-coroutines-guava
 
 intellij.ant	member_jar	intellij.ant.jps	ant-jps.jar
 

@@ -14,17 +14,17 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-guava"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-guava-kotlinx-coroutines-guava"],
     runtime_deps = [
         # do not sort,
         "//libraries/kotlinx/coroutines/core",
         "//libraries/guava",
-        "@lib//:kotlinx-coroutines-guava",
+        "@lib//:libraries-kotlinx-coroutines-guava-kotlinx-coroutines-guava",
     ],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlinx-coroutines-guava"],
+    libraries = ["@lib//:libraries-kotlinx-coroutines-guava-kotlinx-coroutines-guava"],
     module = ":guava",
 )
 
@@ -38,7 +38,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlinx.coroutines.guava",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-guava"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-guava-kotlinx-coroutines-guava"],
     runtime_deps = [
         # do not sort,
         ":guava",
