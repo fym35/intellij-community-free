@@ -55,7 +55,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "@lib//:kotlinx-serialization-core",
         "@lib//:kotlinx-serialization-json",
         "//fleet/util/core",
@@ -77,6 +77,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":lsp.protocol",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//fleet/util/core:core_test_lib",
         "//libraries/jetbrains/annotations:annotations_test_lib",
         "//libraries/io:io_test_lib",

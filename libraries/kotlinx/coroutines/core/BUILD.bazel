@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-core"],
-    runtime_deps = ["@lib//:kotlinx-coroutines-core"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-core-kotlinx-coroutines-core"],
+    runtime_deps = ["@lib//:libraries-kotlinx-coroutines-core-kotlinx-coroutines-core"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlinx-coroutines-core"],
+    libraries = ["@lib//:libraries-kotlinx-coroutines-core-kotlinx-coroutines-core"],
     module = ":core",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlinx.coroutines.core",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-core"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-core-kotlinx-coroutines-core"],
     runtime_deps = [":core"],
 )
 ### auto-generated section `build intellij.libraries.kotlinx.coroutines.core` end

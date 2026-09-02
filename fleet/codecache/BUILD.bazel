@@ -58,7 +58,7 @@ jvm_library(
     visibility = ["//visibility:public"],
     deps = [
         # do not sort,
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "@lib//:kotlin-stdlib",
         "//fleet/bundles",
         "//libraries/jetbrains/annotations",
@@ -85,6 +85,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":codecache",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//fleet/bundles:bundles_test_lib",
         "//libraries/jetbrains/annotations:annotations_test_lib",
         "//fleet/util/logging/api:api_test_lib",

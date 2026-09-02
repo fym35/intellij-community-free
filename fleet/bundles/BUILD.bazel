@@ -54,7 +54,7 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "@lib//:kotlinx-serialization-core",
         "@lib//:kotlinx-serialization-json",
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "//fleet/util/core",
         "//fleet/modules/api",
         "//fleet/bifurcan",
@@ -74,6 +74,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":bundles",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//fleet/util/core:core_test_lib",
         "//fleet/modules/api:api_test_lib",
         "//fleet/bifurcan:bifurcan_test_lib",

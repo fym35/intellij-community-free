@@ -35,7 +35,7 @@ jvm_library(
         # do not sort,
         "@lib//:kotlin-stdlib",
         "//libraries/io",
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "@lib//:fleet-google-devtools-ksp-symbol-processing-api",
     ],
 )
@@ -54,6 +54,7 @@ jvm_library(
         # do not sort,
         ":kernel.plugins.processor",
         "//libraries/io:io_test_lib",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
     ],
 )
 ### auto-generated section `build fleet.build.kernel.plugins.processor` end

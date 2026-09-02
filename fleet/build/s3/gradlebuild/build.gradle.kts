@@ -59,9 +59,6 @@ kotlin {
     implementation(jps.org.jetbrains.kotlin.kotlin.stdlib1993400674.get().let { "${it.group}:${it.name}:${it.version}" }) {
       exclude(group = "org.jetbrains", module = "annotations")
     }
-    implementation(jps.org.jetbrains.intellij.deps.kotlinx.kotlinx.coroutines.core.jvm930800474.get().let { "${it.group}:kotlinx-coroutines-core:${it.version}" }) {
-      isTransitive = false
-    }
     implementation(jps.aws.sdk.kotlin.s3.jvm321782429.get().let { "${it.group}:s3:${it.version}" }) {
       exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
       exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core-jvm")
@@ -69,6 +66,9 @@ kotlin {
       exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")
       exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-common")
       exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    implementation(jps.org.jetbrains.intellij.deps.kotlinx.kotlinx.coroutines.core.jvm930800474.get().let { "${it.group}:kotlinx-coroutines-core:${it.version}" }) {
+      isTransitive = false
     }
     implementation(project(":fleet.build.platform"))
     implementation(project(":fleet.build.fs"))

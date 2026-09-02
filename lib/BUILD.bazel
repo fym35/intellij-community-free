@@ -6988,21 +6988,6 @@ java_library(
 )
 
 copy_file(
-    name = "org.jetbrains.intellij.deps.kotlinx/kotlinx-coroutines-core-jvm-1.10.2-intellij-2.jar_copy",
-    src = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2_http//file",
-    out = "org.jetbrains.intellij.deps.kotlinx/kotlinx-coroutines-core-jvm-1.10.2-intellij-2.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlinx-coroutines-core",
-    jar = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2_http//file",
-    source_jar = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.jetbrains.kotlinx/kotlinx-serialization-core-jvm-1.9.0.jar_copy",
     src = "@org_jetbrains_kotlinx-kotlinx-serialization-core-jvm-1_9_0_http//file",
     out = "org.jetbrains.kotlinx/kotlinx-serialization-core-jvm-1.9.0.jar",
@@ -12974,6 +12959,21 @@ jvm_import(
     name = "libraries-kotlinx-collections-immutable-kotlinx-collections-immutable",
     jar = "@org_jetbrains_kotlinx-kotlinx-collections-immutable-jvm-0_5_0_http//file",
     source_jar = "@org_jetbrains_kotlinx-kotlinx-collections-immutable-jvm-0_5_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.intellij.deps.kotlinx/kotlinx-coroutines-core-jvm-1.10.2-intellij-2.jar_copy",
+    src = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2_http//file",
+    out = "org.jetbrains.intellij.deps.kotlinx/kotlinx-coroutines-core-jvm-1.10.2-intellij-2.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlinx-coroutines-core-kotlinx-coroutines-core",
+    jar = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2_http//file",
+    source_jar = "@org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-core-jvm-1_10_2-intellij-2-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

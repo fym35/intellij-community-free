@@ -54,7 +54,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "//fleet/rpc",
         "@lib//:kotlinx-serialization-core",
         "@lib//:kotlinx-serialization-json",
@@ -80,6 +80,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":rpc.server",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//fleet/rpc:rpc_test_lib",
         "//fleet/reporting/api:api_test_lib",
         "//fleet/reporting/shared:shared_test_lib",

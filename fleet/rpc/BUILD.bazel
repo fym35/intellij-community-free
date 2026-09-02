@@ -66,7 +66,7 @@ jvm_library(
         "@lib//:kotlinx-serialization-json",
         "@lib//:kotlin-stdlib",
         "//libraries/jetbrains/annotations",
-        "@lib//:kotlinx-coroutines-core",
+        "//libraries/kotlinx/coroutines/core",
         "//fleet/util/core",
     ],
 )
@@ -90,6 +90,7 @@ jvm_library(
         "//fleet/reporting/shared:shared_test_lib",
         "//fleet/multiplatform.shims:multiplatform.shims_test_lib",
         "//libraries/jetbrains/annotations:annotations_test_lib",
+        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "//fleet/util/core:core_test_lib",
     ],
 )
