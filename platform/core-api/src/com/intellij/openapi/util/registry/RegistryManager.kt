@@ -41,6 +41,15 @@ interface RegistryManager {
 
   fun stringValue(key: String): String?
 
+  /**
+   * The boolean value of [key], or [defaultValue] when no loaded plugin descriptor declares [key].
+   *
+   * A key has no declaration when the IDE does not load the descriptor that declares it: a disabled plugin
+   * dependency, an optional content module, a frontend and backend split, or free mode. Prefer this overload
+   * over the single-argument form whenever the module that reads the key does not itself declare it.
+   */
+  fun `is`(key: String, defaultValue: Boolean): Boolean
+
   fun intValue(key: String, defaultValue: Int): Int
 
   fun get(key: String): RegistryValue
