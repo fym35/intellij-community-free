@@ -5338,145 +5338,6 @@ java_library(
 )
 
 copy_file(
-    name = "io.grpc/grpc-core-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-core-1_73_0_http//file",
-    out = "io.grpc/grpc-core-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.grpc/grpc-api-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-api-1_73_0_http//file",
-    out = "io.grpc/grpc-api-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.grpc/grpc-context-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-context-1_73_0_http//file",
-    out = "io.grpc/grpc-context-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "grpc-core",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":io_grpc-grpc-core-1_73_0_http_import",
-        ":io_grpc-grpc-api-1_73_0_http_import",
-        ":com_google_android-annotations-4_1_1_4_http_import",
-        ":org_codehaus_mojo-animal-sniffer-annotations-1_24_http_import",
-        ":io_perfmark-perfmark-api-0_27_0_http_import",
-        ":io_grpc-grpc-context-1_73_0_http_import",
-    ],
-)
-
-jvm_import(
-    name = "io_grpc-grpc-core-1_73_0_http_import",
-    jar = "@io_grpc-grpc-core-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-core-1_73_0-sources_http//file",
-)
-
-jvm_import(
-    name = "io_grpc-grpc-api-1_73_0_http_import",
-    jar = "@io_grpc-grpc-api-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-api-1_73_0-sources_http//file",
-)
-
-jvm_import(
-    name = "io_grpc-grpc-context-1_73_0_http_import",
-    jar = "@io_grpc-grpc-context-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-context-1_73_0-sources_http//file",
-)
-
-copy_file(
-    name = "io.grpc/grpc-kotlin-stub-1.4.3.jar_copy",
-    src = "@io_grpc-grpc-kotlin-stub-1_4_3_http//file",
-    out = "io.grpc/grpc-kotlin-stub-1.4.3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "grpc-kotlin-stub",
-    jar = "@io_grpc-grpc-kotlin-stub-1_4_3_http//file",
-    source_jar = "@io_grpc-grpc-kotlin-stub-1_4_3-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.grpc/grpc-protobuf-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-protobuf-1_73_0_http//file",
-    out = "io.grpc/grpc-protobuf-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "com.google.api.grpc/proto-google-common-protos-2.51.0.jar_copy",
-    src = "@com_google_api_grpc-proto-google-common-protos-2_51_0_http//file",
-    out = "com.google.api.grpc/proto-google-common-protos-2.51.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.grpc/grpc-protobuf-lite-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-protobuf-lite-1_73_0_http//file",
-    out = "io.grpc/grpc-protobuf-lite-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "grpc-protobuf",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":io_grpc-grpc-protobuf-1_73_0_http_import",
-        ":com_google_api_grpc-proto-google-common-protos-2_51_0_http_import",
-        ":io_grpc-grpc-protobuf-lite-1_73_0_http_import",
-    ],
-)
-
-jvm_import(
-    name = "io_grpc-grpc-protobuf-1_73_0_http_import",
-    jar = "@io_grpc-grpc-protobuf-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-protobuf-1_73_0-sources_http//file",
-)
-
-jvm_import(
-    name = "com_google_api_grpc-proto-google-common-protos-2_51_0_http_import",
-    jar = "@com_google_api_grpc-proto-google-common-protos-2_51_0_http//file",
-    source_jar = "@com_google_api_grpc-proto-google-common-protos-2_51_0-sources_http//file",
-)
-
-jvm_import(
-    name = "io_grpc-grpc-protobuf-lite-1_73_0_http_import",
-    jar = "@io_grpc-grpc-protobuf-lite-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-protobuf-lite-1_73_0-sources_http//file",
-)
-
-copy_file(
-    name = "io.grpc/grpc-stub-1.73.0.jar_copy",
-    src = "@io_grpc-grpc-stub-1_73_0_http//file",
-    out = "io.grpc/grpc-stub-1.73.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "grpc-stub",
-    jar = "@io_grpc-grpc-stub-1_73_0_http//file",
-    source_jar = "@io_grpc-grpc-stub-1_73_0-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "com.google.guava/guava-testlib-33.0.0-jre.jar_copy",
     src = "@com_google_guava-guava-testlib-33_0_0-jre_http//file",
     out = "com.google.guava/guava-testlib-33.0.0-jre.jar",
@@ -11122,6 +10983,145 @@ jvm_import(
     name = "libraries-groovy-xml-groovy-xml",
     jar = "@org_codehaus_groovy-groovy-xml-3_0_25_http//file",
     source_jar = "@org_codehaus_groovy-groovy-xml-3_0_25-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.grpc/grpc-core-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-core-1_73_0_http//file",
+    out = "io.grpc/grpc-core-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.grpc/grpc-api-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-api-1_73_0_http//file",
+    out = "io.grpc/grpc-api-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.grpc/grpc-context-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-context-1_73_0_http//file",
+    out = "io.grpc/grpc-context-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-grpc-grpc-core",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":io_grpc-grpc-core-1_73_0_http_import",
+        ":io_grpc-grpc-api-1_73_0_http_import",
+        ":com_google_android-annotations-4_1_1_4_http_import",
+        ":org_codehaus_mojo-animal-sniffer-annotations-1_24_http_import",
+        ":io_perfmark-perfmark-api-0_27_0_http_import",
+        ":io_grpc-grpc-context-1_73_0_http_import",
+    ],
+)
+
+jvm_import(
+    name = "io_grpc-grpc-core-1_73_0_http_import",
+    jar = "@io_grpc-grpc-core-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-core-1_73_0-sources_http//file",
+)
+
+jvm_import(
+    name = "io_grpc-grpc-api-1_73_0_http_import",
+    jar = "@io_grpc-grpc-api-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-api-1_73_0-sources_http//file",
+)
+
+jvm_import(
+    name = "io_grpc-grpc-context-1_73_0_http_import",
+    jar = "@io_grpc-grpc-context-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-context-1_73_0-sources_http//file",
+)
+
+copy_file(
+    name = "io.grpc/grpc-kotlin-stub-1.4.3.jar_copy",
+    src = "@io_grpc-grpc-kotlin-stub-1_4_3_http//file",
+    out = "io.grpc/grpc-kotlin-stub-1.4.3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-grpc-grpc-kotlin-stub",
+    jar = "@io_grpc-grpc-kotlin-stub-1_4_3_http//file",
+    source_jar = "@io_grpc-grpc-kotlin-stub-1_4_3-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.grpc/grpc-protobuf-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-protobuf-1_73_0_http//file",
+    out = "io.grpc/grpc-protobuf-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "com.google.api.grpc/proto-google-common-protos-2.51.0.jar_copy",
+    src = "@com_google_api_grpc-proto-google-common-protos-2_51_0_http//file",
+    out = "com.google.api.grpc/proto-google-common-protos-2.51.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "io.grpc/grpc-protobuf-lite-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-protobuf-lite-1_73_0_http//file",
+    out = "io.grpc/grpc-protobuf-lite-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-grpc-grpc-protobuf",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":io_grpc-grpc-protobuf-1_73_0_http_import",
+        ":com_google_api_grpc-proto-google-common-protos-2_51_0_http_import",
+        ":io_grpc-grpc-protobuf-lite-1_73_0_http_import",
+    ],
+)
+
+jvm_import(
+    name = "io_grpc-grpc-protobuf-1_73_0_http_import",
+    jar = "@io_grpc-grpc-protobuf-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-protobuf-1_73_0-sources_http//file",
+)
+
+jvm_import(
+    name = "com_google_api_grpc-proto-google-common-protos-2_51_0_http_import",
+    jar = "@com_google_api_grpc-proto-google-common-protos-2_51_0_http//file",
+    source_jar = "@com_google_api_grpc-proto-google-common-protos-2_51_0-sources_http//file",
+)
+
+jvm_import(
+    name = "io_grpc-grpc-protobuf-lite-1_73_0_http_import",
+    jar = "@io_grpc-grpc-protobuf-lite-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-protobuf-lite-1_73_0-sources_http//file",
+)
+
+copy_file(
+    name = "io.grpc/grpc-stub-1.73.0.jar_copy",
+    src = "@io_grpc-grpc-stub-1_73_0_http//file",
+    out = "io.grpc/grpc-stub-1.73.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-grpc-grpc-stub",
+    jar = "@io_grpc-grpc-stub-1_73_0_http//file",
+    source_jar = "@io_grpc-grpc-stub-1_73_0-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

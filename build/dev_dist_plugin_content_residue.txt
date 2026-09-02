@@ -377,7 +377,6 @@ intellij.vcs.git	member_jar	intellij.vcs.git.rt	git4idea-rt.jar
 
 intellij.xpath	member_jar	intellij.xpath.rt	rt/xslt-rt.jar
 
-language-server.plugins.bazel	vetoed_member	intellij.libraries.grpc
 
 language-server.plugins.bazel.lsp	vetoed_member	intellij.libraries.jsr305
 

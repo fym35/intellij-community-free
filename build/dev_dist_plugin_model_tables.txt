@@ -69,6 +69,7 @@ intellij.vuejs.backend
 +intellij.grid.images.impl
 +intellij.grid.json.impl
 +intellij.java.rt
++intellij.libraries.grpc grpc-core grpc-kotlin-stub grpc-protobuf grpc-stub
 +intellij.libraries.kryo2 Kryo Objenesis
 +intellij.libraries.opentelemetry.exporter.otlp opentelemetry-exporter-otlp-library
 +intellij.notebooks.jupyter.core

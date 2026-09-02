@@ -16,27 +16,27 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = [
         # do not sort,
-        "@lib//:grpc-core",
-        "@lib//:grpc-stub",
-        "@lib//:grpc-kotlin-stub",
-        "@lib//:grpc-protobuf",
+        "@lib//:libraries-grpc-grpc-core",
+        "@lib//:libraries-grpc-grpc-stub",
+        "@lib//:libraries-grpc-grpc-kotlin-stub",
+        "@lib//:libraries-grpc-grpc-protobuf",
     ],
     runtime_deps = [
         # do not sort,
-        "@lib//:grpc-core",
-        "@lib//:grpc-stub",
-        "@lib//:grpc-kotlin-stub",
-        "@lib//:grpc-protobuf",
+        "@lib//:libraries-grpc-grpc-core",
+        "@lib//:libraries-grpc-grpc-stub",
+        "@lib//:libraries-grpc-grpc-kotlin-stub",
+        "@lib//:libraries-grpc-grpc-protobuf",
     ],
 )
 
 content_module_jar(
     libraries = [
         # do not sort,
-        "@lib//:grpc-core",
-        "@lib//:grpc-stub",
-        "@lib//:grpc-kotlin-stub",
-        "@lib//:grpc-protobuf",
+        "@lib//:libraries-grpc-grpc-core",
+        "@lib//:libraries-grpc-grpc-stub",
+        "@lib//:libraries-grpc-grpc-kotlin-stub",
+        "@lib//:libraries-grpc-grpc-protobuf",
     ],
     module = ":grpc",
 )
@@ -52,10 +52,10 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = [
         # do not sort,
-        "@lib//:grpc-core",
-        "@lib//:grpc-stub",
-        "@lib//:grpc-kotlin-stub",
-        "@lib//:grpc-protobuf",
+        "@lib//:libraries-grpc-grpc-core",
+        "@lib//:libraries-grpc-grpc-stub",
+        "@lib//:libraries-grpc-grpc-kotlin-stub",
+        "@lib//:libraries-grpc-grpc-protobuf",
     ],
     runtime_deps = [":grpc"],
 )
