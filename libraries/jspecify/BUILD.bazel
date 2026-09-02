@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jspecify"],
-    runtime_deps = ["@lib//:jspecify"],
+    exports = ["@lib//:libraries-jspecify-jspecify"],
+    runtime_deps = ["@lib//:libraries-jspecify-jspecify"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:jspecify"],
+    libraries = ["@lib//:libraries-jspecify-jspecify"],
     module = ":jspecify",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.jspecify",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jspecify"],
+    exports = ["@lib//:libraries-jspecify-jspecify"],
     runtime_deps = [":jspecify"],
 )
 ### auto-generated section `build intellij.libraries.jspecify` end

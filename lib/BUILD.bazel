@@ -6438,20 +6438,6 @@ jvm_import(
     visibility = ["//visibility:public"],
 )
 
-jvm_import(
-    name = "jspecify",
-    jar = "@org_jspecify-jspecify-1_0_0_http//file",
-    source_jar = "@org_jspecify-jspecify-1_0_0-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "jspecify-provided",
-    neverlink = True,
-    visibility = ["//visibility:public"],
-    exports = [":jspecify"],
-)
-
 copy_file(
     name = "org.jetbrains.nativecerts/jvm-native-trusted-roots-1.1.7.jar_copy",
     src = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7_http//file",
@@ -12203,6 +12189,13 @@ jvm_import(
     name = "libraries-jsp-_j_s_p",
     jar = "@javax_servlet_jsp-javax_servlet_jsp-api-2_2_1_http//file",
     source_jar = "@javax_servlet_jsp-javax_servlet_jsp-api-2_2_1-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-jspecify-jspecify",
+    jar = "@org_jspecify-jspecify-1_0_0_http//file",
+    source_jar = "@org_jspecify-jspecify-1_0_0-sources_http//file",
     visibility = ["//visibility:public"],
 )
 
