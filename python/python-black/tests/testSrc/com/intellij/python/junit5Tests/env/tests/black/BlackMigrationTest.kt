@@ -4,7 +4,7 @@ package com.intellij.python.junit5Tests.env.tests.black
 import com.intellij.python.black.BlackPyTool
 import com.intellij.python.black.configuration.BlackFormatterConfiguration
 import com.intellij.python.junit5Tests.framework.env.PyEnvTestCase
-import com.intellij.python.pytools.PyToolsState
+import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

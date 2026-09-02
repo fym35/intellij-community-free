@@ -1,13 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui
+package com.intellij.python.pytools.frontend.ui
 
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.python.pytools.lsp.PyLspTool
-import com.intellij.python.pytools.lsp.PyLspToolConfiguration
-import com.intellij.python.pytools.statistics.PyToolActionSource
-import com.intellij.python.pytools.statistics.PyToolUsagesCollector
+import com.intellij.python.pytools.frontend.lsp.PyLspTool
+import com.intellij.python.pytools.frontend.lsp.PyLspToolConfiguration
+import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
+import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.panel
 

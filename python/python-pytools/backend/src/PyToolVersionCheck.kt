@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools
+package com.intellij.python.pytools.backend
 
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.python.community.execService.Args
@@ -7,7 +7,8 @@ import com.intellij.python.community.execService.BinaryToExec
 import com.intellij.python.community.execService.BinOnEel
 import com.intellij.python.community.execService.ExecService
 import com.intellij.python.community.execService.execGetStdout
-import com.intellij.python.pytools.PyToolsBundle.message
+import com.intellij.python.pytools.backend.PyToolsBundle.message
+import com.intellij.python.pytools.backend.PyTool
 import com.jetbrains.python.PyInternalExecApi
 import com.jetbrains.python.errorProcessing.PyResult
 import kotlinx.coroutines.Dispatchers

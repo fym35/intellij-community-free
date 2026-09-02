@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.configuration
+package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.project.Project
@@ -10,18 +10,18 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import com.intellij.python.pytools.statistics.PyToolUsagesCollector
-import com.intellij.python.pytools.statistics.PyToolActionSource
-import com.intellij.python.pytools.Version
-import com.intellij.python.pytools.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
+import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
+import com.intellij.python.pytools.backend.Version
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.uv.backend.UVX_EXECUTABLE
 import com.intellij.python.uv.backend.UvPyTool
-import com.intellij.python.pytools.PyExecutableCache
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.GenericPyToolManager
-import com.intellij.python.pytools.GenericPyToolManagerProvider
-import com.intellij.python.pytools.performToolInstallation
-import com.intellij.python.pytools.performToolUpgrade
+import com.intellij.python.pytools.backend.PyExecutableCache
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.GenericPyToolManager
+import com.intellij.python.pytools.backend.GenericPyToolManagerProvider
+import com.intellij.python.pytools.backend.performToolInstallation
+import com.intellij.python.pytools.backend.performToolUpgrade
 import com.intellij.python.pyproject.PyDependencyGroup
 import com.intellij.python.pyproject.model.spi.ProjectName
 import com.intellij.ui.dsl.listCellRenderer.LcrInitParams

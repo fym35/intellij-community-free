@@ -5,7 +5,7 @@ import com.intellij.openapi.application.edtWriteAction
 import com.intellij.python.community.execService.BinOnEel
 import com.intellij.python.community.execService.ExecOptions
 import com.intellij.python.junit5Tests.framework.resolvePythonTool
-import com.intellij.python.pytools.runtime.PyToolRuntime
+import com.intellij.python.pytools.backend.runtime.PyToolRuntime
 import com.intellij.python.uv.backend.runtime.UvConstants
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.jetbrains.python.PythonBinary

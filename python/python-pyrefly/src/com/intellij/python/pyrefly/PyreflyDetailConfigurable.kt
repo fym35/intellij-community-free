@@ -2,7 +2,7 @@
 package com.intellij.python.pyrefly
 
 import com.intellij.openapi.project.Project
-import com.intellij.python.pytools.ui.PyLspToolDetailConfigurable
+import com.intellij.python.pytools.frontend.ui.PyLspToolDetailConfigurable
 
 internal class PyreflyDetailConfigurable(
   project: Project

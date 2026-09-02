@@ -11,11 +11,11 @@ import com.intellij.platform.lsp.api.stopClients
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.isActiveOn
-import com.intellij.python.pytools.lsp.PyLspTool
-import com.intellij.python.pytools.ExternalPyTool
-import com.intellij.python.pytools.ui.pyLspToolFeaturesSummary
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.isActiveOn
+import com.intellij.python.pytools.frontend.lsp.PyLspTool
+import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon

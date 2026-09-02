@@ -3,8 +3,8 @@ package com.intellij.python.hatch
 
 import com.intellij.python.hatch.PyHatchBundle.message
 import com.intellij.python.hatch.icons.PythonHatchIcons
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PackageManagerPyTool
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PackageManagerPyTool
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon

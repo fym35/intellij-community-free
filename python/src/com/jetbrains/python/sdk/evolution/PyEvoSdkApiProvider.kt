@@ -36,8 +36,8 @@ import com.intellij.python.hatch.impl.HATCH_TOOL_ID
 import com.intellij.python.processOutput.common.ProcessOutputTopic
 import com.intellij.python.pyproject.PY_PROJECT_TOML
 import com.intellij.python.pyproject.PyProjectToml
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.performToolInstallation
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.performToolInstallation
 import com.intellij.python.sdk.backend.evolution.EvoPyProject
 import com.intellij.python.sdk.backend.evolution.EvoRecreateSpec
 import com.intellij.python.sdk.backend.evolution.EvoToolContext

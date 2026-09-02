@@ -1,10 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.python.uv.backend
 
-import com.intellij.python.pytools.PyExecutable
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PackageManagerPyTool
-import com.intellij.python.pytools.pyExecutable
+import com.intellij.python.pytools.backend.PyExecutable
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.backend.pyExecutable
 import com.intellij.python.uv.backend.PyUvBundle.message
 import com.intellij.python.uv.common.icons.PythonUvCommonIcons
 import com.jetbrains.python.packaging.PyPackageName

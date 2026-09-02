@@ -1,12 +1,17 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools
+package com.intellij.python.pytools.backend
 
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.statistics.PyToolFusSnapshot
+import com.intellij.python.pytools.backend.PackagePyToolManager
+import com.intellij.python.pytools.backend.PyToolManager
+import com.intellij.python.pytools.backend.PyToolsBundle
+import com.intellij.python.pytools.backend.getCustomExecutablePath
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.frontend.statistics.PyToolFusSnapshot
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon

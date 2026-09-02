@@ -20,7 +20,7 @@ import com.intellij.python.pyproject.model.spi.resolveSrcRoots
 import com.intellij.python.pyproject.psi.spi.PyProjectTomlPathValue
 import com.intellij.python.pyproject.psi.spi.isPathDependencyKey
 import com.intellij.python.pyproject.safeGet
-import com.intellij.python.pytools.runtime.PyToolRuntime
+import com.intellij.python.pytools.backend.runtime.PyToolRuntime
 import com.intellij.python.sdk.backend.resolveExecutable
 import com.intellij.python.uv.backend.UvPyTool
 import com.intellij.python.uv.backend.runtime.createUvToolRuntime

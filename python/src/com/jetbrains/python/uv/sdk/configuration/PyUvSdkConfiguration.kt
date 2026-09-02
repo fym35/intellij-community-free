@@ -5,7 +5,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.python.community.common.tools.ToolId
 import com.intellij.python.pyproject.PY_PROJECT_TOML
-import com.intellij.python.pytools.PyExecutableCache
+import com.intellij.python.pytools.backend.PyExecutableCache
 import com.intellij.python.uv.backend.UvPyTool
 import com.intellij.python.uv.common.UV_TOOL_ID
 import com.jetbrains.python.PyBundle

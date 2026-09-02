@@ -13,8 +13,8 @@ import com.intellij.openapi.project.modules
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.Disposer
 import com.intellij.python.lsp.core.PyLspCoreBundle
-import com.intellij.python.pytools.ui.PyToolTypeEnginePreview
-import com.intellij.python.pytools.ui.configuration.PyExternalToolsConfigurable
+import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
+import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.SegmentedButton
 import com.jetbrains.python.psi.types.PyTypeEngineSettingsModificationTracker

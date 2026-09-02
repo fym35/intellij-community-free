@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.configuration
+package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileChooser.FileChooser
@@ -11,21 +11,23 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.util.Version as PlatformVersion
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.PyExecutableCache
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.Version
+import com.intellij.python.pytools.backend.PyExecutableCache
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.backend.Version
+import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.backend.validateCustomPath
 import com.intellij.python.pytools.findExecutableInSdk
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.python.pytools.ui.icons.PythonPytoolsUIIcons
 import com.intellij.python.sdk.backend.asItem
 import com.intellij.python.sdk.backend.pythonInterpreter
 import com.intellij.python.sdk.backend.pythonInterpreterAsync
-import com.intellij.python.pytools.ui.PyToolsUiBundle
-import com.intellij.python.pytools.ExternalPyTool
-import com.intellij.python.pytools.ui.icons.PythonPytoolsUIIcons
 import com.jetbrains.python.Result
 import com.jetbrains.python.project.PyProject.Companion.getPyProjects
 import com.jetbrains.python.sdk.findPythonSdk
-import com.intellij.python.pytools.validateCustomPath
+import com.jetbrains.python.sdk.pyInterpreterPresentation
+import com.jetbrains.python.sdk.pythonSdk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

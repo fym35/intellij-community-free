@@ -1,10 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.lsp
+package com.intellij.python.lsp.core
 
 import com.intellij.openapi.project.Project
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.statistics.PyToolFusSnapshot
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
 
 /**
  * Base for every LSP-backed [PyTool]. Captures the shared, non-UI wiring around a per-project

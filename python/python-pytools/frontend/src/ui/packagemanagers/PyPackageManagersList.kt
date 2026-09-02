@@ -1,21 +1,21 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.packagemanagers
+package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.ide.ui.search.SearchUtil
 import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PackageManagerPyTool
-import com.intellij.python.pytools.getCustomExecutablePath
-import com.intellij.python.pytools.setCustomExecutablePath
-import com.intellij.python.pytools.statistics.PyToolActionSource
-import com.intellij.python.pytools.ui.PyToolsUiBundle
-import com.intellij.python.pytools.ui.configuration.PyToolManagementController
-import com.intellij.python.pytools.ui.configuration.RowState
-import com.intellij.python.pytools.ui.configuration.ToolRow
-import com.intellij.python.pytools.ui.configuration.browseExecutablePath
-import com.intellij.python.pytools.ui.configuration.checkNoPathErrors
-import com.intellij.python.pytools.ui.configuration.probeVersion
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.backend.getCustomExecutablePath
+import com.intellij.python.pytools.backend.setCustomExecutablePath
+import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.ui.configuration.PyToolManagementController
+import com.intellij.python.pytools.frontend.ui.configuration.RowState
+import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
+import com.intellij.python.pytools.frontend.ui.configuration.browseExecutablePath
+import com.intellij.python.pytools.frontend.ui.configuration.checkNoPathErrors
+import com.intellij.python.pytools.frontend.ui.configuration.probeVersion
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.panels.VerticalLayout
@@ -56,8 +56,8 @@ internal interface PmHost {
  * Body of the "Package Managers" page: a flat, scrollable list of [PyPackageManagerRowPanel]s, one
  * per [PackageManagerPyTool]. Reuses the External Tools infrastructure — [PyToolManagementController]
  * (install/upgrade/uv-availability/outdated) and the [ToolRow] path-probe/browse helpers. The custom
- * path is persisted per Eel machine via the shared [com.intellij.python.pytools.getCustomExecutablePath]
- * / [com.intellij.python.pytools.setCustomExecutablePath] — the same mechanism the External Tools page
+ * path is persisted per Eel machine via the shared [com.intellij.python.pytools.backend.getCustomExecutablePath]
+ * / [com.intellij.python.pytools.backend.setCustomExecutablePath] — the same mechanism the External Tools page
  * uses.
  */
 internal class PyPackageManagersList(
@@ -192,7 +192,7 @@ internal fun buildPackageManagersHeaderBar(): JComponent {
     border = JBUI.Borders.compound(JBUI.Borders.customLineBottom(JBColor.border()), JBUI.Borders.empty(0, 8))
     ClientProperty.put(this, SearchUtil.SEARCH_SKIP_COMPONENT_KEY, true)
     add(pmHeaderText(PyToolsUiBundle.message("settings.external.tools.column.name")).let {
-      com.intellij.python.pytools.ui.configuration.fixedWidthPanel(pmToolColumnWidth(), it)
+      com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel(pmToolColumnWidth(), it)
     }, BorderLayout.WEST)
     add(pmHeaderText(PyToolsUiBundle.message("settings.package.managers.column.path")), BorderLayout.CENTER)
   }

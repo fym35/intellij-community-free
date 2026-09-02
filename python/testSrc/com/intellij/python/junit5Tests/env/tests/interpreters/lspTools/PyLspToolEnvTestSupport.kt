@@ -18,8 +18,8 @@ import com.intellij.platform.lsp.impl.LspClientImpl
 import com.intellij.platform.lsp.util.messageIfStringOrEmpty
 import com.intellij.platform.testFramework.junit5.codeInsight.fixture.codeInsightFixture
 import com.intellij.python.junit5Tests.framework.env.pySdkFixture
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.python.test.env.junit5.LspToolVersions
 import com.intellij.python.test.env.junit5.pyVenvFixture
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl

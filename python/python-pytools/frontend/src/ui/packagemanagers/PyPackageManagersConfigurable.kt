@@ -1,12 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.packagemanagers
+package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.python.pytools.ui.PyToolsUiBundle.message
-import com.intellij.python.pytools.ui.configuration.PyToolManagementController
-import com.intellij.python.pytools.ui.configuration.ToolRow
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle.message
+import com.intellij.python.pytools.frontend.ui.configuration.PyToolManagementController
+import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
@@ -23,7 +23,7 @@ import javax.swing.JComponent
 /**
  * `Settings | Python | Tools | Package Managers` — a flat table of the package/environment managers
  * (uv, Poetry, Hatch, Pipenv) showing each one's detected executable path with inline install /
- * upgrade / browse actions. Mirrors [com.intellij.python.pytools.ui.configuration.PyExternalToolsConfigurable]
+ * upgrade / browse actions. Mirrors [com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable]
  * but simpler: no per-tool feature panel, no enable toggle, no lookup column.
  */
 class PyPackageManagersConfigurable(private val project: Project) : BoundSearchableConfigurable(

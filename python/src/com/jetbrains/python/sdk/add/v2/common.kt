@@ -24,8 +24,8 @@ import com.intellij.python.community.impl.poetry.common.POETRY_TOOL_ID
 import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImplPoetryCommonIcons
 import com.intellij.python.hatch.icons.PythonHatchIcons
 import com.intellij.python.hatch.impl.HATCH_TOOL_ID
-import com.intellij.python.pytools.PyExecutable
-import com.intellij.python.pytools.setCustomExecutablePath
+import com.intellij.python.pytools.backend.PyExecutable
+import com.intellij.python.pytools.backend.setCustomExecutablePath
 import com.intellij.python.uv.common.UV_TOOL_ID
 import com.intellij.python.uv.common.icons.PythonUvCommonIcons
 import com.intellij.python.venv.icons.PythonVenvIcons

@@ -8,7 +8,7 @@ import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
 import com.intellij.python.lsp.core.PyLspToolCustomization
 import com.intellij.python.lsp.core.PyLspToolIntegrationProvider
 import com.intellij.python.lsp.core.PyLspToolDescriptor
-import com.intellij.python.pytools.lsp.PyLspToolSettings
+import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
 
 class TyLspIntegrationProvider : PyLspToolIntegrationProvider() {
   override fun getDescriptor(module: Module): PyLspToolDescriptor =

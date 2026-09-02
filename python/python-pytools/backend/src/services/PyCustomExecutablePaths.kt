@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.services
+package com.intellij.python.pytools.backend.services
 
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.components.PersistentStateComponent
@@ -11,8 +11,8 @@ import com.intellij.openapi.components.service
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.LocalEelMachine
 import com.intellij.platform.eel.provider.getResolvedEelMachine
-import com.intellij.python.pytools.PyExecutable
-import com.intellij.python.pytools.PyExecutableCache
+import com.intellij.python.pytools.backend.PyExecutable
+import com.intellij.python.pytools.backend.PyExecutableCache
 import com.intellij.util.xmlb.annotations.OptionTag
 import java.nio.file.Path
 

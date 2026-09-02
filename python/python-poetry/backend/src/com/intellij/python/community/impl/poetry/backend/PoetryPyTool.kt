@@ -4,11 +4,11 @@ package com.intellij.python.community.impl.poetry.backend
 import com.intellij.execution.Platform
 import com.intellij.python.community.impl.poetry.backend.PyPoetryBundle.message
 import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImplPoetryCommonIcons
-import com.intellij.python.pytools.PackageManagerPyTool
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.ToolCommandSpec
-import com.intellij.python.pytools.ToolSearchPath
-import com.intellij.python.pytools.pyExecutableSpec
+import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.ToolCommandSpec
+import com.intellij.python.pytools.backend.ToolSearchPath
+import com.intellij.python.pytools.backend.pyExecutableSpec
 import com.jetbrains.python.packaging.PyPackageName
 import javax.swing.Icon
 import org.jetbrains.annotations.ApiStatus

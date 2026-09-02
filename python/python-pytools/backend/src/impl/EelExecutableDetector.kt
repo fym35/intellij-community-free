@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.impl
+package com.intellij.python.pytools.backend.impl
 
 import com.intellij.execution.Platform
 import com.intellij.platform.eel.EelApi
@@ -8,8 +8,8 @@ import com.intellij.platform.eel.environmentVariables
 import com.intellij.platform.eel.isWindows
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.where
-import com.intellij.python.pytools.ToolCommandSpec
-import com.intellij.python.pytools.ToolSearchPath
+import com.intellij.python.pytools.backend.ToolCommandSpec
+import com.intellij.python.pytools.backend.ToolSearchPath
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import kotlin.io.path.isExecutable

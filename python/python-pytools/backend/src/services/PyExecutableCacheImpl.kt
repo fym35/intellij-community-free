@@ -1,14 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.services
+package com.intellij.python.pytools.backend.services
 
 import com.github.benmanes.caffeine.cache.AsyncCache
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.getResolvedEelMachine
 import com.intellij.platform.eel.provider.toEelApi
-import com.intellij.python.pytools.PyExecutable
-import com.intellij.python.pytools.PyExecutableCache
-import com.intellij.python.pytools.impl.detectExecutableOnEel
+import com.intellij.python.pytools.backend.PyExecutable
+import com.intellij.python.pytools.backend.PyExecutableCache
+import com.intellij.python.pytools.backend.impl.detectExecutableOnEel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await

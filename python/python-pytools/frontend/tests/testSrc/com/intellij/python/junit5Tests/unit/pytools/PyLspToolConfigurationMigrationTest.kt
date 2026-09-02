@@ -1,8 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.python.junit5Tests.unit.pytools
 
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.lsp.PyLspToolConfiguration
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.frontend.lsp.PyLspToolConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

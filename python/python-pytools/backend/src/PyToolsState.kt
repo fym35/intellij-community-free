@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools
+package com.intellij.python.pytools.backend
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
@@ -7,7 +7,8 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.python.pytools.lsp.LSP_TOOLS_STORAGE_FILE
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.frontend.lsp.LSP_TOOLS_STORAGE_FILE
 import com.intellij.util.xmlb.annotations.OptionTag
 import java.util.concurrent.ConcurrentHashMap
 

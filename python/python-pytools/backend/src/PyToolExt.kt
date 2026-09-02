@@ -1,11 +1,16 @@
-package com.intellij.python.pytools
+package com.intellij.python.pytools.backend
 
 import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
-import com.intellij.python.pytools.PyToolsBundle.message
-import com.intellij.python.pytools.impl.detectExecutableOnEel
-import com.intellij.python.pytools.services.PyCustomExecutablePaths
+import com.intellij.python.pytools.backend.PyToolsBundle.message
+import com.intellij.python.pytools.backend.impl.detectExecutableOnEel
+import com.intellij.python.pytools.backend.services.PyCustomExecutablePaths
+import com.intellij.python.pytools.backend.PyExecutable
+import com.intellij.python.pytools.backend.PyExecutableCache
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.pyExecutableSpec
+import com.intellij.python.pytools.backend.PyToolsState
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
 import java.nio.file.Path

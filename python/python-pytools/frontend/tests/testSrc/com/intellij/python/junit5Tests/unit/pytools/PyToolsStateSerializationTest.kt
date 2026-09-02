@@ -2,8 +2,8 @@
 package com.intellij.python.junit5Tests.unit.pytools
 
 import com.intellij.openapi.util.JDOMUtil
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.icons.PythonPyToolsIcons
 import com.intellij.configurationStore.serialize
 import com.jetbrains.python.packaging.PyPackageName

@@ -8,9 +8,9 @@ import com.intellij.platform.eel.provider.localEel
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.Version
-import com.intellij.python.pytools.performToolInstallation
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.Version
+import com.intellij.python.pytools.backend.performToolInstallation
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.util.concurrency.annotations.RequiresEdt

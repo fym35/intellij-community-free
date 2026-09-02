@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.configuration
+package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.setToolTipText
@@ -7,8 +7,8 @@ import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.ExternalPyTool
-import com.intellij.python.pytools.ui.PyToolsUiBundle
+import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel

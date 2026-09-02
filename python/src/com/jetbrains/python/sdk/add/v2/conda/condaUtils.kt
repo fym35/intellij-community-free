@@ -4,9 +4,9 @@ package com.jetbrains.python.sdk.add.v2.conda
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.python.community.execService.BinaryToExec
-import com.intellij.python.pytools.Version
-import com.intellij.python.pytools.VersionFormatException
-import com.intellij.python.pytools.getToolVersion
+import com.intellij.python.pytools.backend.Version
+import com.intellij.python.pytools.backend.VersionFormatException
+import com.intellij.python.pytools.backend.getToolVersion
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.jetbrains.python.PyBundle.message
 import com.jetbrains.python.errorProcessing.PyResult

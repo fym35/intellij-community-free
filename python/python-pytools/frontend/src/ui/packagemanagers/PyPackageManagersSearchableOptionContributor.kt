@@ -1,11 +1,11 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.packagemanagers
+package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.ide.ui.search.SearchableOptionContributor
 import com.intellij.ide.ui.search.SearchableOptionProcessor
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PackageManagerPyTool
-import com.intellij.python.pytools.ui.PyToolsUiBundle
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 
 /**
  * Indexes each package manager's presentable name for the IDE's global Settings search; a hit

@@ -17,10 +17,10 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.python.pyright.BasedpyrightPyTool
 import com.intellij.python.pyright.PyrightPyTool
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.lsp.PyLspTool
-import com.intellij.python.pytools.ui.configuration.PyExternalToolsConfigurable
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.frontend.lsp.PyLspTool
+import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
 import com.intellij.python.ruff.RuffPyTool
 import com.intellij.python.ty.TyPyTool
 import com.jetbrains.python.PyBundle

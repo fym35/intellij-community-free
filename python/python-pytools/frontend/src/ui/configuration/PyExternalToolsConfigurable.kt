@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.configuration
+package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
@@ -9,7 +9,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.options.ex.Settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.python.pytools.ui.PyToolsUiBundle.message
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle.message
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane

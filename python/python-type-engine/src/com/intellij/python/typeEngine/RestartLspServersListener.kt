@@ -18,10 +18,10 @@ import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineUtils
 import com.intellij.python.pyrefly.PyreflyPyTool
 import com.intellij.python.pyrefly.PyreflyUsageCollector
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.ui.PyToolTypeEnginePreview
-import com.intellij.python.pytools.ui.getInstalledToolPackage
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
+import com.intellij.python.lsp.core.getInstalledToolPackage
 import com.jetbrains.python.extensions.getSdk
 import com.jetbrains.python.packaging.PythonVersionValue
 import com.jetbrains.python.packaging.common.PythonPackageManagementListener

@@ -3,11 +3,11 @@ package com.intellij.python.uv.backend
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.platform.eel.EelApi
-import com.intellij.python.pytools.InstalledInfo
-import com.intellij.python.pytools.PyExecutableCache
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.GenericPyToolManager
-import com.intellij.python.pytools.GenericPyToolManagerProvider
+import com.intellij.python.pytools.backend.InstalledInfo
+import com.intellij.python.pytools.backend.PyExecutableCache
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.GenericPyToolManager
+import com.intellij.python.pytools.backend.GenericPyToolManagerProvider
 import com.intellij.python.uv.backend.runtime.createUvToolRuntime
 import com.intellij.python.uv.backend.runtime.uvCli
 import com.jetbrains.python.Result

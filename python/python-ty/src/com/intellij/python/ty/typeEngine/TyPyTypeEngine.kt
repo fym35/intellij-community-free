@@ -13,7 +13,7 @@ import com.intellij.platform.util.progress.createProgressPipe
 import com.intellij.python.lsp.core.PyLspCoreBundle
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProvider
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
-import com.intellij.python.pytools.isActiveOn
+import com.intellij.python.pytools.backend.isActiveOn
 import com.intellij.python.ty.TyBundle
 import com.intellij.python.ty.TyLspIntegrationProvider
 import com.intellij.python.ty.TyPyTool

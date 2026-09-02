@@ -6,9 +6,9 @@ import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Version
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PyToolsState
-import com.intellij.python.pytools.ExternalPyTool
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.backend.ExternalPyTool
 import com.intellij.python.black.PyBlackBundle.message
 import com.intellij.python.black.configuration.BlackFormatterConfigurable
 import com.intellij.python.black.configuration.BlackFormatterConfiguration

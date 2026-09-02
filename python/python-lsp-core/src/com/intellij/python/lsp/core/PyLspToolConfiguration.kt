@@ -1,8 +1,8 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.lsp
+package com.intellij.python.lsp.core
 
 import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.python.pytools.PyToolsState
+import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.util.xmlb.XmlSerializerUtil
 import java.nio.file.Path
 import kotlin.io.path.Path
@@ -13,13 +13,13 @@ const val DEFAULT_ENVIRONMENT: String = "Project Default"
 /**
  * Storage file for LSP tool settings. This file is saved in .idea/ and can be committed to VCS.
  *
- * Holds project-wide [com.intellij.python.pytools.PyToolsState] (the source of truth for enabled/mode/customPath)
+ * Holds project-wide [com.intellij.python.pytools.backend.PyToolsState] (the source of truth for enabled/mode/customPath)
  * plus each tool's remaining feature toggles (inspections, completions, inlay hints, documentation, ...).
  */
 const val LSP_TOOLS_STORAGE_FILE: String = "pyLspTools.xml"
 
 /**
- * Per-tool feature settings persisted alongside [com.intellij.python.pytools.PyToolsState].
+ * Per-tool feature settings persisted alongside [com.intellij.python.pytools.backend.PyToolsState].
  *
  * The discovery mode / custom path live centrally in `PyToolsState`. The legacy fields here are kept
  * as a write-through mirror: each tool's `onEnabledChanged` / `onModeChanged` / `onCustomPathChanged`

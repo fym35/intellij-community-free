@@ -1,8 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.configuration
+package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.ide.ui.search.SearchUtil
-import com.intellij.python.pytools.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.GraphicsUtil

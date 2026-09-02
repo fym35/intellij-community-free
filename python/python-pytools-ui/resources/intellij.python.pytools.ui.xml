@@ -28,15 +28,15 @@
                          id="python.external.tools.group.settings"
                          bundle="messages.PyToolsUiBundle"
                          key="settings.external.tools.title"
-                         instance="com.intellij.python.pytools.ui.configuration.PyExternalToolsConfigurable"/>
+                         instance="com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable"/>
     <search.optionContributor
-        implementation="com.intellij.python.pytools.ui.PyExternalToolsSearchableOptionContributor"/>
+        implementation="com.intellij.python.pytools.frontend.ui.PyExternalToolsSearchableOptionContributor"/>
     <projectConfigurable parentId="python.tools.group.settings"
                          id="python.package.managers.group.settings"
                          bundle="messages.PyToolsUiBundle"
                          key="settings.package.managers.title"
-                         instance="com.intellij.python.pytools.ui.packagemanagers.PyPackageManagersConfigurable"/>
+                         instance="com.intellij.python.pytools.frontend.ui.packagemanagers.PyPackageManagersConfigurable"/>
     <search.optionContributor
-        implementation="com.intellij.python.pytools.ui.packagemanagers.PyPackageManagersSearchableOptionContributor"/>
+        implementation="com.intellij.python.pytools.frontend.ui.packagemanagers.PyPackageManagersSearchableOptionContributor"/>
   </extensions>
 </idea-plugin>

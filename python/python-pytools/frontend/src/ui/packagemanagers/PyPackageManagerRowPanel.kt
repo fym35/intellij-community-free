@@ -1,21 +1,21 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.ui.packagemanagers
+package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.setToolTipText
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.ui.PyToolsUiBundle
-import com.intellij.python.pytools.ui.configuration.PathFieldValue
-import com.intellij.python.pytools.ui.configuration.PathIconKind
-import com.intellij.python.pytools.ui.configuration.ToolRow
-import com.intellij.python.pytools.ui.configuration.fixedWidthPanel
-import com.intellij.python.pytools.ui.configuration.iconKindFor
-import com.intellij.python.pytools.ui.configuration.installedVersionLabel
-import com.intellij.python.pytools.ui.configuration.pathDetailsTooltip
-import com.intellij.python.pytools.ui.configuration.searchSpotlightBorderColor
-import com.intellij.python.pytools.ui.configuration.upgradeLinkText
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.ui.configuration.PathFieldValue
+import com.intellij.python.pytools.frontend.ui.configuration.PathIconKind
+import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
+import com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel
+import com.intellij.python.pytools.frontend.ui.configuration.iconKindFor
+import com.intellij.python.pytools.frontend.ui.configuration.installedVersionLabel
+import com.intellij.python.pytools.frontend.ui.configuration.pathDetailsTooltip
+import com.intellij.python.pytools.frontend.ui.configuration.searchSpotlightBorderColor
+import com.intellij.python.pytools.frontend.ui.configuration.upgradeLinkText
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel

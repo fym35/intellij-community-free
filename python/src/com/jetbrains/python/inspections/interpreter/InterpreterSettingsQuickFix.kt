@@ -34,8 +34,8 @@ import com.intellij.python.pyproject.model.api.SdkConfigurationResult
 import com.intellij.python.pyproject.model.api.autoConfigureSdkDoNotCreateFiles
 import com.intellij.python.pyproject.model.api.getModuleSdkState
 import com.intellij.python.pyproject.statistics.PyProjectTomlCollector
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.performToolInstallation
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.performToolInstallation
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.DropDownLink
 import com.intellij.util.PlatformUtils

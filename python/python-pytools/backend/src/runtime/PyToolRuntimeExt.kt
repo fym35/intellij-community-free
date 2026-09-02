@@ -1,12 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.runtime
+package com.intellij.python.pytools.backend.runtime
 
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.Strings
 import com.intellij.platform.eel.provider.utils.EelProcessExecutionResultInfo
 import com.intellij.platform.eel.provider.utils.stdoutString
 import com.intellij.python.community.execService.ProcessOutputTransformer
-import com.intellij.python.pytools.PyToolsBundle
+import com.intellij.python.pytools.backend.PyToolsBundle
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
 

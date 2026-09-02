@@ -3,8 +3,8 @@ package com.intellij.python.community.impl.pipenv
 
 import com.intellij.python.community.impl.pipenv.PyPipenvBundle.message
 import com.intellij.python.community.impl.pipenv.icons.PythonCommunityImplPipenvIcons
-import com.intellij.python.pytools.PyTool
-import com.intellij.python.pytools.PackageManagerPyTool
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.backend.PackageManagerPyTool
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon

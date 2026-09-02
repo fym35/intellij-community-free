@@ -11,9 +11,9 @@ import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProvider
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
 import com.intellij.python.pyrefly.typeEngine.PyreflyLspTypeEngineProvider
-import com.intellij.python.pytools.isActiveOn
-import com.intellij.python.pytools.ui.PyToolsUiBundle
-import com.intellij.python.pytools.ui.toSafeProperty
+import com.intellij.python.pytools.backend.isActiveOn
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.python.pytools.frontend.ui.toSafeProperty
 import com.intellij.ui.components.Badge
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
