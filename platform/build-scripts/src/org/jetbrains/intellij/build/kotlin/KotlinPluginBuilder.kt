@@ -40,6 +40,7 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       "intellij.libraries.kotlinc.analysis.api.k2",
       "intellij.libraries.kotlinc.analysis.api.platform.interface",
       "intellij.libraries.kotlinc.kotlin.compiler.fir",
+      "intellij.libraries.kotlinc.kotlin.compiler.ir",
       "intellij.libraries.kotlinc.kotlin.jps.common",
       "intellij.libraries.kotlinc.kotlin.script.runtime",
       "intellij.libraries.kotlinc.kotlin.scripting.common",
@@ -69,7 +70,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
 
     private val LIBRARIES = java.util.List.of(
       "kotlinc.kotlin-compiler-fe10",
-      "kotlinc.kotlin-compiler-ir",
       "vavr",
       "javax-inject",
     )

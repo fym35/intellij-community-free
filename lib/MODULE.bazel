@@ -5258,20 +5258,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-kotlin-compiler-ir-for-ide-2_5_0-dev-6810_http",
-    downloaded_file_path = "kotlin-compiler-ir-for-ide-2.5.0-dev-6810.jar",
-    sha256 = "e72efb2c6957162324f01b63dc685da292c56a27f97fa4ebdb037dd4fe7a88ed",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-ir-for-ide/2.5.0-dev-6810/kotlin-compiler-ir-for-ide-2.5.0-dev-6810.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-kotlin-compiler-ir-for-ide-2_5_0-dev-6810-sources_http",
-    downloaded_file_path = "kotlin-compiler-ir-for-ide-2.5.0-dev-6810-sources.jar",
-    sha256 = "ed9223b8fa558b1807d4a3339c0be632ca3f2f865a3c3a8263b143d1815133cb",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-ir-for-ide/2.5.0-dev-6810/kotlin-compiler-ir-for-ide-2.5.0-dev-6810-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-compiler-tests-for-ide-2_5_0-dev-6810_http",
     downloaded_file_path = "kotlin-compiler-tests-for-ide-2.5.0-dev-6810.jar",
     sha256 = "df111943a8ced26e6e34ffb38595a4b5f8990c4e7336a335193f4703d4263864",
@@ -10134,6 +10120,20 @@ http_file(
     downloaded_file_path = "kotlin-compiler-fir-for-ide-2.5.0-dev-6810-sources.jar",
     sha256 = "c3a88a2bf479381072df47881e4aecf580997ff6cf61ebe9392742f45b80d7c0",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-fir-for-ide/2.5.0-dev-6810/kotlin-compiler-fir-for-ide-2.5.0-dev-6810-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-compiler-ir-for-ide-2_5_0-dev-6810_http",
+    downloaded_file_path = "kotlin-compiler-ir-for-ide-2.5.0-dev-6810.jar",
+    sha256 = "e72efb2c6957162324f01b63dc685da292c56a27f97fa4ebdb037dd4fe7a88ed",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-ir-for-ide/2.5.0-dev-6810/kotlin-compiler-ir-for-ide-2.5.0-dev-6810.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-compiler-ir-for-ide-2_5_0-dev-6810-sources_http",
+    downloaded_file_path = "kotlin-compiler-ir-for-ide-2.5.0-dev-6810-sources.jar",
+    sha256 = "ed9223b8fa558b1807d4a3339c0be632ca3f2f865a3c3a8263b143d1815133cb",
+    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-ir-for-ide/2.5.0-dev-6810/kotlin-compiler-ir-for-ide-2.5.0-dev-6810-sources.jar",
 )
 
 http_file(
