@@ -14,11 +14,14 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:javax-activation"],
-    runtime_deps = ["@lib//:javax-activation"],
+    exports = ["@lib//:libraries-javax-activation-javax-activation"],
+    runtime_deps = ["@lib//:libraries-javax-activation-javax-activation"],
 )
 
-content_module_jar(module = ":activation")
+content_module_jar(
+    libraries = ["@lib//:libraries-javax-activation-javax-activation"],
+    module = ":activation",
+)
 
 jvm_library(
     name = "activation_test_lib",
@@ -30,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.javax.activation",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:javax-activation"],
+    exports = ["@lib//:libraries-javax-activation-javax-activation"],
     runtime_deps = [":activation"],
 )
 ### auto-generated section `build intellij.libraries.javax.activation` end

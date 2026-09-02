@@ -1,3 +1,6 @@
 - name: dist.all/lib/intellij.libraries.javax.activation.jar
   modules:
   - name: intellij.libraries.javax.activation
+    libraries:
+      javax.activation:
+      - name: $MAVEN_REPOSITORY$/com/sun/activation/javax.activation/1/javax.activation-1.jar

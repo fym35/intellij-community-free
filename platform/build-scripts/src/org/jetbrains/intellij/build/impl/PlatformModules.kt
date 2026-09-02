@@ -100,7 +100,6 @@ internal fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set
   // https://youtrack.jetbrains.com/issue/IDEA-179784
   // https://youtrack.jetbrains.com/issue/IDEA-205600
   layout.withProjectLibraries(sequenceOf(
-    "javax.activation",
     "jaxb-runtime",
     "jaxb-api",
   ))

@@ -189,8 +189,7 @@ private val LAYOUT_PACKED_PROJECT_LIBRARIES = setOf(
   "slf4j-jdk14",
   // PlatformModules.kt: its own jar, IJPL-248572
   "jetbrains.intellij.deps.java.atk.wrapper.linux",
-  // PlatformModules.kt: its own jar, IDEA-179784 / IDEA-205600
-  "javax.activation",
+  // PlatformModules.kt: their own jars, IDEA-179784 / IDEA-205600
   "jaxb-runtime",
   "jaxb-api",
   // UltimateRepositoryModules.kt `customizePlatformLayoutForUltimate`: packed into `PRODUCT_BACKEND_JAR`
