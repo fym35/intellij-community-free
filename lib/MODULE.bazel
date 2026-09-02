@@ -5174,20 +5174,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http",
-    downloaded_file_path = "kotlin-reflect-2.4.20-RC3.jar",
-    sha256 = "bc6d3db71d9206563afd14b9a5274c3dd6f2b332ada9142721b4cc454c5bddc7",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/2.4.20-RC3/kotlin-reflect-2.4.20-RC3.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3-sources_http",
-    downloaded_file_path = "kotlin-reflect-2.4.20-RC3-sources.jar",
-    sha256 = "ead091a7aaa0d631aabacfe6c380a448965a2be9304def629ad252676ff2a120",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/2.4.20-RC3/kotlin-reflect-2.4.20-RC3-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-script-runtime-2_4_20-RC3_http",
     downloaded_file_path = "kotlin-script-runtime-2.4.20-RC3.jar",
     sha256 = "453eb304a477b6ccd50ae70959e2d67b3bc37d2112146003bed97c25a7cc691b",
@@ -10162,6 +10148,20 @@ http_file(
     downloaded_file_path = "kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
     sha256 = "084094bc2bdeda110da57c8c44747aa6a8a31bdf233e9ef49388992315443624",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-metadata-jvm/2.4.20-RC3/kotlin-metadata-jvm-2.4.20-RC3-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http",
+    downloaded_file_path = "kotlin-reflect-2.4.20-RC3.jar",
+    sha256 = "bc6d3db71d9206563afd14b9a5274c3dd6f2b332ada9142721b4cc454c5bddc7",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/2.4.20-RC3/kotlin-reflect-2.4.20-RC3.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3-sources_http",
+    downloaded_file_path = "kotlin-reflect-2.4.20-RC3-sources.jar",
+    sha256 = "ead091a7aaa0d631aabacfe6c380a448965a2be9304def629ad252676ff2a120",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/2.4.20-RC3/kotlin-reflect-2.4.20-RC3-sources.jar",
 )
 
 http_file(

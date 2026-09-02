@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlin-reflect"],
-    runtime_deps = ["@lib//:kotlin-reflect"],
+    exports = ["@lib//:libraries-kotlin-reflect-kotlin-reflect"],
+    runtime_deps = ["@lib//:libraries-kotlin-reflect-kotlin-reflect"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlin-reflect"],
+    libraries = ["@lib//:libraries-kotlin-reflect-kotlin-reflect"],
     module = ":reflect",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlin.reflect",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlin-reflect"],
+    exports = ["@lib//:libraries-kotlin-reflect-kotlin-reflect"],
     runtime_deps = [":reflect"],
 )
 ### auto-generated section `build intellij.libraries.kotlin.reflect` end

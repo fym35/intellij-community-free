@@ -6483,21 +6483,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlin/kotlin-reflect-2.4.20-RC3.jar_copy",
-    src = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http//file",
-    out = "org.jetbrains.kotlin/kotlin-reflect-2.4.20-RC3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlin-reflect",
-    jar = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http//file",
-    source_jar = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.jetbrains.kotlin/kotlin-script-runtime-2.4.20-RC3.jar_copy",
     src = "@org_jetbrains_kotlin-kotlin-script-runtime-2_4_20-RC3_http//file",
     out = "org.jetbrains.kotlin/kotlin-script-runtime-2.4.20-RC3.jar",
@@ -12727,6 +12712,21 @@ jvm_import(
     name = "libraries-kotlin-metadata-kotlin-metadata",
     jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3_http//file",
     source_jar = "@org_jetbrains_kotlin-kotlin-metadata-jvm-2_4_20-RC3-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.kotlin/kotlin-reflect-2.4.20-RC3.jar_copy",
+    src = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http//file",
+    out = "org.jetbrains.kotlin/kotlin-reflect-2.4.20-RC3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlin-reflect-kotlin-reflect",
+    jar = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3_http//file",
+    source_jar = "@org_jetbrains_kotlin-kotlin-reflect-2_4_20-RC3-sources_http//file",
     visibility = ["//visibility:public"],
 )
 
