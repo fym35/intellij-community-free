@@ -8,9 +8,9 @@ jps_test(
     tags = ["community-aggregator"],
     runtime_deps = [":tests_test_lib"],
 )
-### skip generation section `test intellij.python.pytools.tests`
+### skip generation section `test intellij.python.pytools.frontend.tests`
 
-### auto-generated section `build intellij.python.pytools.tests` start
+### auto-generated section `build intellij.python.pytools.frontend.tests` start
 create_kotlinc_options(
     name = "custom_tests",
     warn = "error",
@@ -23,7 +23,7 @@ jvm_library(
         [],
         allow_empty = True,
     ),
-    module_name = "intellij.python.pytools.tests",
+    module_name = "intellij.python.pytools.frontend.tests",
     visibility = ["//visibility:public"],
 )
 
@@ -39,8 +39,8 @@ jvm_library(
         allow_empty = True,
     ),
     associates = [
-        "//python/python-pytools:pytools",
-        "//python/python-pytools:pytools_test_lib",
+        "//python/python-pytools/frontend",
+        "//python/python-pytools/frontend:frontend_test_lib",
     ],
     kotlinc_opts = ":custom_tests",
     resource_strip_prefix = "testResources",
@@ -99,13 +99,13 @@ jvm_library(
         "//python/openapi:community_test_lib",
     ],
 )
-### auto-generated section `build intellij.python.pytools.tests` end
+### auto-generated section `build intellij.python.pytools.frontend.tests` end
 
-### auto-generated section `iml intellij.python.pytools.tests` start
+### auto-generated section `iml intellij.python.pytools.frontend.tests` start
 exports_files(
     [
-        "intellij.python.pytools.tests.iml",
+        "intellij.python.pytools.frontend.tests.iml",
     ],
     visibility = ["//visibility:public"],
 )
-### auto-generated section `iml intellij.python.pytools.tests` end
+### auto-generated section `iml intellij.python.pytools.frontend.tests` end

@@ -1811,7 +1811,10 @@ python/python-pyrefly
 python/python-pyright
 python/python-pytools
 python/python-pytools-ui
-python/python-pytools/tests
+python/python-pytools/backend
+python/python-pytools/common
+python/python-pytools/frontend
+python/python-pytools/frontend/tests
 python/python-requirements/backend
 python/python-requirements/common
 python/python-requirements/tests

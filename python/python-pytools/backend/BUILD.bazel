@@ -1,0 +1,74 @@
+load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+### auto-generated section `build intellij.python.pytools.backend` start
+create_kotlinc_options(
+    name = "custom_backend",
+    opt_in = ["com.jetbrains.python.PyInternalExecApi"],
+    warn = "error",
+)
+
+jvm_library(
+    name = "backend",
+    srcs = glob(
+        [
+            "src/**/*.kt",
+            "src/**/*.java",
+            "src/**/*.form",
+        ],
+        allow_empty = True,
+    ),
+    kotlinc_opts = ":custom_backend",
+    module_name = "intellij.python.pytools.backend",
+    resource_strip_prefix = "resources",
+    resources = glob(
+        ["resources/**/*"],
+    ),
+    visibility = ["//visibility:public"],
+    deps = [
+        # do not sort,
+        "@lib//:kotlin-stdlib",
+        "//platform/util",
+        "//python/python-pytools/common",
+        "//platform/kernel/rpc.backend",
+        "//platform/kernel/backend",
+        "//platform/platform-impl/rpc",
+        "//platform/backend",
+    ],
+)
+
+content_module_jar(module = ":backend")
+
+jvm_library(
+    name = "backend_test_lib",
+    testonly = True,
+    srcs = glob(
+        [],
+        allow_empty = True,
+    ),
+    kotlinc_opts = ":custom_backend",
+    module_name = "intellij.python.pytools.backend",
+    visibility = ["//visibility:public"],
+    runtime_deps = [
+        # do not sort,
+        ":backend",
+        "//platform/util:util_test_lib",
+        "//python/python-pytools/common:common_test_lib",
+        "//platform/kernel/rpc.backend:rpc.backend_test_lib",
+        "//platform/kernel/backend:backend_test_lib",
+        "//platform/platform-impl/rpc:rpc_test_lib",
+        "//platform/backend:backend_test_lib",
+    ],
+)
+### auto-generated section `build intellij.python.pytools.backend` end
+
+### auto-generated section `iml intellij.python.pytools.backend` start
+exports_files(
+    [
+        "intellij.python.pytools.backend.iml",
+        "resources/intellij.python.pytools.backend.xml",
+    ],
+    visibility = ["//visibility:public"],
+)
+### auto-generated section `iml intellij.python.pytools.backend` end
