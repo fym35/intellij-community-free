@@ -35,7 +35,7 @@ jvm_library(
         # do not sort,
         "@lib//:kotlin-stdlib",
         "//libraries/kotlinx/serialization/core",
-        "@lib//:kotlinx-serialization-json",
+        "//libraries/kotlinx/serialization/json",
         "//libraries/kotlinx/coroutines/core",
     ],
 )
@@ -54,6 +54,7 @@ jvm_library(
         # do not sort,
         ":platform",
         "//libraries/kotlinx/serialization/core:core_test_lib",
+        "//libraries/kotlinx/serialization/json:json_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
     ],
 )

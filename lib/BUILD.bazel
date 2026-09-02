@@ -6988,21 +6988,6 @@ java_library(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlinx/kotlinx-serialization-json-jvm-1.9.0.jar_copy",
-    src = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0_http//file",
-    out = "org.jetbrains.kotlinx/kotlinx-serialization-json-jvm-1.9.0.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlinx-serialization-json",
-    jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0_http//file",
-    source_jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "io.ktor/ktor-client-cio-jvm-3.4.1.jar_copy",
     src = "@io_ktor-ktor-client-cio-jvm-3_4_1_http//file",
     out = "io.ktor/ktor-client-cio-jvm-3.4.1.jar",
@@ -13170,6 +13155,21 @@ jvm_import(
     name = "libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io",
     jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0_http//file",
     source_jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-io-jvm-1_9_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.kotlinx/kotlinx-serialization-json-jvm-1.9.0.jar_copy",
+    src = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0_http//file",
+    out = "org.jetbrains.kotlinx/kotlinx-serialization-json-jvm-1.9.0.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlinx-serialization-json-kotlinx-serialization-json",
+    jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0_http//file",
+    source_jar = "@org_jetbrains_kotlinx-kotlinx-serialization-json-jvm-1_9_0-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

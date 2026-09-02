@@ -12,7 +12,7 @@
     <orderEntry type="module" module-name="fleet.test.runtime" scope="TEST" />
     <orderEntry type="module" module-name="fleet.openmap" scope="TEST" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.serialization.core" scope="TEST" />
-    <orderEntry type="library" scope="TEST" name="kotlinx-serialization-json" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinx.serialization.json" scope="TEST" />
     <orderEntry type="module" module-name="fleet.util.serialization" scope="TEST" />
   </component>
 </module>

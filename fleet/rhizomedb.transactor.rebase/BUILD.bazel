@@ -70,8 +70,8 @@ fleet_plugin_services_resources(
         "//fleet/util/core",
         "//libraries/kotlinx/coroutines/core",
         "//libraries/kotlinx/serialization/core",
+        "//libraries/kotlinx/serialization/json",
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-serialization-json",
     ],
 )
 
@@ -105,7 +105,7 @@ jvm_library(
         "//fleet/rhizomedb.transactor",
         "//fleet/rhizomedb",
         "//libraries/kotlinx/serialization/core",
-        "@lib//:kotlinx-serialization-json",
+        "//libraries/kotlinx/serialization/json",
         "//fleet/util/core",
         "//fleet/rpc",
         "//libraries/kotlinx/coroutines/core",
@@ -145,6 +145,7 @@ jvm_library(
         "//fleet/rhizomedb.transactor:rhizomedb.transactor_test_lib",
         "//fleet/rhizomedb:rhizomedb_test_lib",
         "//libraries/kotlinx/serialization/core:core_test_lib",
+        "//libraries/kotlinx/serialization/json:json_test_lib",
         "//fleet/util/core:core_test_lib",
         "//fleet/rpc:rpc_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",

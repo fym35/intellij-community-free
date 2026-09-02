@@ -54,7 +54,7 @@ jvm_library(
         "//libraries/guava",
         "//libraries/junit4",
         "//libraries/kotlinx/serialization/core",
-        "@lib//:kotlinx-serialization-json",
+        "//libraries/kotlinx/serialization/json",
     ],
 )
 
@@ -166,7 +166,8 @@ jvm_library(
         "//platform/execution:execution_test_lib",
         "//libraries/kotlinx/serialization/core",
         "//libraries/kotlinx/serialization/core:core_test_lib",
-        "@lib//:kotlinx-serialization-json",
+        "//libraries/kotlinx/serialization/json",
+        "//libraries/kotlinx/serialization/json:json_test_lib",
         "//images:images-tests",
         "//images:images-tests_test_lib",
         "//RegExpSupport:regexp-tests",
