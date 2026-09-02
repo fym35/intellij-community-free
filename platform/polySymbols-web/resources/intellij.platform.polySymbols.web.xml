@@ -58,6 +58,9 @@
     <polySymbols.documentationCustomizer
       id="html"
       implementation="com.intellij.polySymbols.html.HtmlSymbolDocumentationCustomizer"/>
+    <polySymbols.defaultIconProvider
+      implementation="com.intellij.polySymbols.web.WebPolySymbolDefaultIconProvider"
+      order="last"/>
     <polySymbols.matchCustomizerFactory
       implementation="com.intellij.polySymbols.html.HtmlSymbolMatchCustomizer$Factory"/>
   </extensions>

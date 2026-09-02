@@ -6,9 +6,9 @@ package com.intellij.polySymbols.html
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolProperty
-import com.intellij.polySymbols.query.impl.PolySymbolMatchBase
+import com.intellij.polySymbols.query.PolySymbolMatch
 import com.intellij.polySymbols.utils.PolySymbolTypeSupport
-import com.intellij.polySymbols.utils.merge
+import com.intellij.polySymbols.utils.reversedSegments
 import com.intellij.psi.PsiElement
 
 const val NAMESPACE_HTML: String = "html"
@@ -32,7 +32,7 @@ object HtmlAttributeValueProperty :
   PolySymbolProperty<PolySymbolHtmlAttributeValue>("html-attribute-value", PolySymbolHtmlAttributeValue::class.java)
 
 fun PolySymbol.getHtmlAttributeValue(context: PsiElement?): PolySymbolHtmlAttributeValue? =
-  if (this is PolySymbolMatchBase)
+  if (this is PolySymbolMatch)
     this.reversedSegments().flatMap { it.symbols }.map { it.getHtmlAttributeValue(context) }.merge()
   else {
     val typeSupport = this[PolySymbolTypeSupport.TypeSupportProperty]

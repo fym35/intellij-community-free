@@ -7,7 +7,6 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolNameSegment
 import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.completion.impl.CompoundInsertHandler
-import com.intellij.polySymbols.html.NAMESPACE_HTML
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.patterns.PolySymbolPatternSymbolsResolver
 import com.intellij.polySymbols.query.PolySymbolMatch
@@ -242,7 +241,7 @@ class SequencePattern(private val patternsProvider: () -> List<PolySymbolPattern
             symbol = PolySymbolMatch.create(
               name,
               lastMatched.segments.filter { it.start < it.end }.withOffset(-lastMatched.start),
-              PolySymbolKind[NAMESPACE_HTML, SPECIAL_MATCHED_CONTRIB]
+              PolySymbolKind[SPECIAL_MATCHED_CONTRIB, SPECIAL_MATCHED_CONTRIB]
             ))
         }
         val result = mutableListOf<PolySymbolCodeCompletionItem>()

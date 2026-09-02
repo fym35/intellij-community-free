@@ -19,6 +19,7 @@ import com.intellij.polySymbols.framework.framework
 import com.intellij.polySymbols.html.HtmlAttributeValueProperty
 import com.intellij.polySymbols.html.PolySymbolHtmlAttributeValue
 import com.intellij.polySymbols.html.getHtmlAttributeValue
+import com.intellij.polySymbols.html.merge
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.query.PolySymbolCodeCompletionQueryParams
 import com.intellij.polySymbols.query.PolySymbolListSymbolsQueryParams
@@ -29,7 +30,6 @@ import com.intellij.polySymbols.query.PolySymbolScope
 import com.intellij.polySymbols.query.PolySymbolWithPattern
 import com.intellij.polySymbols.utils.PolySymbolTypeSupport
 import com.intellij.polySymbols.utils.PolySymbolTypeSupport.TypeSupportProperty
-import com.intellij.polySymbols.utils.merge
 import com.intellij.polySymbols.webTypes.WebTypesSymbol.Companion.PROP_NO_DOC
 import com.intellij.polySymbols.webTypes.impl.WebTypesJsonContributionAdapter
 import com.intellij.polySymbols.webTypes.impl.wrap
