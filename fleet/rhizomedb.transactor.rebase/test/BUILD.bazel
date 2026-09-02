@@ -65,7 +65,8 @@ jvm_library(
         "//fleet/rpc.server:rpc.server_test_lib",
         "@lib//:kotlinx-coroutines-core",
         "@lib//:kotlinx-serialization-core",
-        "@lib//:kotlinx-collections-immutable",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
     ],
 )
 ### auto-generated section `build fleet.rhizomedb.transactor.rebase.test` end

@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-collections-immutable"],
-    runtime_deps = ["@lib//:kotlinx-collections-immutable"],
+    exports = ["@lib//:libraries-kotlinx-collections-immutable-kotlinx-collections-immutable"],
+    runtime_deps = ["@lib//:libraries-kotlinx-collections-immutable-kotlinx-collections-immutable"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlinx-collections-immutable"],
+    libraries = ["@lib//:libraries-kotlinx-collections-immutable-kotlinx-collections-immutable"],
     module = ":libraries-kotlinx-collections-immutable",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlinx.collections.immutable",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-collections-immutable"],
+    exports = ["@lib//:libraries-kotlinx-collections-immutable-kotlinx-collections-immutable"],
     runtime_deps = [":libraries-kotlinx-collections-immutable"],
 )
 ### auto-generated section `build intellij.libraries.kotlinx.collections.immutable` end

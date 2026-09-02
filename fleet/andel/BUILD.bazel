@@ -60,7 +60,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-collections-immutable",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
         "//libraries/jetbrains/annotations",
         "//fleet/util/core",
         "@lib//:kotlinx-serialization-core",
@@ -94,6 +94,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":andel",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
         "//libraries/jetbrains/annotations:annotations_test_lib",
         "//fleet/util/core:core_test_lib",
         "//fleet/util/codepoints:codepoints_test_lib",

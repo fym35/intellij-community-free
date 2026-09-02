@@ -45,13 +45,13 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-collections-immutable"],
+    exports = ["//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable"],
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
         "@lib//:kotlinx-serialization-core",
         "@lib//:kotlinx-serialization-json",
-        "@lib//:kotlinx-collections-immutable",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
         "//fleet/util/serialization",
     ],
 )
@@ -68,10 +68,15 @@ jvm_library(
     kotlinc_opts = ":custom_openmap",
     module_name = "fleet.openmap",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-collections-immutable"],
+    exports = [
+        # do not sort,
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
+    ],
     runtime_deps = [
         # do not sort,
         ":openmap",
+        "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
         "//fleet/util/serialization:serialization_test_lib",
     ],
 )
