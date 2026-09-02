@@ -541,14 +541,12 @@ class JarPackager private constructor(
         }
 
         // the platform packs it, the layout declares it, or a module of the same group already brings it
-        val isProvided = platformLayout!!.hasLibrary(libName, moduleName) ||
+        val isProvided = platformLayout!!.hasLibrary(libName) ||
                          layout.hasLibrary(libName) ||
                          helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)
         if (!includeProjectLib) {
-          // another module wraps it, so `LibraryModuleValidator` is the one to make this module depend on that module;
-          // a wrapper's own export excuses nothing, because no plugin module packs a project library
-          val wrapper = context.outputProvider.getProjectLibraryToModuleMap().get(libName)
-          if (!isProvided && (wrapper == null || wrapper == moduleName)) {
+          // no module wraps a project library any more, so nothing but the platform or the layout can provide it
+          if (!isProvided) {
             implicitProjectLibraryViolations.computeIfAbsent(libName) { TreeSet() }.add(moduleName)
           }
           continue

@@ -4,7 +4,6 @@
 package org.jetbrains.intellij.build.impl
 
 import org.jetbrains.intellij.build.impl.PlatformJarNames.APP_BACKEND_JAR
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 
 /**
  * Describes layout of the platform (*.jar files in IDE_HOME/lib directory).
@@ -16,14 +15,8 @@ import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
  * (see IJPL-252372).
  */
 class PlatformLayout(@JvmField val descriptorCacheContainer: DescriptorCacheContainer = DescriptorCacheContainer()) : BaseLayout() {
-  internal var libAsProductModule: Set<String> = emptySet()
-
   private val excludedProjectLibraries: MutableSet<String> = HashSet()
   private val productModuleOutputFileOverrides: MutableMap<String, String> = HashMap()
-
-  fun hasLibrary(name: String, moduleName: String): Boolean {
-    return super.hasLibrary(name) || (!moduleName.startsWith(LIB_MODULE_PREFIX) && libAsProductModule.contains(name))
-  }
 
   fun isProjectLibraryExcluded(name: String): Boolean = excludedProjectLibraries.contains(name)
 

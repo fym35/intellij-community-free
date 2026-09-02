@@ -17,7 +17,6 @@ import org.jetbrains.jps.model.java.compiler.JpsCompilerExcludes
 import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModule
 import org.jetbrains.jps.model.module.JpsModuleDependency
-import org.jetbrains.jps.model.module.JpsModuleReference
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.jps.model.serialization.JpsModelSerializationDataService
 import org.jetbrains.jps.util.JpsPathUtil
@@ -608,44 +607,6 @@ internal class BazelBuildFileGenerator(
   fun getLibraryByJpsIdentity(jpsName: String, moduleLibraryModuleName: String?): Library? {
     return libraryByJpsIdentity[jpsName to moduleLibraryModuleName]
   }
-
-  /**
-   * The `intellij.libraries.*` module that exports a project library, for every project library one of them exports.
-   *
-   * This is `PlatformLayout.libAsProductModule`, which the distribution builder fills from
-   * `PlatformModules.collectExportedLibrariesFromLibraryModules`: a wrapper module's whole purpose is to own a library
-   * and ship it in its own content-module jar, so every *other* module that declares the same library must not pack a
-   * second copy. Reproduced here rather than read from a recipe because the JPS model already holds it.
-   *
-   * Two details of the original are deliberate and reproduced as-is: the collection filters on `isExported` with no
-   * scope filter, the mirror image of the packing walk, which filters on scope with no `isExported`; and the claim is
-   * ignored for a wrapper module itself, or every wrapper would see its own library as taken and pack nothing.
-   *
-   * The original collects only the wrappers in one product's layout. This collects every wrapper in the project, which
-   * is the same set for a library whose wrapper ships wherever the library is used, and a wider one otherwise.
-   */
-  private val projectLibraryToLibraryModule: Map<String, String> by lazy {
-    val result = HashMap<String, String>()
-    for (module in project.modules) {
-      val moduleName = module.name
-      if (!moduleName.startsWith(LIB_MODULE_PREFIX)) {
-        continue
-      }
-
-      for (element in module.dependenciesList.dependencies) {
-        if (element !is JpsLibraryDependency || javaExtensionService.getDependencyExtension(element)?.isExported != true) {
-          continue
-        }
-        if (element.libraryReference.parentReference is JpsModuleReference) {
-          continue
-        }
-        result.putIfAbsent(element.library?.name ?: continue, moduleName)
-      }
-    }
-    result
-  }
-
-  fun getLibraryModuleExporting(jpsLibraryName: String): String? = projectLibraryToLibraryModule[jpsLibraryName]
 
   fun computeModuleList(m2Repo: Path, skipGenerationOfPluginTargets: Boolean): ModuleList {
     val community = ArrayList<ModuleDescriptor>()

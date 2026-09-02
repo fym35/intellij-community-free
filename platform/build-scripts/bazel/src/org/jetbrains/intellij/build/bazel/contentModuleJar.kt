@@ -550,7 +550,6 @@ internal fun mergedLibraryTargetLabels(
         MergeRules.PLATFORM -> isMergedIntoContentModuleJar(
           jpsLibraryName = jpsLibrary.name,
           ownerModuleName = owner,
-          packedModuleName = packedModuleName,
           packedModule = packedModule,
           moduleList = moduleList,
           context = context,
@@ -810,7 +809,7 @@ internal fun isConventionalPrepackedPath(moduleName: String, relativeOutputFile:
 
 /**
  * Whether the **platform** layout merges the library [jpsLibraryName] declares into the content-module jar owned by
- * [packedModuleName], reproducing `JarPackager.computeSourcesForModuleLibs` for it. See [MergeRules.PLATFORM].
+ * [packedModule], reproducing `JarPackager.computeSourcesForModuleLibs` for it. See [MergeRules.PLATFORM].
  *
  * Everything the platform path of that function tests is here. What is *not* here is deliberate, because it is the plugin
  * path: the implicit-library check of an auto plugin, and `excludedProjectLibraries`/`excludedModuleLibraries`, which are
@@ -821,7 +820,6 @@ internal fun isConventionalPrepackedPath(moduleName: String, relativeOutputFile:
 private fun isMergedIntoContentModuleJar(
   jpsLibraryName: String,
   ownerModuleName: String?,
-  packedModuleName: String,
   packedModule: ModuleDescriptor,
   moduleList: ModuleList,
   context: BazelBuildFileGenerator,
@@ -831,13 +829,8 @@ private fun isMergedIntoContentModuleJar(
     return LAYOUT_PACKED_MODULE_LIBRARIES[ownerModuleName]?.contains(jpsLibraryName) != true
   }
 
-  // `PlatformLayout.hasLibrary`: `super.hasLibrary` - the layout packs this project library itself.
+  // `PlatformLayout.hasLibrary`: the layout packs this project library itself.
   if (jpsLibraryName in LAYOUT_PACKED_PROJECT_LIBRARIES) {
-    return false
-  }
-
-  // `PlatformLayout.hasLibrary`: the `libAsProductModule` half, skipped for a wrapper module itself.
-  if (!packedModuleName.startsWith(LIB_MODULE_PREFIX) && context.getLibraryModuleExporting(jpsLibraryName) != null) {
     return false
   }
 

@@ -16,10 +16,7 @@ import org.jetbrains.intellij.build.UTIL_RT_JAR
 import org.jetbrains.intellij.build.classPath.getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader
 import org.jetbrains.intellij.build.forEachConcurrent
 import org.jetbrains.intellij.build.impl.PlatformJarNames.TEST_FRAMEWORK_JAR
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
-import org.jetbrains.jps.model.java.JpsJavaExtensionService
-import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModuleDependency
 import org.jetbrains.jps.model.module.JpsModuleReference
 import java.util.TreeMap
@@ -234,14 +231,9 @@ internal fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set
       .sortedBy { it.moduleName },
   )
 
-  val libAsProductModule = collectExportedLibrariesFromLibraryModules(layout, context).keys
-  layout.libAsProductModule = libAsProductModule
-
   val violations = TreeMap<String, Set<String>>()
   for ((libName, dependentModules) in projectLibrariesUsedByPlugins) {
-    if (layout.hasLibrary(libName) ||
-        libAsProductModule.contains(libName) ||
-        layout.isProjectLibraryExcluded(libName)) {
+    if (layout.hasLibrary(libName) || layout.isProjectLibraryExcluded(libName)) {
       continue
     }
 
@@ -282,51 +274,6 @@ private fun computePartialListToResolveIncludesAndCollectProductModules(
     runtimeDependencyResolver = runtimeDependencyResolver,
   ).mapTo(result) { it.first }
   result.addAll(explicitModuleNames)
-  return result
-}
-
-/**
- * Collects names of libraries that are exported by library modules (modules with prefix [LIB_MODULE_PREFIX]).
- * 
- * Library modules like `intellij.libraries.grpc` export one or more project libraries 
- * (e.g., `grpc-core`, `grpc-stub`, `grpc-kotlin-stub`, `grpc-protobuf`).
- * These exported libraries should be treated as product modules and not included separately.
- * 
- * Note: We cannot replace all direct library references with library modules due to:
- * - Dual project structures (Fleet, Toolbox) that require direct library references
- * - Modules used in both production and build scripts (e.g., `intellij.platform.buildScripts.downloader`)
- * 
- * @param layout the platform layout containing included modules
- * @param context the build context
- * @return map from library name to the library module that exports it
- */
-fun collectExportedLibrariesFromLibraryModules(
-  layout: PlatformLayout,
-  context: BuildContext,
-): Map<String, String> {
-  val javaExtensionService = JpsJavaExtensionService.getInstance()
-  val result = LinkedHashMap<String, String>()
-  val includedModuleNames = layout.includedModules.map { it.moduleName }
-  val corePluginsContentModuleNames = computeContentModulesPluginsWhichUseIdeaClassloader(context)
-
-  (includedModuleNames + corePluginsContentModuleNames)
-    .asSequence()
-    .filter { it.startsWith(LIB_MODULE_PREFIX) }
-    .forEach { moduleName ->
-      // get all library dependencies from the module
-      context.outputProvider.findRequiredModule(moduleName).dependenciesList.dependencies
-        .asSequence()
-        .filterIsInstance<JpsLibraryDependency>()
-        .filter { libDep ->
-          // Check if this library is exported
-          javaExtensionService.getDependencyExtension(libDep)?.isExported == true
-        }
-        .mapNotNull { it.library?.name }
-        .forEach { libName ->
-          result.put(libName, moduleName)
-        }
-    }
-
   return result
 }
 
