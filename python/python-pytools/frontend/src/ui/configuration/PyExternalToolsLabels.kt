@@ -7,14 +7,18 @@ import com.intellij.openapi.util.text.HtmlBuilder
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.OnOffButton
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Graphics2D
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.UIManager
@@ -29,6 +33,49 @@ import kotlin.math.max
 internal fun toggleColumnWidth(): Int = OnOffButton().preferredSize.width
 
 internal fun columnGap(): Int = JBUI.scale(12)
+
+/** Creates a painted caption that the Settings search does not index. A JLabel would expose its text to the search. */
+internal fun headerText(displayText: String): JComponent = object : JComponent() {
+  init {
+    font = UIUtil.getLabelFont()
+  }
+
+  override fun getPreferredSize(): Dimension {
+    val metrics = getFontMetrics(font)
+    return Dimension(metrics.stringWidth(displayText), metrics.height)
+  }
+
+  override fun paintComponent(graphics: Graphics) {
+    super.paintComponent(graphics)
+    val graphics2D = graphics.create() as Graphics2D
+    try {
+      GraphicsUtil.applyRenderingHints(graphics2D)
+      graphics2D.font = font
+      graphics2D.color = UIUtil.getLabelForeground()
+      val metrics = graphics2D.fontMetrics
+      graphics2D.drawString(displayText, 0, (height + metrics.ascent - metrics.descent) / 2)
+    }
+    finally {
+      graphics2D.dispose()
+    }
+  }
+}
+
+internal interface PathActionHost {
+  fun isUpgradeAvailable(row: ToolRow): Boolean
+  fun upgradeTargetVersion(row: ToolRow): String?
+  fun installOnPath(row: ToolRow)
+  fun upgradeOnPath(row: ToolRow)
+  fun resetPath(row: ToolRow)
+}
+
+internal fun pathActionLink(row: ToolRow, detected: PathFieldValue?, host: PathActionHost): JComponent? =
+  when (iconKindFor(row, detected, row.canInstall) { host.isUpgradeAvailable(it) }) {
+    PathIconKind.INSTALL -> ActionLink(PyToolsUiBundle.message("settings.external.tools.install.link")) { host.installOnPath(row) }
+    PathIconKind.UPGRADE -> ActionLink(upgradeLinkText(host.upgradeTargetVersion(row))) { host.upgradeOnPath(row) }
+    PathIconKind.RESET -> ActionLink(PyToolsUiBundle.message("settings.external.tools.path.reset.tooltip")) { host.resetPath(row) }
+    PathIconKind.NONE -> null
+  }
 
 /**
  * Width of the lookup-chain column: the width of a chain with no `(matched/total)` environment
@@ -152,8 +199,8 @@ internal fun fixedWidthPanel(width: Int, comp: JComponent, anchor: String = Bord
  */
 internal val NO_FEATURES_FOREGROUND: Color =
   JBColor(
-    JBColor.namedColor("ColorPalette.Orange6", Color(0xE08855)),
-    JBColor.namedColor("ColorPalette.Orange4", Color(0xCB7B57)),
+    JBColor.namedColor("ColorPalette.Orange6", 0xE08855),
+    JBColor.namedColor("ColorPalette.Orange4", 0xCB7B57),
   )
 
 /**

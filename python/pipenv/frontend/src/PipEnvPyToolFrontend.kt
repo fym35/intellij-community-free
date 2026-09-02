@@ -4,12 +4,11 @@ package com.intellij.python.community.impl.pipenv.frontend
 import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
 import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
 import com.intellij.python.community.impl.pipenv.frontend.PyPipenvFrontendBundle.message
-import com.jetbrains.python.packaging.PyPackageName
 import javax.swing.Icon
 
 internal class PipEnvPyToolFrontend : PackageManagerPyToolFrontend {
   override val presentableName: String = "Pipenv"
-  override val packageName: PyPackageName = PyPackageName.from("pipenv")
+  override val packageName: String = "pipenv"
   override val description: String get() = message("python.pipenv.tool.description")
   override val icon: Icon get() = PythonPytoolsFrontendIcons.Expui.Pipenv
 }

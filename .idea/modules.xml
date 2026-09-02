@@ -2002,8 +2002,6 @@
       <module fileurl="file://$PROJECT_DIR$/python/intellij.python.helpers.tests.iml" filepath="$PROJECT_DIR$/python/intellij.python.helpers.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/IntelliLang-python/intellij.python.langInjection.iml" filepath="$PROJECT_DIR$/python/IntelliLang-python/intellij.python.langInjection.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-lsp-core/intellij.python.lsp.core.iml" filepath="$PROJECT_DIR$/python/python-lsp-core/intellij.python.lsp.core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/python/python-lsp-core/frontend/intellij.python.lsp.core.frontend.iml" filepath="$PROJECT_DIR$/python/python-lsp-core/frontend/intellij.python.lsp.core.frontend.iml" />
-      <module fileurl="file://$PROJECT_DIR$/python/python-lsp-impl/intellij.python.lsp.impl.iml" filepath="$PROJECT_DIR$/python/python-lsp-impl/intellij.python.lsp.impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-lsp-impl/frontend/intellij.python.lsp.impl.frontend.iml" filepath="$PROJECT_DIR$/python/python-lsp-impl/frontend/intellij.python.lsp.impl.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.iml" filepath="$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.tests.iml" filepath="$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.tests.iml" />
@@ -2028,7 +2026,7 @@
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/backend/intellij.python.pytools.backend.iml" filepath="$PROJECT_DIR$/python/python-pytools/backend/intellij.python.pytools.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/common/intellij.python.pytools.common.iml" filepath="$PROJECT_DIR$/python/python-pytools/common/intellij.python.pytools.common.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/frontend/intellij.python.pytools.frontend.iml" filepath="$PROJECT_DIR$/python/python-pytools/frontend/intellij.python.pytools.frontend.iml" />
-      <module fileurl="file://$PROJECT_DIR$/python/python-pytools/frontend/tests/intellij.python.pytools.frontend.tests.iml" filepath="$PROJECT_DIR$/python/python-pytools/frontend/tests/intellij.python.pytools.frontend.tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/python/python-pytools/tests/intellij.python.pytools.tests.iml" filepath="$PROJECT_DIR$/python/python-pytools/tests/intellij.python.pytools.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/backend/intellij.python.requirements.backend.iml" filepath="$PROJECT_DIR$/python/python-requirements/backend/intellij.python.requirements.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/common/intellij.python.requirements.common.iml" filepath="$PROJECT_DIR$/python/python-requirements/common/intellij.python.requirements.common.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/tests/intellij.python.requirements.tests.iml" filepath="$PROJECT_DIR$/python/python-requirements/tests/intellij.python.requirements.tests.iml" />

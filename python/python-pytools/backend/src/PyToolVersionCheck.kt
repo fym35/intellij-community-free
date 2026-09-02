@@ -8,15 +8,12 @@ import com.intellij.python.community.execService.BinOnEel
 import com.intellij.python.community.execService.ExecService
 import com.intellij.python.community.execService.execGetStdout
 import com.intellij.python.pytools.backend.PyToolsBundle.message
-import com.intellij.python.pytools.backend.PyTool
 import com.jetbrains.python.PyInternalExecApi
 import com.jetbrains.python.errorProcessing.PyResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
-
-class VersionFormatException : Exception()
 
 data class Version(val value: String) {
   override fun toString(): String = value
@@ -41,12 +38,7 @@ fun String.parseVersion(toolVersionPrefix: String): PyResult<Version> {
     .firstNotNullOfOrNull { pattern.matchEntire(it) }
   return if (matchResult != null) {
     val (versionString) = matchResult.destructured
-    try {
-      PyResult.success(Version.parse(versionString))
-    }
-    catch (ex: VersionFormatException) {
-      PyResult.localizedError(ex.localizedMessage)
-    }
+    PyResult.success(Version.parse(versionString))
   }
   else {
     val versionPresentation = StringUtil.shortenTextWithEllipsis(this, 250, 0, true)

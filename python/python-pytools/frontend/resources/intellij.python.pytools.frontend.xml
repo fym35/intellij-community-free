@@ -16,7 +16,6 @@
     <module name="intellij.platform.rpc"/>
     <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.util.ui"/>
-    <module name="intellij.python.community"/>
     <module name="intellij.python.pytools.common"/>
     <!-- endregion -->
   </dependencies>
@@ -27,6 +26,12 @@
   </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
     <postStartupActivity implementation="com.intellij.python.pytools.frontend.PyToolsFrontendStateStartupActivity"/>
+    <groupConfigurable id="python.tools.group.settings"
+                       parentId="python.group.settings"
+                       weight="72"
+                       bundle="messages.PyToolsUiBundle"
+                       displayNameKey="settings.python.tools.group.title"
+                       descriptionKey="settings.python.tools.group.description"/>
     <projectConfigurable parentId="python.tools.group.settings"
                          id="python.external.tools.group.settings"
                          bundle="messages.PyToolsUiBundle"

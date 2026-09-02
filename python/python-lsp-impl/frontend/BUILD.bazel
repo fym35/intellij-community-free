@@ -5,7 +5,6 @@ load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_mod
 ### auto-generated section `build intellij.python.lsp.impl.frontend` start
 create_kotlinc_options(
     name = "custom_frontend",
-    opt_in = ["com.jetbrains.python.PyInternalExecApi"],
     warn = "error",
 )
 
@@ -39,7 +38,6 @@ jvm_library(
         "//platform/lsp",
         "//python/python-pytools/common",
         "//python/python-pytools/frontend",
-        "//python/openapi:community",
         "//platform/project/shared:project",
         "//platform/kernel/rpc",
         "//platform/platform-frontend:frontend",
@@ -71,7 +69,6 @@ jvm_library(
         "//platform/lsp:lsp_test_lib",
         "//python/python-pytools/common:common_test_lib",
         "//python/python-pytools/frontend:frontend_test_lib",
-        "//python/openapi:community_test_lib",
         "//platform/project/shared:project_test_lib",
         "//platform/kernel/rpc:rpc_test_lib",
         "//platform/platform-frontend:frontend_test_lib",

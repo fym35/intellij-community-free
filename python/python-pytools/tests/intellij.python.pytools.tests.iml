@@ -49,7 +49,6 @@
     <orderEntry type="module" module-name="intellij.python.lsp.core" scope="TEST" />
     <orderEntry type="module" module-name="intellij.python.pytools.backend" scope="TEST" />
     <orderEntry type="module" module-name="intellij.python.pytools.common" scope="TEST" />
-    <orderEntry type="module" module-name="intellij.python.pytools.frontend" scope="TEST" />
   </component>
-  <component name="TestModuleProperties" production-module="intellij.python.pytools.frontend" />
+  <component name="TestModuleProperties" production-module="intellij.python.pytools.backend" />
 </module>

@@ -4,7 +4,6 @@ package com.intellij.python.pytools.backend
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.backend.PyExecutable
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
 import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.jetbrains.python.packaging.PyPackageName

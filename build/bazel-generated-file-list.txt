@@ -1799,8 +1799,6 @@ python/python-grazie
 python/python-hatch
 python/python-hatch/frontend
 python/python-lsp-core
-python/python-lsp-core/frontend
-python/python-lsp-impl
 python/python-lsp-impl/frontend
 python/python-markdown
 python/python-minimap
@@ -1821,7 +1819,7 @@ python/python-pyright/frontend
 python/python-pytools/backend
 python/python-pytools/common
 python/python-pytools/frontend
-python/python-pytools/frontend/tests
+python/python-pytools/tests
 python/python-requirements/backend
 python/python-requirements/common
 python/python-requirements/tests

@@ -7,6 +7,7 @@ import com.intellij.ui.dsl.builder.MutableProperty
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindSelected
 import kotlin.reflect.KMutableProperty0
+import org.jetbrains.annotations.Nls
 
 internal interface PyLspToolSettings {
   var inspections: Boolean
@@ -47,7 +48,7 @@ internal object PyLspToolFeatureRows {
   fun build(
     panel: Panel,
     settings: PyLspToolSettings,
-    inlayHintLabel: String = message("checkbox.inlay.hints"),
+    inlayHintLabel: @Nls String = message("checkbox.inlay.hints"),
     extra: (Panel.() -> Unit)? = null,
   ) {
     with(panel) {

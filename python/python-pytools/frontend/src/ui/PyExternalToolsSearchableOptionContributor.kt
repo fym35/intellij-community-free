@@ -15,7 +15,7 @@ import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConf
 internal class PyExternalToolsSearchableOptionContributor : SearchableOptionContributor() {
   override fun processOptions(processor: SearchableOptionProcessor) {
     val displayName = PyToolsUiBundle.message("settings.external.tools.title")
-    for (tool in PyTool.EP_NAME.extensionList.filter { it is ExternalPyTool }) {
+    for (tool in PyTool.EP_NAME.extensionList.filterIsInstance<ExternalPyTool>()) {
       processor.addOptions(
         tool.presentableName,
         null,

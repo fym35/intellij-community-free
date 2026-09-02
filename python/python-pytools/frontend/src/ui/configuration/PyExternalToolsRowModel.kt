@@ -53,8 +53,7 @@ internal class ToolRow(
   var versionedFor: String? = null,
   /**
    * Currently-detected path snapshot, populated asynchronously. `null` means the initial detection
-   * is still in flight (the cell renders empty until then) — the renderer must never call [detect]
-   * itself, since `findInPath` does blocking disk I/O.
+   * is still in flight, so the cell renders empty until then.
    */
   var pathFieldValue: PathFieldValue? = null,
   /**
@@ -120,12 +119,6 @@ internal sealed interface PathFieldValue {
 }
 
 /**
- * Resolve the row's displayed path. A user-supplied [customPath] wins; a [knownPath] (the exact path an
- * installer just reported) is trusted next; otherwise the tool is auto-detected via its own [PyExecutableCache],
- * which searches the tool's specific locations (e.g. conda's `~/miniconda3/bin`) — the same detection the interpreter
- * widget uses — so a tool installed outside `$PATH` is still found.
- */
-/**
  * Right-edge action icon kinds for the Path column. After a successful install / upgrade the
  * renderer paints a ✓ in this slot instead, driven by [ToolRow.lastSuccessMessage]; the ✓ path
  * is not modeled here because it is purely a visual swap and uses no different hit-test.
@@ -165,9 +158,8 @@ internal fun iconKindFor(
 }
 
 /**
- * Resolve the row's path (via [detect]) and then probe `<path> --version`, fully on background
- * coroutines. Both steps post their results back to the EDT, mutating the row in place and
- * invoking [onUpdated] (on EDT) so the caller can refresh whatever UI surface reads the row.
+ * Request the row state from the backend and update the row in a coroutine. For a custom path,
+ * validate the path first. Invoke [onUpdated] after the state changes.
  *
  * Replaces any previously-running probe via [ToolRow.validationJob]. When [isCustomEdit] is
  * true, surface validation errors for the just-edited custom path via [ToolRow.pathError]; on
@@ -238,7 +230,7 @@ internal fun ToolRow.applyBackendState(
 /**
  * Returns a localized "Below minimum" hint when [version] is older than [PyTool.minimumSupportedVersion],
  * or `null` if the tool declares no minimum, the probe hasn't completed yet, or the version is fine.
- * The pytools [Version] is a string wrapper; parse it through the platform's comparable Version.
+ * Parse the backend version string through the platform's comparable version type.
  */
 private fun computeBelowMinMessage(tool: PyTool, version: String?): String? {
   val minimum = tool.minimumSupportedVersion ?: return null
@@ -262,7 +254,7 @@ private fun formatVersion(v: PlatformVersion): String =
  * column's `setValueAt` so the standard cell-edit flow — re-probe, validation, repaint —
  * takes over).
  */
-internal fun ToolRow.browseExecutablePath(
+internal fun browseExecutablePath(
   project: Project,
   parent: Component?,
   onPathChosen: (String) -> Unit,

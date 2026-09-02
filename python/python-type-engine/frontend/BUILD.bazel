@@ -5,7 +5,6 @@ load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_mod
 ### auto-generated section `build intellij.python.typeEngine.frontend` start
 create_kotlinc_options(
     name = "custom_frontend",
-    opt_in = ["com.jetbrains.python.PyInternalExecApi"],
     warn = "error",
 )
 
@@ -44,7 +43,7 @@ jvm_library(
         "//platform/progress/shared:ide-progress",
         "//platform/observable",
         "//platform/statistics",
-        "//python/openapi:community",
+        "//python/python-parser:parser",
         "//python/python-pytools/frontend",
         "//python/python-type-engine/common",
         "//platform/kernel/rpc",
@@ -84,7 +83,7 @@ jvm_library(
         "//platform/progress/shared:ide-progress_test_lib",
         "//platform/observable:observable_test_lib",
         "//platform/statistics:statistics_test_lib",
-        "//python/openapi:community_test_lib",
+        "//python/python-parser:parser_test_lib",
         "//python/python-pytools/frontend:frontend_test_lib",
         "//python/python-type-engine/common:common_test_lib",
         "//platform/kernel/rpc:rpc_test_lib",

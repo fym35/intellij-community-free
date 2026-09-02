@@ -23,7 +23,6 @@
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.pytools.backend"/>
     <module name="intellij.python.pytools.common"/>
-    <module name="intellij.python.pytools.frontend"/>
   </dependencies>
   <!-- endregion -->
 </idea-plugin>

@@ -5,7 +5,6 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.toNioPathOrNull
 import com.intellij.python.community.common.tools.ToolId
 import com.intellij.python.community.impl.poetry.backend.PoetryPyTool
-import com.intellij.python.community.impl.poetry.backend.PyPoetryBundle
 import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImplPoetryCommonIcons
 import com.intellij.python.community.impl.poetry.common.POETRY_TOOL_ID
 import com.intellij.python.pytools.backend.PyTool

@@ -15,7 +15,7 @@ import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 internal class PyPackageManagersSearchableOptionContributor : SearchableOptionContributor() {
   override fun processOptions(processor: SearchableOptionProcessor) {
     val displayName = PyToolsUiBundle.message("settings.package.managers.title")
-    for (tool in PyTool.EP_NAME.extensionList.filter { it is PackageManagerPyTool }) {
+    for (tool in PyTool.EP_NAME.extensionList.filterIsInstance<PackageManagerPyTool>()) {
       processor.addOptions(
         tool.presentableName,
         null,

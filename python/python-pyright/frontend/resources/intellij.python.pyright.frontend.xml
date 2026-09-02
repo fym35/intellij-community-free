@@ -9,7 +9,6 @@
     <module name="intellij.platform.lsp"/>
     <module name="intellij.platform.project"/>
     <module name="intellij.platform.projectModel"/>
-    <module name="intellij.python.community"/>
     <module name="intellij.python.pytools.frontend"/>
     <!-- endregion -->
   </dependencies>

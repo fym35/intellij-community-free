@@ -6,7 +6,6 @@ import com.intellij.ide.setToolTipText
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
-import com.intellij.python.pytools.common.PyToolSdkDto
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
@@ -294,15 +293,7 @@ internal class PyExternalToolRowPanel(
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(8)))
 
-    when (iconKindFor(row, detected, row.canInstall) { host.isUpgradeAvailable(it) }) {
-      PathIconKind.INSTALL ->
-        add(ActionLink(PyToolsUiBundle.message("settings.external.tools.install.link")) { host.installOnPath(row) })
-      PathIconKind.UPGRADE ->
-        add(ActionLink(upgradeLinkText(host.upgradeTargetVersion(row))) { host.upgradeOnPath(row) })
-      PathIconKind.RESET ->
-        add(ActionLink(PyToolsUiBundle.message("settings.external.tools.path.reset.tooltip")) { host.resetPath(row) })
-      PathIconKind.NONE -> Unit
-    }
+    pathActionLink(row, detected, host)?.let { add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(8)))
     add(browseButton())
   }

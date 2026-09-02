@@ -3,7 +3,6 @@
     <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.frontend"/>
-    <module name="intellij.python.community"/>
     <module name="intellij.python.pytools.frontend"/>
     <!-- endregion -->
   </dependencies>

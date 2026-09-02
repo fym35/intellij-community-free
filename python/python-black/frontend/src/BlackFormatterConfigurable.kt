@@ -15,8 +15,8 @@ import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
 import com.intellij.python.pytools.common.PyToolsRequest
-import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.black.frontend.PyBlackFrontendBundle.message
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
@@ -32,7 +32,7 @@ internal class BlackFormatterConfigurable(private val project: Project) : BoundC
   }
 
   private val cliArgumentsTextField = BlackTextFieldWithAutoCompletion(project, object :
-    com.intellij.ui.TextFieldWithAutoCompletionListProvider<BlackCliOptionFlag>(BLACK_OPTIONS.toCliOptionFlags()) {
+    TextFieldWithAutoCompletionListProvider<BlackCliOptionFlag>(BLACK_OPTIONS.toCliOptionFlags()) {
 
     override fun getLookupString(item: BlackCliOptionFlag): String = item.flag + " "
 
@@ -70,7 +70,7 @@ internal class BlackFormatterConfigurable(private val project: Project) : BoundC
   private class BlackTextFieldWithAutoCompletion(
     project: Project,
     provider: TextFieldWithAutoCompletionListProvider<BlackCliOptionFlag>,
-  ) : com.intellij.util.textCompletion.TextFieldWithCompletion(project, provider, "", true, true, false) {
+  ) : TextFieldWithCompletion(project, provider, "", true, true, false) {
     override fun getText(): String = super.getText().trimEnd()
   }
 }

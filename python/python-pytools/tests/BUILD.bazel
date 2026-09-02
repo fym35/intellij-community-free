@@ -8,9 +8,9 @@ jps_test(
     tags = ["community-aggregator"],
     runtime_deps = [":tests_test_lib"],
 )
-### skip generation section `test intellij.python.pytools.frontend.tests`
+### skip generation section `test intellij.python.pytools.tests`
 
-### auto-generated section `build intellij.python.pytools.frontend.tests` start
+### auto-generated section `build intellij.python.pytools.tests` start
 create_kotlinc_options(
     name = "custom_tests",
     warn = "error",
@@ -23,7 +23,7 @@ jvm_library(
         [],
         allow_empty = True,
     ),
-    module_name = "intellij.python.pytools.frontend.tests",
+    module_name = "intellij.python.pytools.tests",
     visibility = ["//visibility:public"],
 )
 
@@ -39,8 +39,8 @@ jvm_library(
         allow_empty = True,
     ),
     associates = [
-        "//python/python-pytools/frontend",
-        "//python/python-pytools/frontend:frontend_test_lib",
+        "//python/python-pytools/backend",
+        "//python/python-pytools/backend:backend_test_lib",
     ],
     kotlinc_opts = ":custom_tests",
     resource_strip_prefix = "testResources",
@@ -99,19 +99,17 @@ jvm_library(
         "//python/openapi:community_test_lib",
         "//python/python-lsp-core:lsp-core",
         "//python/python-lsp-core:lsp-core_test_lib",
-        "//python/python-pytools/backend",
-        "//python/python-pytools/backend:backend_test_lib",
         "//python/python-pytools/common",
         "//python/python-pytools/common:common_test_lib",
     ],
 )
-### auto-generated section `build intellij.python.pytools.frontend.tests` end
+### auto-generated section `build intellij.python.pytools.tests` end
 
-### auto-generated section `iml intellij.python.pytools.frontend.tests` start
+### auto-generated section `iml intellij.python.pytools.tests` start
 exports_files(
     [
-        "intellij.python.pytools.frontend.tests.iml",
+        "intellij.python.pytools.tests.iml",
     ],
     visibility = ["//visibility:public"],
 )
-### auto-generated section `iml intellij.python.pytools.frontend.tests` end
+### auto-generated section `iml intellij.python.pytools.tests` end

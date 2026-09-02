@@ -3,6 +3,7 @@ package com.intellij.python.pyrefly.frontend
 
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyLspToolConfigurationDto
@@ -22,7 +23,7 @@ import com.intellij.ui.dsl.builder.bindSelected
 
 internal class PyreflyTypeEngineFrontend : PyTypeEngineFrontend {
   override val id: PyTypeEngineId = PyTypeEngineId.PYREFLY
-  override val presentableName: String = "Pyrefly"
+  override val presentableName: @NlsSafe String = "Pyrefly"
 
   override fun Panel.createConfigurableContent(project: Project, propertyGraph: PropertyGraph): RowsRange {
     val request = PyToolRequest(project.projectId(), PyToolId(id.packageName))

@@ -2,11 +2,13 @@
 package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.openapi.observable.properties.AtomicProperty
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import com.intellij.platform.ide.progress.withModalProgress
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolDependencyGroupDto
@@ -27,7 +29,10 @@ import com.intellij.ui.dsl.listCellRenderer.LcrInitParams
 import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.Nls
 import javax.swing.JComponent
 
 /** Executes Python-tool operations through the backend RPC API and keeps frontend row state current. */
@@ -87,24 +92,30 @@ internal class PyToolManagementController(
     val activeScope = scope ?: return
     activeScope.launch {
       val groups = PyToolApi.getInstance().getDependencyGroups(PyToolSdkRequest(toolRow.request(), sdk))
-      if (groups.isEmpty()) {
-        installIntoSdk(toolRow, sdk, source)
-        return@launch
+      withContext(Dispatchers.EDT) {
+        if (groups.isEmpty()) {
+          installIntoSdk(toolRow, sdk, source)
+          return@withContext
+        }
+        JBPopupFactory.getInstance()
+          .createPopupChooserBuilder(groups)
+          .setTitle(PyToolsUiBundle.message("settings.external.tools.install.group.chooser.title"))
+          .setRenderer(listCellRenderer {
+            @NlsSafe val groupName = value.name
+            text(groupName) { align = LcrInitParams.Align.RIGHT }
+          })
+          .setItemChosenCallback { group ->
+            scope?.launch {
+              installIntoSdk(toolRow, sdk, source, group)
+            }
+          }
+          .createPopup()
+          .showUnderneathOf(anchor)
       }
-      JBPopupFactory.getInstance()
-        .createPopupChooserBuilder(groups)
-        .setTitle(PyToolsUiBundle.message("settings.external.tools.install.group.chooser.title"))
-        .setRenderer(listCellRenderer {
-          @NlsSafe val groupName = value.name
-          text(groupName) { align = LcrInitParams.Align.RIGHT }
-        })
-        .setItemChosenCallback { installIntoSdk(toolRow, sdk, source, it) }
-        .createPopup()
-        .showUnderneathOf(anchor)
     }
   }
 
-  private fun installIntoSdk(
+  private suspend fun installIntoSdk(
     toolRow: ToolRow,
     sdk: PyToolSdkDto,
     source: PyToolActionSource,
@@ -112,7 +123,7 @@ internal class PyToolManagementController(
   ) {
     val title = PyToolsUiBundle.message("settings.external.tools.install.progress", toolRow.packageName())
     val errorTitle = PyToolsUiBundle.message("settings.external.tools.install.error.title", toolRow.packageName())
-    val result = runWithModalProgressBlocking(project, title) {
+    val result = withModalProgress(project, title) {
       PyToolApi.getInstance().installIntoSdk(
         PyToolSdkInstallRequest(PyToolSdkRequest(toolRow.request(), sdk), dependencyGroup),
       )
@@ -120,17 +131,24 @@ internal class PyToolManagementController(
     when (result) {
       is PyToolSdkOperationResultDto.Success -> Unit
       is PyToolSdkOperationResultDto.Failure -> {
-        Messages.showErrorDialog(project, result.message, errorTitle)
+        @NlsSafe val errorMessage = result.message
+        withContext(Dispatchers.EDT) {
+          Messages.showErrorDialog(project, errorMessage, errorTitle)
+        }
         return
       }
     }
-    logEvent(toolRow, source, PyToolEventKind.INSTALLED)
-    scope?.launch {
-      toolRow.sdkAvailability = SdkAvailability(PyToolApi.getInstance().getSdkStates(toolRow.request()))
+    val sdkAvailability = withContext(Dispatchers.Default) {
+      PyToolApi.getInstance().logEvent(PyToolLogEventRequest(toolRow.request(), source, PyToolEventKind.INSTALLED))
+      SdkAvailability(PyToolApi.getInstance().getSdkStates(toolRow.request()))
+    }
+    withContext(Dispatchers.EDT) {
+      toolRow.sdkAvailability = sdkAvailability
       refreshRow(toolRow)
     }
   }
 
+  @Suppress("DialogTitleCapitalization")
   fun installUv() {
     val title = PyToolsUiBundle.message("settings.external.tools.install.uv.progress")
     val errorTitle = PyToolsUiBundle.message("settings.external.tools.install.uv.error.title")
@@ -140,7 +158,8 @@ internal class PyToolManagementController(
     when (result) {
       is PyToolOperationResultDto.Success -> Unit
       is PyToolOperationResultDto.Failure -> {
-        Messages.showErrorDialog(project, result.message, errorTitle)
+        @NlsSafe val errorMessage = result.message
+        Messages.showErrorDialog(project, errorMessage, errorTitle)
         return
       }
     }
@@ -177,14 +196,15 @@ internal class PyToolManagementController(
     return (result as PyToolOperationResultDto.Success).state
   }
 
-  private fun handleResult(toolRow: ToolRow, result: PyToolOperationResultDto, errorTitle: String): Boolean =
+  private fun handleResult(toolRow: ToolRow, result: PyToolOperationResultDto, errorTitle: @Nls String): Boolean =
     when (result) {
       is PyToolOperationResultDto.Success -> {
         toolRow.applyBackendState(result.state)
         true
       }
       is PyToolOperationResultDto.Failure -> {
-        Messages.showErrorDialog(project, result.message, errorTitle)
+        @NlsSafe val errorMessage = result.message
+        Messages.showErrorDialog(project, errorMessage, errorTitle)
         false
       }
     }
@@ -225,5 +245,5 @@ internal class PyToolManagementController(
     }
   }
 
-  private fun ToolRow.packageName(): String = tool.packageName.name
+  private fun ToolRow.packageName(): String = tool.packageName
 }

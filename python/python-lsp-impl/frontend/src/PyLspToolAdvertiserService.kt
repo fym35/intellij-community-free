@@ -48,7 +48,8 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
    * Checks for installed LSP tools and shows notifications for any that are found
    * but not yet enabled.
    */
- suspend fun checkAndAdvertise() {
+  @Suppress("unused")
+  suspend fun checkAndAdvertise() {
     val tools = lspTools()
     val api = PyToolApi.getInstance()
     val installedTools = tools.filterTo(mutableSetOf()) { tool ->

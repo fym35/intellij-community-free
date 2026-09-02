@@ -126,7 +126,6 @@ private class PyTypeEngineStatusBarWidget(
       }
     }
 
-    @Suppress("UsagesOfObsoleteApi")
     override fun update(e: AnActionEvent) {
       val state = PyTypeEngineFrontendState.getInstance(project).get()
       if (engine == PyTypeEngineId.PYREFLY) {

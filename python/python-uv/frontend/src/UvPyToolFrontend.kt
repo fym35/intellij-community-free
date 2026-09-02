@@ -4,12 +4,11 @@ package com.intellij.python.uv.frontend
 import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
 import com.intellij.python.uv.frontend.PyUvFrontendBundle.message
 import com.intellij.python.uv.common.icons.PythonUvCommonIcons
-import com.jetbrains.python.packaging.PyPackageName
 import javax.swing.Icon
 
 internal class UvPyToolFrontend : PackageManagerPyToolFrontend {
   override val presentableName: String = "uv"
-  override val packageName: PyPackageName = PyPackageName.from("uv")
+  override val packageName: String = "uv"
   override val description: String get() = message("python.uv.tool.description")
   override val icon: Icon get() = PythonUvCommonIcons.UV
 }

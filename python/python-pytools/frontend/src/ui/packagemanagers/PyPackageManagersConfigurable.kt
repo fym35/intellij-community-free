@@ -15,7 +15,6 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.components.BorderLayoutPanel
 import com.intellij.util.ui.launchOnShow
-import com.jetbrains.python.TraceContext
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.supervisorScope
 import javax.swing.JComponent
@@ -81,7 +80,6 @@ class PyPackageManagersConfigurable(private val project: Project) : BoundSearcha
 
     resultPanel.launchOnShow(
       "${this::class.java.simpleName} launchOnShow",
-      TraceContext(message("trace.context.python.package.managers"), null),
     ) {
       supervisorScope {
         uv.onShown(this@supervisorScope)

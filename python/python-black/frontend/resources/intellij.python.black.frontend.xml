@@ -13,7 +13,6 @@
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.rpc"/>
     <module name="intellij.platform.util.ui"/>
-    <module name="intellij.python.community"/>
     <module name="intellij.python.pytools.common"/>
     <module name="intellij.python.pytools.frontend"/>
     <!-- endregion -->

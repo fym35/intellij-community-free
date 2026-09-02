@@ -5,7 +5,6 @@ load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_mod
 ### auto-generated section `build intellij.python.uv.frontend` start
 create_kotlinc_options(
     name = "custom_frontend",
-    opt_in = ["com.jetbrains.python.PyInternalExecApi"],
     warn = "error",
 )
 
@@ -31,7 +30,6 @@ jvm_library(
         "@lib//:kotlin-stdlib",
         "//platform/util",
         "//platform/core-api:core",
-        "//python/openapi:community",
         "//python/python-pytools/frontend",
         "//python/python-uv/common",
         "//platform/platform-frontend:frontend",
@@ -55,7 +53,6 @@ jvm_library(
         ":frontend",
         "//platform/util:util_test_lib",
         "//platform/core-api:core_test_lib",
-        "//python/openapi:community_test_lib",
         "//python/python-pytools/frontend:frontend_test_lib",
         "//python/python-uv/common:common_test_lib",
         "//platform/platform-frontend:frontend_test_lib",

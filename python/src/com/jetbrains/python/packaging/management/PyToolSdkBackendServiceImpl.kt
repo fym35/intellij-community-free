@@ -18,7 +18,7 @@ import com.intellij.python.pytools.common.PyToolSdkOperationResultDto
 import com.intellij.python.pytools.common.PyToolSdkRequest
 import com.intellij.python.pytools.common.PyToolSdkStateDto
 import com.intellij.python.sdk.backend.findToolExecutable
-import com.intellij.python.sdk.backend.pythonInterpreter
+import com.intellij.python.sdk.backend.pythonInterpreterAsync
 import com.jetbrains.python.Result
 import com.jetbrains.python.sdk.pyInterpreterPresentation
 import com.jetbrains.python.sdk.pythonSdk
@@ -50,7 +50,7 @@ internal class PyToolSdkBackendServiceImpl : PyToolSdkBackendService {
   }
 
   private suspend fun sdkState(tool: PyTool, sdk: Sdk): PyToolSdkStateDto {
-    val path = sdk.pythonInterpreter().findToolExecutable(tool)
+    val path = sdk.pythonInterpreterAsync().findToolExecutable(tool)
     val version = path?.let { (tool.validateCustomPath(it) as? Result.Success)?.result?.value }
     return PyToolSdkStateDto(sdk.toDto(), path?.toString(), version)
   }

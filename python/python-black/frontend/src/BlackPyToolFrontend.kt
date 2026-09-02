@@ -10,15 +10,12 @@ import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend
 import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
 import com.intellij.python.black.frontend.PyBlackFrontendBundle.message
-import com.jetbrains.python.packaging.PyPackageName
-import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon
 
-@ApiStatus.Internal
 internal class BlackPyToolFrontend : ExternalPyToolFrontend {
   override val presentableName: String = "Black"
   override val description: String get() = message("black.tool.description")
-  override val packageName: PyPackageName = PyPackageName.from("black")
+  override val packageName: String = "black"
   override val icon: Icon get() = PythonPytoolsFrontendIcons.Expui.Black
   override val minimumSupportedVersion: Version = Version(23, 11, 0)
 

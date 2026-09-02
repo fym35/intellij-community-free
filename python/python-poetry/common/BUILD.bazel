@@ -39,7 +39,6 @@ jvm_library(
         "//platform/core-api:core",
         "//platform/util",
         "//python/common",
-        "//python/openapi:community",
         "//python/python-process-output/common",
     ],
 )
@@ -61,7 +60,6 @@ jvm_library(
         "//platform/core-api:core_test_lib",
         "//platform/util:util_test_lib",
         "//python/common:common_test_lib",
-        "//python/openapi:community_test_lib",
         "//python/python-process-output/common:common_test_lib",
     ],
 )

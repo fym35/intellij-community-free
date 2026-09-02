@@ -7,16 +7,13 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.configuration.PathFieldValue
-import com.intellij.python.pytools.frontend.ui.configuration.PathIconKind
 import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel
-import com.intellij.python.pytools.frontend.ui.configuration.iconKindFor
 import com.intellij.python.pytools.frontend.ui.configuration.installedVersionLabel
 import com.intellij.python.pytools.frontend.ui.configuration.pathDetailsTooltip
+import com.intellij.python.pytools.frontend.ui.configuration.pathActionLink
 import com.intellij.python.pytools.frontend.ui.configuration.searchSpotlightBorderColor
-import com.intellij.python.pytools.frontend.ui.configuration.upgradeLinkText
 import com.intellij.ui.JBColor
-import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
@@ -96,15 +93,7 @@ internal class PyPackageManagerRowPanel(
     })
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(10)))
-    when (iconKindFor(row, detected, row.canInstall) { host.isUpgradeAvailable(it) }) {
-      PathIconKind.INSTALL ->
-        add(ActionLink(PyToolsUiBundle.message("settings.external.tools.install.link")) { host.installOnPath(row) })
-      PathIconKind.UPGRADE ->
-        add(ActionLink(upgradeLinkText(host.upgradeTargetVersion(row))) { host.upgradeOnPath(row) })
-      PathIconKind.RESET ->
-        add(ActionLink(PyToolsUiBundle.message("settings.external.tools.path.reset.tooltip")) { host.resetPath(row) })
-      PathIconKind.NONE -> Unit
-    }
+    pathActionLink(row, detected, host)?.let { add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(8)))
     add(browseButton())
     add(Box.createHorizontalGlue())

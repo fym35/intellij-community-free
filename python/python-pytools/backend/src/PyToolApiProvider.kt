@@ -158,8 +158,8 @@ private object PyToolApiImpl : PyToolApi {
     }
     else null
     return PyToolStateDto(
-      toolId = com.intellij.python.pytools.common.PyToolId(executable.fusId),
-      enabled = PyToolsState.getInstance(project).isEnabled(com.intellij.python.pytools.common.PyToolId(executable.fusId)),
+      toolId = PyToolId(executable.fusId),
+      enabled = PyToolsState.getInstance(project).isEnabled(PyToolId(executable.fusId)),
       path = path?.toString(),
       pathKind = when {
         custom != null -> PyToolPathKind.CUSTOM

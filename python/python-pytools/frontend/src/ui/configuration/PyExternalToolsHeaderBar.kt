@@ -5,13 +5,10 @@ import com.intellij.ide.ui.search.SearchUtil
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.JBColor
-import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.Graphics
-import java.awt.Graphics2D
 import java.awt.Rectangle
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -22,7 +19,7 @@ import javax.swing.Scrollable
 /**
  * A thin, static "Tool" / "Lookup" caption strip installed as the scroll pane's column header, so it
  * shares the viewport's width and origin and its columns line up with the rows below. Implements
- * [Scrollable] with [getScrollableTracksViewportWidth] = true so it stretches to the full viewport
+ * [Scrollable] with `getScrollableTracksViewportWidth()` set to true so it stretches to the full viewport
  * width (excluding the vertical scrollbar), letting its right-anchored "Lookup" column meet the rows'.
  */
 internal fun buildHeaderBar(): JComponent {
@@ -44,47 +41,16 @@ internal fun buildHeaderBar(): JComponent {
     )
     // Don't index "Tool" / "Lookup" as global Settings search hits — they describe layout, not options.
     ClientProperty.put(this, SearchUtil.SEARCH_SKIP_COMPONENT_KEY, true)
-    add(HeaderText(PyToolsUiBundle.message("settings.external.tools.column.name")), BorderLayout.WEST)
+    add(headerText(PyToolsUiBundle.message("settings.external.tools.column.name")), BorderLayout.WEST)
     // Mirror each row's right side so the caption's left edge lines up with the chain's first step.
     val right = JPanel().apply {
       isOpaque = false
       layout = BoxLayout(this, BoxLayout.X_AXIS)
       add(minWidthPanel(chainColumnWidth(),
-                        HeaderText(PyToolsUiBundle.message("settings.external.tools.column.mode"))))
+                        headerText(PyToolsUiBundle.message("settings.external.tools.column.mode"))))
       add(Box.createHorizontalStrut(columnGap()))
       add(Box.createHorizontalStrut(toggleColumnWidth()))
     }
     add(right, BorderLayout.EAST)
-  }
-}
-
-/**
- * Paint-only header caption. We avoid [com.intellij.ui.components.JBLabel] / [javax.swing.JLabel]
- * on purpose so the Settings search spotlight (which scrapes text via `JLabel#getText` in
- * `SearchUtil.traverseComponentsTree`) can't match the captions.
- */
-private class HeaderText(private val displayText: String) : JComponent() {
-  init {
-    font = UIUtil.getLabelFont()
-  }
-
-  override fun getPreferredSize(): Dimension {
-    val fm = getFontMetrics(font)
-    return Dimension(fm.stringWidth(displayText), fm.height)
-  }
-
-  override fun paintComponent(g: Graphics) {
-    super.paintComponent(g)
-    val g2 = g.create() as Graphics2D
-    try {
-      GraphicsUtil.applyRenderingHints(g2)
-      g2.font = font
-      g2.color = UIUtil.getLabelForeground()
-      val fm = g2.fontMetrics
-      g2.drawString(displayText, 0, (height + fm.ascent - fm.descent) / 2)
-    }
-    finally {
-      g2.dispose()
-    }
   }
 }

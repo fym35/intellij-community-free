@@ -36,7 +36,7 @@ import javax.swing.Scrollable
  * lookup-chain text, path/SDK actions, and the "is an upgrade available" predicate. Keeps the row
  * component free of any direct reference to the list or the uv controller.
  */
-internal interface RowHost {
+internal interface RowHost : PathActionHost {
   val project: Project
   fun lookupChainHtml(row: ToolRow): @Nls String
   /** Explanation for the lookup chain when an enabled tool resolves nowhere (red chain); `null` otherwise. */
@@ -45,18 +45,12 @@ internal interface RowHost {
   fun isTypeEngine(row: ToolRow): Boolean
   /** Called after the user turns off a tool that is the type engine: clears the staged engine so the two stay consistent. */
   fun onTypeEngineToolDisabled()
-  fun isUpgradeAvailable(row: ToolRow): Boolean
-  /** The version an Upgrade would move [row] to, when known. */
-  fun upgradeTargetVersion(row: ToolRow): String?
   /**
    * The user just expanded [row]. The host collapses every other row, then makes sure the background
    * state (the path and version probe) is fresh.
    */
   fun onRowExpanded(row: ToolRow)
   fun browsePath(row: ToolRow)
-  fun installOnPath(row: ToolRow)
-  fun upgradeOnPath(row: ToolRow)
-  fun resetPath(row: ToolRow)
   fun installIntoSdk(row: ToolRow, sdk: PyToolSdkDto, anchor: JComponent)
 }
 
@@ -79,7 +73,7 @@ internal class PyExternalToolsList(
 
   /** Source-of-truth row list, materialised once from the [PyTool] extension point. */
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
-    .filter { it is ExternalPyTool }
+    .filterIsInstance<ExternalPyTool>()
     .sortedBy { it.presentableName.lowercase() }
     .map { ToolRow(it, RowState(enabled = false, customPath = null)) }
 
@@ -113,7 +107,7 @@ internal class PyExternalToolsList(
     // Live reflection of the staged engine on the tools' toggles.
     preview.stagedEnginePackage.afterChange(engineObserverDisposable) { staged ->
       rows.forEach { row ->
-        val pkg = row.tool.packageName.name
+        val pkg = row.tool.packageName
         when {
           // Became the staged engine → turn its toggle on.
           staged == pkg && !row.staged.enabled -> {
@@ -132,7 +126,7 @@ internal class PyExternalToolsList(
     // flip that tool's toggle off here too.
     preview.pendingDisable.afterChange(engineObserverDisposable) { pending ->
       rows.forEach { row ->
-        if (row.tool.packageName.name in pending && row.staged.enabled) {
+        if (row.tool.packageName in pending && row.staged.enabled) {
           row.staged = row.staged.copy(enabled = false); refreshRow(row)
         }
       }
@@ -182,7 +176,7 @@ internal class PyExternalToolsList(
   }
 
   override fun browsePath(row: ToolRow) {
-    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
+    browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
   }
 
   override fun installOnPath(row: ToolRow): Unit = uv.installTool(row, PyToolActionSource.SETTINGS_TABLE)
@@ -383,6 +377,6 @@ internal class PyExternalToolsList(
    */
   private fun isEngineFor(tool: PyTool): Boolean {
     val staged = PyToolTypeEnginePreview.getInstance(project).stagedEnginePackage.get()
-    return if (staged != null) staged == tool.packageName.name else rows.first { it.tool == tool }.selectedAsTypeEngine
+    return if (staged != null) staged == tool.packageName else rows.first { it.tool == tool }.selectedAsTypeEngine
   }
 }

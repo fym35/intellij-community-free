@@ -1584,7 +1584,7 @@ private val COMMUNITY_AGGREGATOR_BAZEL_MIGRATED_MODULES = listOf(
   "intellij.python.pyproject.tests",
   "intellij.python.sdk.tests",
   "intellij.python.test.env.junit5",
-  "intellij.python.pytools.frontend.tests",
+  "intellij.python.pytools.tests",
   "intellij.regexp.tests",
   "intellij.remoteControl.tests",
   "intellij.remoteDev.util.tests",

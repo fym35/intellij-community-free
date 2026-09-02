@@ -14,24 +14,24 @@ import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend as Pack
 import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.configuration.PyToolManagementController
+import com.intellij.python.pytools.frontend.ui.configuration.PathActionHost
 import com.intellij.python.pytools.frontend.ui.configuration.RowState
 import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.python.pytools.frontend.ui.configuration.browseExecutablePath
 import com.intellij.python.pytools.frontend.ui.configuration.applyBackendState
 import com.intellij.python.pytools.frontend.ui.configuration.checkNoPathErrors
+import com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel
+import com.intellij.python.pytools.frontend.ui.configuration.headerText
 import com.intellij.python.pytools.frontend.ui.configuration.probeVersion
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.panels.VerticalLayout
-import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.Graphics
-import java.awt.Graphics2D
 import java.awt.Rectangle
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -45,24 +45,17 @@ import javax.swing.Scrollable
 internal fun pmToolColumnWidth(): Int = JBUI.scale(120)
 
 /** Callbacks a [PyPackageManagerRowPanel] needs from its owning list. */
-internal interface PmHost {
+internal interface PmHost : PathActionHost {
   val project: Project
-  fun isUpgradeAvailable(row: ToolRow): Boolean
   /** The version an Upgrade would move [row] to, when known. */
-  fun upgradeTargetVersion(row: ToolRow): String?
   fun browsePath(row: ToolRow)
-  fun installOnPath(row: ToolRow)
-  fun upgradeOnPath(row: ToolRow)
-  fun resetPath(row: ToolRow)
 }
 
 /**
  * Body of the "Package Managers" page: a flat, scrollable list of [PyPackageManagerRowPanel]s, one
  * per [PackageManagerPyTool]. Reuses the External Tools infrastructure — [PyToolManagementController]
  * (install/upgrade/uv-availability/outdated) and the [ToolRow] path-probe/browse helpers. The custom
- * path is persisted per Eel machine via the shared [com.intellij.python.pytools.backend.getCustomExecutablePath]
- * / [com.intellij.python.pytools.backend.setCustomExecutablePath] — the same mechanism the External Tools page
- * uses.
+ * path is persisted by the backend through [PyToolApi]. The External Tools page uses the same API.
  */
 internal class PyPackageManagersList(
   override val project: Project,
@@ -70,7 +63,7 @@ internal class PyPackageManagersList(
 ) : PmHost {
 
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
-    .filter { it is PackageManagerPyTool }
+    .filterIsInstance<PackageManagerPyTool>()
     .sortedBy { it.presentableName.lowercase() }
     .map { ToolRow(it, RowState(enabled = true, customPath = null)) }
 
@@ -95,7 +88,7 @@ internal class PyPackageManagersList(
   override fun isUpgradeAvailable(row: ToolRow): Boolean = uv.isUpgradeAvailable(row)
   override fun upgradeTargetVersion(row: ToolRow): String? = uv.latestVersionFor(row)
   override fun browsePath(row: ToolRow) {
-    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
+    browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
   }
   override fun installOnPath(row: ToolRow): Unit = uv.installTool(row, PyToolActionSource.SETTINGS_TABLE)
   override fun upgradeOnPath(row: ToolRow): Unit = uv.upgradeTool(row, PyToolActionSource.SETTINGS_TABLE)
@@ -206,36 +199,9 @@ internal fun buildPackageManagersHeaderBar(): JComponent {
     background = UIUtil.getPanelBackground()
     border = JBUI.Borders.compound(JBUI.Borders.customLineBottom(JBColor.border()), JBUI.Borders.empty(0, 8))
     ClientProperty.put(this, SearchUtil.SEARCH_SKIP_COMPONENT_KEY, true)
-    add(pmHeaderText(PyToolsUiBundle.message("settings.external.tools.column.name")).let {
-      com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel(pmToolColumnWidth(), it)
+    add(headerText(PyToolsUiBundle.message("settings.external.tools.column.name")).let {
+      fixedWidthPanel(pmToolColumnWidth(), it)
     }, BorderLayout.WEST)
-    add(pmHeaderText(PyToolsUiBundle.message("settings.package.managers.column.path")), BorderLayout.CENTER)
-  }
-}
-
-/** Paint-only caption; not a JLabel so the Settings search spotlight can't match column titles. */
-private fun pmHeaderText(text: String): JComponent = object : JComponent() {
-  init {
-    font = UIUtil.getLabelFont()
-  }
-
-  override fun getPreferredSize(): Dimension {
-    val fm = getFontMetrics(font)
-    return Dimension(fm.stringWidth(text), fm.height)
-  }
-
-  override fun paintComponent(g: Graphics) {
-    super.paintComponent(g)
-    val g2 = g.create() as Graphics2D
-    try {
-      GraphicsUtil.applyRenderingHints(g2)
-      g2.font = font
-      g2.color = UIUtil.getLabelForeground()
-      val fm = g2.fontMetrics
-      g2.drawString(text, 0, (height + fm.ascent - fm.descent) / 2)
-    }
-    finally {
-      g2.dispose()
-    }
+    add(headerText(PyToolsUiBundle.message("settings.package.managers.column.path")), BorderLayout.CENTER)
   }
 }
