@@ -727,7 +727,8 @@ internal fun foldPluginContentCandidacy(reports: List<List<RecipeEntry>>, overri
  *
  * Module libraries only. `ModuleEntry.libraries` is the module libraries the layout merged, and a project library is
  * recorded at the jar level as `projectLibraries:` - which still vetoes the entry here, because a plugin merges one
- * only for an `auto` `PluginLayout`, and a `PluginLayout` is exactly what this generator does not evaluate.
+ * only through a `withProjectLibrary(name, jarName)` layout call, and a `PluginLayout` is exactly what this generator
+ * does not evaluate.
  */
 internal class SimplePluginContentEntry(
   @JvmField val moduleName: String,
@@ -814,8 +815,8 @@ internal fun isConventionalPrepackedPath(moduleName: String, relativeOutputFile:
  * [packedModuleName], reproducing `JarPackager.computeSourcesForModuleLibs` for it. See [MergeRules.PLATFORM].
  *
  * Everything the platform path of that function tests is here. What is *not* here is deliberate, because it is the plugin
- * path: the `auto` gate that lets a library module pack its project library, the implicit-library check behind it, and
- * `excludedProjectLibraries`/`excludedModuleLibraries`, which are `PluginLayout` fields that are empty for the platform.
+ * path: the implicit-library check of an auto plugin, and `excludedProjectLibraries`/`excludedModuleLibraries`, which are
+ * `PluginLayout` fields that are empty for the platform.
  *
  * The caller has already applied the scope filter and dropped application-level libraries.
  */

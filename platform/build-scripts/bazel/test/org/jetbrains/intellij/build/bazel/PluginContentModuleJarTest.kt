@@ -90,7 +90,7 @@ internal class PluginContentModuleJarTest {
       contentModules = listOf(contentModule),
       modules = listOf(RecipeModule(name = "intellij.other")),
     )))
-    // A project library is merged only by an `auto` PluginLayout, which no report states; see `simplePluginContentEntry`.
+    // A project library is merged only through a `withProjectLibrary(name, jarName)` layout call, which no report states; see `simplePluginContentEntry`.
     assertNull(simplePluginContentEntry(RecipeEntry(
       name = "lib/modules/intellij.example.jar",
       contentModules = listOf(contentModule),

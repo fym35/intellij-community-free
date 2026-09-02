@@ -394,8 +394,8 @@ private val PACK_CONTENT_INTO_PLUGIN_JAR_MARKER =
  * The distribution names of [module]'s production-scope module libraries, or `null` when one of them has no name.
  *
  * The set `ModuleEntry.libraries` records for a plugin content module jar. A project library is out: a plugin merges one
- * only for an `auto` `PluginLayout`, which this generator does not evaluate, and an entry recording one vetoes the module
- * on the report path too.
+ * only through a `withProjectLibrary(name, jarName)` layout call, which this generator does not evaluate, and an entry
+ * recording one vetoes the module on the report path too.
  *
  * `null` for an unnamed library with no single jar, for the reason [distributionLibraryName] gives: a jar this generator
  * cannot name is a jar it refuses to pack.

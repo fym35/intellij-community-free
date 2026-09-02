@@ -39,8 +39,8 @@ typealias DeprecatedPostScrambleProcessor = (String, ByteArray, PluginLayout, Pl
  * Describes layout of a plugin in the product distribution.
  *
  * [auto] controls two things in `JarPackager`. The direct dependencies of [mainModule] in the same module group are packed
- * (`inferModuleSources`). A project library is packed only for a library module (`intellij.libraries.*`), and the build fails
- * for a project library of any other module that nobody provides (`checkImplicitProjectLibraries`).
+ * (`inferModuleSources`). No project library is packed for a plugin module, and the build fails for a project library
+ * that nobody provides (`checkImplicitProjectLibraries`).
  * A non-auto plugin packs no project library implicitly, and `createPlatformLayout` checks that the platform provides it.
  */
 class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean = false) : BaseLayout() {

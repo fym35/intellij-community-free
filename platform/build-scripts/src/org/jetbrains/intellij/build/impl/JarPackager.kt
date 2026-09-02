@@ -54,7 +54,6 @@ import org.jetbrains.intellij.build.jarCache.JarCacheManager
 import org.jetbrains.intellij.build.jarCache.NonCachingJarCacheManager
 import org.jetbrains.intellij.build.jarCache.SourceBuilder
 import org.jetbrains.intellij.build.mapConcurrent
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.model.library.JpsLibrary
@@ -521,8 +520,8 @@ class JarPackager private constructor(
   ) {
     val moduleName = module.name
     val isAutoPlugin = layout is PluginLayout && layout.auto
-    // a platform product module packs its own project libraries; in an auto plugin only a library module does
-    val includeProjectLib = if (layout is PluginLayout) isAutoPlugin && moduleName.startsWith(LIB_MODULE_PREFIX) else item.isProductModule()
+    // only a platform product module packs its own project libraries; no plugin module does
+    val includeProjectLib = layout !is PluginLayout && item.isProductModule()
 
     val excludedModuleLibraries = if (layout is PluginLayout) layout.excludedModuleLibraries.get(moduleName) ?: emptyList() else emptyList()
     val excludedProjectLibraries = if (layout is PluginLayout) layout.excludedProjectLibraries else emptySet()
@@ -546,8 +545,10 @@ class JarPackager private constructor(
                          layout.hasLibrary(libName) ||
                          helper.hasLibraryInDependencyChainOfModuleDependencies(dependentModule = module, libraryName = libName, siblings = layout.includedModules, withTests = withTests)
         if (!includeProjectLib) {
-          // a library module for it exists, so `LibraryModuleValidator` is the one to make this module depend on that module
-          if (!isProvided && !context.outputProvider.getProjectLibraryToModuleMap().containsKey(libName)) {
+          // another module wraps it, so `LibraryModuleValidator` is the one to make this module depend on that module;
+          // a wrapper's own export excuses nothing, because no plugin module packs a project library
+          val wrapper = context.outputProvider.getProjectLibraryToModuleMap().get(libName)
+          if (!isProvided && (wrapper == null || wrapper == moduleName)) {
             implicitProjectLibraryViolations.computeIfAbsent(libName) { TreeSet() }.add(moduleName)
           }
           continue
@@ -557,7 +558,7 @@ class JarPackager private constructor(
           continue
         }
 
-        projectLibraryData = ProjectLibraryData(libraryName = libName, reason = if (layout is PluginLayout) "<- $moduleName" else null, owner = item)
+        projectLibraryData = ProjectLibraryData(libraryName = libName, reason = null, owner = item)
       }
       else {
         projectLibraryData = null
