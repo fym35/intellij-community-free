@@ -47,7 +47,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
         "//fleet/util/serialization",
     ],
 )
@@ -67,6 +67,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":radixTrie",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
         "//fleet/util/serialization:serialization_test_lib",
         "//fleet/test-runtime",
         "//fleet/test-runtime:test-runtime_test_lib",

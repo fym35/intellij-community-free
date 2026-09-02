@@ -34,7 +34,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
         "@lib//:kotlinx-serialization-json",
         "//libraries/kotlinx/coroutines/core",
     ],
@@ -53,6 +53,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":platform",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
     ],
 )

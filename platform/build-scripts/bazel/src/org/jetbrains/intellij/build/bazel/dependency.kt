@@ -342,9 +342,6 @@ internal fun generateDeps(
   }
 
   if (exports.isNotEmpty() && !dependentModuleName.startsWith(LIB_MODULE_PREFIX)) {
-    require(!exports.any { it.label == "@lib//:kotlinx-serialization-core" }) {
-      "Do not export kotlinx-serialization-core (module=$dependentModuleName})"
-    }
     require(!exports.any { it.label == "jetbrains-jewel-markdown-laf-bridge-styling"}) {
       "Do not export jetbrains-jewel-markdown-laf-bridge-styling (module=$dependentModuleName})"
     }

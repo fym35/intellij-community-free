@@ -48,7 +48,7 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
         "@lib//:kotlinx-serialization-json",
         "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
         "//fleet/util/serialization",
@@ -70,6 +70,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":bifurcan",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
         "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
         "//fleet/util/serialization:serialization_test_lib",
     ],

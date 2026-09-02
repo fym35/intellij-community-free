@@ -57,7 +57,8 @@ jvm_library(
         "//fleet/bundles:bundles_test_lib",
         "//fleet/ktor/client/core",
         "//fleet/ktor/client/core:core_test_lib",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
     ],
 )
 ### auto-generated section `build fleet.codecache.test` end

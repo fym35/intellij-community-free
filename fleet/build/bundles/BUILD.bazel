@@ -42,7 +42,7 @@ jvm_library(
         "//fleet/bundles",
         "//libraries/kotlinx/coroutines/core",
         "@lib//:slf4j-api",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
         "@lib//:kotlinx-serialization-json",
     ],
 )
@@ -67,6 +67,7 @@ jvm_library(
         "//fleet/build/fs:fs_test_lib",
         "//fleet/bundles:bundles_test_lib",
         "//libraries/kotlinx/coroutines/core:core_test_lib",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
     ],
 )
 ### auto-generated section `build fleet.build.bundles` end

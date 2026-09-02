@@ -53,7 +53,7 @@ jvm_library(
         "//libraries/pty4j",
         "//libraries/guava",
         "//libraries/junit4",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
         "@lib//:kotlinx-serialization-json",
     ],
 )
@@ -164,7 +164,8 @@ jvm_library(
         "//platform/platform-impl/eel:ide-impl-wsl",
         "//platform/execution",
         "//platform/execution:execution_test_lib",
-        "@lib//:kotlinx-serialization-core",
+        "//libraries/kotlinx/serialization/core",
+        "//libraries/kotlinx/serialization/core:core_test_lib",
         "@lib//:kotlinx-serialization-json",
         "//images:images-tests",
         "//images:images-tests_test_lib",
