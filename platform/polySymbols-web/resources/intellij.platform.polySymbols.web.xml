@@ -31,6 +31,11 @@
     <extensionPoint qualifiedName="com.intellij.polySymbols.webTypes"
                     beanClass="com.intellij.polySymbols.webTypes.impl.WebTypesDefinitionsEP"
                     dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.polySymbols.webTypes.filter"
+                    beanClass="com.intellij.polySymbols.webTypes.impl.PolySymbolFilterEP"
+                    dynamic="true">
+      <with attribute="implementation" implements="com.intellij.polySymbols.patterns.PolySymbolFilter"/>
+    </extensionPoint>
     <extensionPoint qualifiedName="com.intellij.polySymbols.webTypes.symbolTypeSupportFactory"
                     beanClass="com.intellij.polySymbols.webTypes.impl.WebTypesSymbolTypeSupportFactoryEP"
                     dynamic="true">
@@ -44,6 +49,12 @@
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">
+    <polySymbols.webTypes.filter
+      name="match-prefix"
+      implementation="com.intellij.polySymbols.webTypes.impl.PolySymbolMatchPrefixFilter"/>
+    <polySymbols.documentationCustomizer
+      id="web-types"
+      implementation="com.intellij.polySymbols.webTypes.WebTypesDocumentationCustomizer"/>
     <polySymbols.documentationCustomizer
       id="html"
       implementation="com.intellij.polySymbols.html.HtmlSymbolDocumentationCustomizer"/>
