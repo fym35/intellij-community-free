@@ -6188,21 +6188,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains/markdown-jvm-0.7.12.jar_copy",
-    src = "@org_jetbrains-markdown-jvm-0_7_12_http//file",
-    out = "org.jetbrains/markdown-jvm-0.7.12.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "jetbrains-markdown",
-    jar = "@org_jetbrains-markdown-jvm-0_7_12_http//file",
-    source_jar = "@org_jetbrains-markdown-jvm-0_7_12-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "com.google.jimfs/jimfs-1.3.0.jar_copy",
     src = "@com_google_jimfs-jimfs-1_3_0_http//file",
     out = "com.google.jimfs/jimfs-1.3.0.jar",
@@ -13595,6 +13580,21 @@ jvm_import(
     name = "libraries-lz4-lz4-java",
     jar = "@at_yawk_lz4-lz4-java-1_11_0_http//file",
     source_jar = "@at_yawk_lz4-lz4-java-1_11_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains/markdown-jvm-0.7.12.jar_copy",
+    src = "@org_jetbrains-markdown-jvm-0_7_12_http//file",
+    out = "org.jetbrains/markdown-jvm-0.7.12.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-markdown-jetbrains-markdown",
+    jar = "@org_jetbrains-markdown-jvm-0_7_12_http//file",
+    source_jar = "@org_jetbrains-markdown-jvm-0_7_12-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

@@ -4936,20 +4936,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains-markdown-jvm-0_7_12_http",
-    downloaded_file_path = "markdown-jvm-0.7.12.jar",
-    sha256 = "97539c823c2f649e50befb2e8f14ca00480ca52f89642692c5f2427c76e08122",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/markdown-jvm/0.7.12/markdown-jvm-0.7.12.jar",
-)
-
-http_file(
-    name = "org_jetbrains-markdown-jvm-0_7_12-sources_http",
-    downloaded_file_path = "markdown-jvm-0.7.12-sources.jar",
-    sha256 = "2131b9c3f1d2d65b16965c62ae06a4a048563fab61913bd553c66a243ca7fae9",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/markdown-jvm/0.7.12/markdown-jvm-0.7.12-sources.jar",
-)
-
-http_file(
     name = "com_google_jimfs-jimfs-1_3_0_http",
     downloaded_file_path = "jimfs-1.3.0.jar",
     sha256 = "82494408bb513f5512652e7b7f63d6f31f01eff57ce35c878644ffc2d25aee4f",
@@ -10883,6 +10869,20 @@ http_file(
     downloaded_file_path = "lz4-java-1.11.0-sources.jar",
     sha256 = "131c7ba5fb00b5c06ef5eafe6acc20e2f324c1c93ffb71c0daacead102b08d58",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/at/yawk/lz4/lz4-java/1.11.0/lz4-java-1.11.0-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains-markdown-jvm-0_7_12_http",
+    downloaded_file_path = "markdown-jvm-0.7.12.jar",
+    sha256 = "97539c823c2f649e50befb2e8f14ca00480ca52f89642692c5f2427c76e08122",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/markdown-jvm/0.7.12/markdown-jvm-0.7.12.jar",
+)
+
+http_file(
+    name = "org_jetbrains-markdown-jvm-0_7_12-sources_http",
+    downloaded_file_path = "markdown-jvm-0.7.12-sources.jar",
+    sha256 = "2131b9c3f1d2d65b16965c62ae06a4a048563fab61913bd553c66a243ca7fae9",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/markdown-jvm/0.7.12/markdown-jvm-0.7.12-sources.jar",
 )
 
 http_file(

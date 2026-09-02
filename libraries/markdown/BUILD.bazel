@@ -14,12 +14,12 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jetbrains-markdown"],
-    runtime_deps = ["@lib//:jetbrains-markdown"],
+    exports = ["@lib//:libraries-markdown-jetbrains-markdown"],
+    runtime_deps = ["@lib//:libraries-markdown-jetbrains-markdown"],
 )
 
 content_module_jar(
-    libraries = ["@lib//:jetbrains-markdown"],
+    libraries = ["@lib//:libraries-markdown-jetbrains-markdown"],
     module = ":markdown",
 )
 
@@ -33,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.markdown",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:jetbrains-markdown"],
+    exports = ["@lib//:libraries-markdown-jetbrains-markdown"],
     runtime_deps = [":markdown"],
 )
 ### auto-generated section `build intellij.libraries.markdown` end
