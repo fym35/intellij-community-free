@@ -48,7 +48,7 @@ jvm_library(
         "//libraries/lsp4j/jsonrpc",
         "//platform/analysis-api:analysis",
         "//python/python-lsp-core:lsp-core",
-        "//python/python-pytools-ui:pytools-ui",
+        "//python/python-pytools/frontend",
         "//platform/core-impl",
         "//platform/statistics",
         "//libraries/jackson/jackson",
@@ -57,7 +57,7 @@ jvm_library(
         "//platform/ide-core",
         "//platform/util/progress",
         "//platform/observable",
-        "//python/python-pytools:pytools",
+        "//python/python-pytools/backend",
     ],
 )
 
@@ -99,7 +99,7 @@ jvm_library(
         "//libraries/lsp4j/jsonrpc:jsonrpc_test_lib",
         "//platform/analysis-api:analysis_test_lib",
         "//python/python-lsp-core:lsp-core_test_lib",
-        "//python/python-pytools-ui:pytools-ui_test_lib",
+        "//python/python-pytools/frontend:frontend_test_lib",
         "//platform/core-impl:core-impl_test_lib",
         "//platform/statistics:statistics_test_lib",
         "//libraries/jackson/jackson:jackson_test_lib",
@@ -108,7 +108,7 @@ jvm_library(
         "//platform/ide-core:ide-core_test_lib",
         "//platform/util/progress:progress_test_lib",
         "//platform/observable:observable_test_lib",
-        "//python/python-pytools:pytools_test_lib",
+        "//python/python-pytools/backend:backend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.ty` end

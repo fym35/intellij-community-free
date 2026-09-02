@@ -3,8 +3,8 @@ package com.intellij.python.pytools.frontend.ui
 
 import com.intellij.ide.ui.search.SearchableOptionContributor
 import com.intellij.ide.ui.search.SearchableOptionProcessor
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
 
 /**

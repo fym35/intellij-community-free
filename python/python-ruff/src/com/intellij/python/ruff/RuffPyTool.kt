@@ -7,7 +7,8 @@ import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.frontend.statistics.PyToolFusSnapshot
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.ruff.server.RuffLspIntegrationProvider
 import com.jetbrains.python.packaging.PyPackageName
@@ -20,7 +21,16 @@ import javax.swing.Icon
  * replace Flake8, isort, pyupgrade, and Black.
  */
 @ApiStatus.Internal
-class RuffPyTool : PyLspTool<RuffConfiguration>(), ExternalPyTool {
+class RuffPyTool : PyTool {
+  override val packageName: PyPackageName = PyPackageName.from("ruff")
+
+  companion object {
+    fun getInstance(): RuffPyTool = PyTool.EP_NAME.findExtensionOrFail(RuffPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class RuffPyToolFrontend : PyLspTool<RuffConfiguration>(), ExternalPyTool {
   override val presentableName: String = "Ruff"
   override val description: String get() = RuffBundle.message("ruff.tool.description")
   override val packageName: PyPackageName = PyPackageName.from("ruff")
@@ -51,7 +61,7 @@ class RuffPyTool : PyLspTool<RuffConfiguration>(), ExternalPyTool {
 
   override fun configurationFusSnapshot(project: Project): PyToolFusSnapshot {
     val cfg = configuration(project)
-    return super.configurationFusSnapshot(project).copy(
+    return super<PyLspTool>.configurationFusSnapshot(project).copy(
       formatting = cfg.formatting,
       sortImports = cfg.sortImports,
     )
@@ -59,6 +69,6 @@ class RuffPyTool : PyLspTool<RuffConfiguration>(), ExternalPyTool {
 
   @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): RuffPyTool = PyTool.EP_NAME.findExtensionOrFail(RuffPyTool::class.java)
+    fun getInstance(): RuffPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(RuffPyToolFrontend::class.java)
   }
 }

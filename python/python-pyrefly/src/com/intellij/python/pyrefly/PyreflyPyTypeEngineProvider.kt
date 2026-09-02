@@ -11,7 +11,7 @@ import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProvider
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pyrefly.lsp.PyreflyLspIntegrationProvider
 import com.intellij.python.pyrefly.typeEngine.PyreflyLspTypeEngineProvider
-import com.intellij.python.pytools.backend.isActiveOn
+import com.intellij.python.pytools.frontend.isActiveOn
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.toSafeProperty
 import com.intellij.ui.components.Badge
@@ -43,7 +43,7 @@ internal class PyreflyPyTypeEngineProvider : PyTypeEngineProvider {
     // Run the server whenever Pyrefly is active — either selected as the type engine, or enabled as
     // an LSP tool. `isSupported` is intentionally not required here: the tool is allowed in
     // multi-module projects (where the engine is not), and a selected engine is already supported.
-    return PyreflyPyTool.getInstance().isActiveOn(project)
+    return PyreflyPyToolFrontend.getInstance().isActiveOn(project)
   }
 
   override fun Panel.createConfigurableContent(project: Project, propertyGraph: PropertyGraph): RowsRange {

@@ -28,6 +28,7 @@ import com.intellij.python.uv.backend.UvPyTool
 import com.intellij.python.uv.backend.UvSystemPythonService
 import com.intellij.python.uv.backend.cli.uv.UvPythonEntry
 import com.intellij.python.uv.common.UV_TOOL_ID
+import com.intellij.python.uv.common.icons.PythonUvCommonIcons
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.packaging.PyVersionSpecifiers
 import com.jetbrains.python.sdk.add.v2.FileSystem
@@ -48,6 +49,8 @@ private const val VERSIONS_KEY: String = "uv.supportedPythonVersions"
 
 internal class UvEvoEnvironmentProvider : PyToolEvoEnvironmentProvider() {
   override val tool: PyTool get() = UvPyTool.getInstance()
+  override val label: String get() = PySdkBundle.message("evolution.node.label.uv")
+  override val icon get() = PythonUvCommonIcons.UV
   override val toolId: ToolId get() = UV_TOOL_ID
 
   /** An interpreter of this node's environments carries this flavor, which is what names this node as the active one. */

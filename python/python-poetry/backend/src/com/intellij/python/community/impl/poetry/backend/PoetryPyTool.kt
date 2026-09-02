@@ -5,6 +5,8 @@ import com.intellij.execution.Platform
 import com.intellij.python.community.impl.poetry.backend.PyPoetryBundle.message
 import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImplPoetryCommonIcons
 import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.ToolCommandSpec
 import com.intellij.python.pytools.backend.ToolSearchPath
@@ -19,11 +21,8 @@ import org.jetbrains.annotations.ApiStatus
  * installs, manages the project's virtual environment, and builds and publishes packages.
  */
 @ApiStatus.Internal
-class PoetryPyTool : PyTool, PackageManagerPyTool {
-  override val presentableName: String = "Poetry"
+class PoetryPyTool : PackageManagerPyTool {
   override val packageName: PyPackageName = PyPackageName.from("poetry")
-  override val description: String get() = message("python.poetry.tool.description")
-  override val icon: Icon get() = PythonCommunityImplPoetryCommonIcons.Poetry
   override val toolCommandSpec: ToolCommandSpec
     get() = pyExecutableSpec(fusId, listOf(
       ToolSearchPath.RelativePathFromHome(listOf(".poetry", ".bin"), Platform.WINDOWS),
@@ -32,5 +31,17 @@ class PoetryPyTool : PyTool, PackageManagerPyTool {
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): PoetryPyTool = PyTool.EP_NAME.findExtensionOrFail(PoetryPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class PoetryPyToolFrontend : PackageManagerPyToolFrontend {
+  override val presentableName: String = "Poetry"
+  override val packageName: PyPackageName = PyPackageName.from("poetry")
+  override val description: String get() = message("python.poetry.tool.description")
+  override val icon: Icon get() = PythonCommunityImplPoetryCommonIcons.Poetry
+
+  companion object {
+    fun getInstance(): PoetryPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(PoetryPyToolFrontend::class.java)
   }
 }

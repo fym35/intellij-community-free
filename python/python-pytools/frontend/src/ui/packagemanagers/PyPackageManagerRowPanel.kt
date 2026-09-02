@@ -5,7 +5,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.setToolTipText
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
-import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.configuration.PathFieldValue
 import com.intellij.python.pytools.frontend.ui.configuration.PathIconKind
@@ -81,8 +80,8 @@ internal class PyPackageManagerRowPanel(
     isOpaque = false
     val detected = row.pathFieldValue
     val (text, muted) = when (detected) {
-      is PathFieldValue.Custom -> detected.path.toString() to false
-      is PathFieldValue.AutoDetected -> detected.path.toString() to true
+      is PathFieldValue.Custom -> detected.path to false
+      is PathFieldValue.AutoDetected -> detected.path to true
       PathFieldValue.NotFound, null -> PyToolsUiBundle.message("settings.external.tools.path.not.found") to true
     }
     @NlsSafe val valueText = text
@@ -97,8 +96,7 @@ internal class PyPackageManagerRowPanel(
     })
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(10)))
-    val canInstall = tool.manager?.canInstall(host.project.getEelDescriptor()) == true
-    when (iconKindFor(row, detected, canInstall) { host.isUpgradeAvailable(it) }) {
+    when (iconKindFor(row, detected, row.canInstall) { host.isUpgradeAvailable(it) }) {
       PathIconKind.INSTALL ->
         add(ActionLink(PyToolsUiBundle.message("settings.external.tools.install.link")) { host.installOnPath(row) })
       PathIconKind.UPGRADE ->

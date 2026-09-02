@@ -3,17 +3,21 @@ package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.ide.ui.search.SearchUtil
 import com.intellij.openapi.project.Project
-import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.PackageManagerPyTool
-import com.intellij.python.pytools.backend.getCustomExecutablePath
-import com.intellij.python.pytools.backend.setCustomExecutablePath
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import com.intellij.platform.project.projectId
+import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolRequest
+import com.intellij.python.pytools.common.PyToolSetPathRequest
+import com.intellij.python.pytools.common.PyToolsRequest
+import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
+import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend as PackageManagerPyTool
 import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ui.configuration.PyToolManagementController
 import com.intellij.python.pytools.frontend.ui.configuration.RowState
 import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.python.pytools.frontend.ui.configuration.browseExecutablePath
+import com.intellij.python.pytools.frontend.ui.configuration.applyBackendState
 import com.intellij.python.pytools.frontend.ui.configuration.checkNoPathErrors
 import com.intellij.python.pytools.frontend.ui.configuration.probeVersion
 import com.intellij.ui.ClientProperty
@@ -23,12 +27,12 @@ import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Rectangle
-import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.Scrollable
@@ -65,13 +69,10 @@ internal class PyPackageManagersList(
   private val uv: PyToolManagementController,
 ) : PmHost {
 
-  /** Target for which the page shows and edits custom paths — the project's environment (local, WSL, …). */
-  private val eelDescriptor = project.getEelDescriptor()
-
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
     .filter { it is PackageManagerPyTool }
     .sortedBy { it.presentableName.lowercase() }
-    .map { ToolRow(it, RowState(enabled = true, customPath = it.getCustomExecutablePath(eelDescriptor))) }
+    .map { ToolRow(it, RowState(enabled = true, customPath = null)) }
 
   private val rowPanels: Map<ToolRow, PyPackageManagerRowPanel> =
     rows.associateWith { PyPackageManagerRowPanel(it, this) }
@@ -94,7 +95,7 @@ internal class PyPackageManagersList(
   override fun isUpgradeAvailable(row: ToolRow): Boolean = uv.isUpgradeAvailable(row)
   override fun upgradeTargetVersion(row: ToolRow): String? = uv.latestVersionFor(row)
   override fun browsePath(row: ToolRow) {
-    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen.toString()) }
+    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
   }
   override fun installOnPath(row: ToolRow): Unit = uv.installTool(row, PyToolActionSource.SETTINGS_TABLE)
   override fun upgradeOnPath(row: ToolRow): Unit = uv.upgradeTool(row, PyToolActionSource.SETTINGS_TABLE)
@@ -102,7 +103,7 @@ internal class PyPackageManagersList(
 
   private fun setCustomPath(row: ToolRow, value: String) {
     val trimmed = value.trim()
-    row.staged = row.staged.copy(customPath = trimmed.takeIf { it.isNotEmpty() }?.let { Path.of(it) })
+    row.staged = row.staged.copy(customPath = trimmed.takeIf { it.isNotEmpty() })
     probeRow(row, isCustomEdit = true)
     refreshRow(row)
   }
@@ -112,16 +113,30 @@ internal class PyPackageManagersList(
   fun onShown(scope: CoroutineScope) {
     this.scope = scope
     rows.forEach { it.lastSuccessMessage = null }
-    rows.forEach { probeRow(it) }
+    scope.launch {
+      val states = PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), rows.map { it.tool.toolId })).associateBy { it.toolId }
+      rows.forEach { row ->
+        states[row.tool.toolId]?.let { row.applyBackendState(it, updateStagedPath = true) }
+        refreshRow(row)
+      }
+    }
   }
 
-  fun isModified(): Boolean = rows.any { it.staged.customPath != it.tool.getCustomExecutablePath(eelDescriptor) }
+  fun isModified(): Boolean = rows.any { it.staged.customPath != it.persistedCustomPath }
 
   fun apply() {
     checkNoPathErrors(rows)
     rows.forEach { row ->
-      if (row.staged.customPath != row.tool.getCustomExecutablePath(eelDescriptor)) {
-        row.tool.setCustomExecutablePath(eelDescriptor, row.staged.customPath)
+      if (row.staged.customPath != row.persistedCustomPath) {
+        val state = runWithModalProgressBlocking(
+          project,
+          PyToolsUiBundle.message("settings.external.tools.apply.progress"),
+        ) {
+          PyToolApi.getInstance().setPath(
+            PyToolSetPathRequest(PyToolRequest(project.projectId(), row.tool.toolId), row.staged.customPath),
+          )
+        }
+        row.applyBackendState(state)
       }
     }
     rows.forEach { refreshRow(it) }
@@ -129,7 +144,7 @@ internal class PyPackageManagersList(
 
   fun reset() {
     rows.forEach { row ->
-      row.staged = row.staged.copy(customPath = row.tool.getCustomExecutablePath(eelDescriptor))
+      row.staged = row.staged.copy(customPath = row.persistedCustomPath)
       // Re-probe so the path field / version reflect the reverted value, and clear any stale error
       // from a rejected edit (a non-custom probe never clears it on its own).
       row.pathError = null

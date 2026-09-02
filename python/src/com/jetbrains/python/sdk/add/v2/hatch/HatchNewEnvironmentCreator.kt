@@ -38,6 +38,7 @@ internal class HatchNewEnvironmentCreator<P : PathHolder>(
 ) : CustomNewEnvironmentCreator<P>(model, errorSink) {
   override val interpreterType: InterpreterType = InterpreterType.HATCH
   override val pyTool: PyTool = HatchPyTool.getInstance()
+  override val pyToolPresentableName: String = "Hatch"
   override val toolValidator: ToolValidator<P> = model.hatchViewModel.toolValidator
   private lateinit var hatchFormFields: HatchFormFields<P>
   override val toolExecutable: ObservableProperty<ValidatedPath.Executable<P>?> = model.hatchViewModel.hatchExecutable

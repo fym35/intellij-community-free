@@ -1,6 +1,5 @@
 package com.intellij.python.pytools.backend
 
-import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.python.pytools.backend.PyToolsBundle.message
@@ -10,22 +9,9 @@ import com.intellij.python.pytools.backend.PyExecutable
 import com.intellij.python.pytools.backend.PyExecutableCache
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.pyExecutableSpec
-import com.intellij.python.pytools.backend.PyToolsState
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
 import java.nio.file.Path
-
-fun PyTool.getState(project: Project): PyToolsState.ToolEntry = PyToolsState.getInstance(project).getEntry(this)
-
-fun PyTool.isEnabledOn(project: Project): Boolean = getState(project).enabled
-
-/**
- * A tool is "active" when the user enabled it as an LSP tool, or it is the project's selected type
- * engine. Server start/stop and LSP feature gating key off this (rather than the raw enabled flag)
- * so that a tool acting as the type engine keeps its shared LSP server running and its features on,
- * even though its External Tools enable toggle is locked. See [PyTool.isSelectedAsTypeEngine].
- */
-fun PyTool.isActiveOn(project: Project): Boolean = isEnabledOn(project) || isSelectedAsTypeEngine(project)
 
 /**
  * The user-chosen custom executable path for this executable on [eelDescriptor]'s machine, or `null`
@@ -68,7 +54,7 @@ private fun PyTool.invalidateDetectionAfter(result: PyResult<Path>, eel: EelApi)
  * detection is invalidated ([invalidateDetectionAfter]) so callers see the new binary immediately.
  */
 suspend fun PyTool.performToolInstallation(eel: EelApi): PyResult<Path> =
-  (manager?.install(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", presentableName)))
+  (manager?.install(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
     .also { invalidateDetectionAfter(it, eel) }
 
 /**
@@ -77,5 +63,5 @@ suspend fun PyTool.performToolInstallation(eel: EelApi): PyResult<Path> =
  * the tool's cached detection is invalidated ([invalidateDetectionAfter]) so a moved/upgraded binary is re-resolved.
  */
 suspend fun PyTool.performToolUpgrade(eel: EelApi): PyResult<Path> =
-  (manager?.upgrade(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", presentableName)))
+  (manager?.upgrade(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
     .also { invalidateDetectionAfter(it, eel) }

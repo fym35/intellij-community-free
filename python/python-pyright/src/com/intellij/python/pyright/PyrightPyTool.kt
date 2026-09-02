@@ -5,7 +5,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
@@ -16,7 +17,16 @@ import javax.swing.Icon
  * Microsoft, providing type checking and language-server features such as completions and hovers.
  */
 @ApiStatus.Internal
-class PyrightPyTool : PyLspTool<PyrightConfiguration>(), ExternalPyTool {
+class PyrightPyTool : PyTool {
+  override val packageName: PyPackageName = PyPackageName.from("pyright")
+
+  companion object {
+    fun getInstance(): PyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(PyrightPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class PyrightPyToolFrontend : PyLspTool<PyrightConfiguration>(), ExternalPyTool {
   override val presentableName: String = "Pyright"
   override val description: String get() = PyrightBundle.message("pyright.tool.description")
   override val packageName: PyPackageName = PyPackageName.from("pyright")
@@ -33,6 +43,6 @@ class PyrightPyTool : PyLspTool<PyrightConfiguration>(), ExternalPyTool {
 
   @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): PyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(PyrightPyTool::class.java)
+    fun getInstance(): PyrightPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(PyrightPyToolFrontend::class.java)
   }
 }

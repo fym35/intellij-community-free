@@ -3,6 +3,7 @@ package com.intellij.python.venv
 
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolManager
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.venv.PyVenvBundle.message
 import com.intellij.python.venv.icons.PythonVenvIcons
 import com.jetbrains.python.packaging.PyPackageName
@@ -18,19 +19,24 @@ import javax.swing.Icon
  */
 @ApiStatus.Internal
 class PipPyTool : PyTool {
-  override val presentableName: String = "pip"
-
   override val packageName: PyPackageName = PyPackageName.from("pip")
-
-  override val description: String get() = message("py.venv.pip.tool.description")
-
-  /** The virtualenv mark: the environments whose contents pip manages here are plain venvs. */
-  override val icon: Icon get() = PythonVenvIcons.VirtualEnv
 
   override val manager: PyToolManager? get() = null
 
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): PipPyTool = PyTool.EP_NAME.findExtensionOrFail(PipPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class PipPyToolFrontend : PyToolFrontend {
+  override val presentableName: String = "pip"
+  override val packageName: PyPackageName = PyPackageName.from("pip")
+  override val description: String get() = message("py.venv.pip.tool.description")
+  override val icon: Icon get() = PythonVenvIcons.VirtualEnv
+
+  companion object {
+    fun getInstance(): PipPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(PipPyToolFrontend::class.java)
   }
 }

@@ -114,7 +114,7 @@ internal class PyPoetrySdkConfiguration : PyProjectTomlConfigurationExtension {
       EnvCheckerResult.SuggestToolInstallation(
         toolToInstall = tool.packageName.name,
         pathPersister = pathPersister,
-        intentionName = PyBundle.message("sdk.create.custom.venv.install.fix.title", tool.presentableName)
+        intentionName = PyBundle.message("sdk.create.custom.venv.install.fix.title", "Poetry")
       )
     }
     else EnvCheckerResult.CannotConfigure

@@ -22,8 +22,8 @@
     <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.util.ui"/>
     <module name="intellij.python.lsp.core"/>
-    <module name="intellij.python.pytools"/>
-    <module name="intellij.python.pytools.ui"/>
+    <module name="intellij.python.pytools.backend"/>
+    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.xml.parser"/>
   </dependencies>
   <!-- endregion -->
@@ -43,6 +43,7 @@
     <python.lsp.typeEngineConfigurable implementation="com.intellij.python.pyrefly.PyreflyPyTypeEngineProvider"/>
     <projectSettings service="com.intellij.python.pyrefly.PyreflyConfiguration"/>
     <python.pytools.pyTool implementation="com.intellij.python.pyrefly.PyreflyPyTool"/>
+    <python.pytools.pyToolFrontend implementation="com.intellij.python.pyrefly.PyreflyPyToolFrontend"/>
   </extensions>
 
   <extensions defaultExtensionNs="Pythonid">

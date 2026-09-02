@@ -4,6 +4,7 @@ package com.jetbrains.python.pipenv.sdk.evolution
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.python.community.common.tools.ToolId
 import com.intellij.python.community.impl.pipenv.PipEnvPyTool
+import com.intellij.python.community.impl.pipenv.icons.PythonCommunityImplPipenvIcons
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.sdk.backend.evolution.DiscoveredVenv
 import com.intellij.python.sdk.backend.evolution.EvoPyProject
@@ -52,6 +53,8 @@ import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
  */
 internal class PipenvEvoEnvironmentProvider : PyToolEvoEnvironmentProvider() {
   override val tool: PyTool get() = PipEnvPyTool.getInstance()
+  override val label: String get() = com.intellij.python.sdk.backend.PySdkBundle.message("evolution.node.label.pipenv")
+  override val icon get() = PythonCommunityImplPipenvIcons.Pipenv
   override val toolId: ToolId get() = PIPENV_TOOL_ID
 
   /** An interpreter of this node's environments carries this flavor, which is what names this node as the active one. */
@@ -135,7 +138,7 @@ internal class PipenvEvoEnvironmentProvider : PyToolEvoEnvironmentProvider() {
                     .takeIf { it.isNotEmpty() } ?: return null
     val baseDir = context.pyProject.baseDir
     return EvoAddNewDto(
-      name = baseDir.fileName?.toString() ?: tool.presentableName,
+      name = baseDir.fileName?.toString() ?: label,
       path = "",
       options = options,
       nameEditable = false,

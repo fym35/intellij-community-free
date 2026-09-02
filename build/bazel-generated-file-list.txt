@@ -1809,8 +1809,6 @@ python/python-psi-impl
 python/python-pyproject
 python/python-pyrefly
 python/python-pyright
-python/python-pytools
-python/python-pytools-ui
 python/python-pytools/backend
 python/python-pytools/common
 python/python-pytools/frontend

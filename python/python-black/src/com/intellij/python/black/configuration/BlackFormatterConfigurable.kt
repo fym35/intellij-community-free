@@ -10,7 +10,7 @@ import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import com.intellij.util.ui.UIUtil
-import com.intellij.python.black.BlackPyTool
+import com.intellij.python.black.BlackPyToolFrontend
 import com.intellij.python.black.PyBlackBundle.message
 import com.intellij.python.black.configuration.BlackFormatterConfiguration.BlackFormatterOption.Companion.toCliOptionFlags
 
@@ -31,7 +31,7 @@ class BlackFormatterConfigurable(val project: Project) : BoundConfigurable(messa
   override fun createPanel(): DialogPanel = panel {
     row {
       comment(message("black.minimum.supported.version.hint",
-                      BlackPyTool.getInstance().minimumSupportedVersion.toCompactString()))
+                      BlackPyToolFrontend.getInstance().minimumSupportedVersion.toCompactString()))
     }
     row(message("black.cli.args.text.field.label")) {
       cell(cliArgumentsTextField)

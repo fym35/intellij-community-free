@@ -11,7 +11,7 @@ import com.intellij.python.pytools.frontend.ui.PyLspToolDetailConfigurable
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 class TyConfigurable(project: Project) :
-  PyLspToolDetailConfigurable<TyConfiguration>(project, TyPyTool.getInstance())
+  PyLspToolDetailConfigurable<TyConfiguration>(project, TyPyToolFrontend.getInstance())
 
 @Service(Service.Level.PROJECT)
 @State(

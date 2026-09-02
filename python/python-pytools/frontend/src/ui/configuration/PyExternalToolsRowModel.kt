@@ -7,59 +7,49 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.util.SlowOperations
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.util.Version as PlatformVersion
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.backend.PyExecutableCache
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.PyToolsState
-import com.intellij.python.pytools.backend.Version
-import com.intellij.python.pytools.backend.ExternalPyTool
-import com.intellij.python.pytools.backend.validateCustomPath
-import com.intellij.python.pytools.findExecutableInSdk
+import com.intellij.platform.project.projectId
+import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolPathKind
+import com.intellij.python.pytools.common.PyToolPathRequest
+import com.intellij.python.pytools.common.PyToolRequest
+import com.intellij.python.pytools.common.PyToolSdkStateDto
+import com.intellij.python.pytools.common.PyToolStateDto
+import com.intellij.python.pytools.common.PyToolValidationDto
+import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
-import com.intellij.python.pytools.ui.icons.PythonPytoolsUIIcons
-import com.intellij.python.sdk.backend.asItem
-import com.intellij.python.sdk.backend.pythonInterpreter
-import com.intellij.python.sdk.backend.pythonInterpreterAsync
-import com.jetbrains.python.Result
-import com.jetbrains.python.project.PyProject.Companion.getPyProjects
-import com.jetbrains.python.sdk.findPythonSdk
-import com.jetbrains.python.sdk.pyInterpreterPresentation
-import com.jetbrains.python.sdk.pythonSdk
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
+import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.awt.Component
-import java.nio.file.Path
 import javax.swing.Icon
 
 /**
- * Snapshot of the user-editable per-row state, comparable to the persisted [PyToolsState] entry.
+ * Snapshot of the user-editable per-row state.
  * The executable-discovery mode is no longer user-selectable — the page always runs the fixed
  * `SDK → Path → uvx` chain — so only the enable flag and the optional custom-path override are staged here.
  */
 internal data class RowState(
   val enabled: Boolean,
-  val customPath: Path?,
+  val customPath: String?,
 )
 
 internal class ToolRow(
   val tool: PyTool,
   var staged: RowState,
+  var persistedEnabled: Boolean = false,
+  var persistedCustomPath: String? = null,
   var detail: UnnamedConfigurable? = null,
-  var dirty: Boolean = false,
   /** Non-null when the most recent validation of [staged].customPath failed. */
   var pathError: String? = null,
   /** Currently-running validation coroutine; cancelled on the next edit. */
   var validationJob: Job? = null,
   /** Version reported by `<path> --version` for [versionedFor]; null if probe is pending or failed. */
-  var version: Version? = null,
+  var version: String? = null,
   /** Path for which [version] was probed. Used to skip re-probing the same binary on repaint. */
-  var versionedFor: Path? = null,
+  var versionedFor: String? = null,
   /**
    * Currently-detected path snapshot, populated asynchronously. `null` means the initial detection
    * is still in flight (the cell renders empty until then) — the renderer must never call [detect]
@@ -95,6 +85,8 @@ internal class ToolRow(
    * glyph next to `Sdk`, plus a tooltip listing the resolved binary path per SDK.
    */
   var sdkAvailability: SdkAvailability? = null,
+  var canInstall: Boolean = false,
+  var latestVersion: String? = null,
 ) {
   /** This tool's detail-panel provider, or `null` when the tool has no detail configurable. */
   val detailConfigurableProvider: ExternalPyTool? = tool as? ExternalPyTool
@@ -104,32 +96,21 @@ internal class ToolRow(
  * Project-SDK detection snapshot for one [ToolRow]: an ordered list of SDKs with the tool's
  * resolved binary path inside each (or `null` when the tool isn't installed in that SDK).
  */
-internal data class SdkAvailability(val entries: List<SdkEntry>) {
+internal data class SdkAvailability(val entries: List<PyToolSdkStateDto>) {
   val totalCount: Int get() = entries.size
-  val matchedCount: Int get() = entries.count { it.binaryPath != null }
+  val matchedCount: Int get() = entries.count { it.path != null }
 
   companion object {
     val NoProjectSdks: SdkAvailability = SdkAvailability(emptyList())
   }
 }
 
-/** A single project SDK plus the resolved binary path, or `null` when the SDK doesn't have it. */
-internal data class SdkEntry(
-  /** The project SDK itself — target of the per-SDK `Install` action when [binaryPath] is `null`. */
-  val sdk: Sdk,
-  /** Short presentable label — the same one used elsewhere in the IDE for this SDK. */
-  val sdkLabel: String,
-  val binaryPath: Path?,
-  /** Version reported by `<binaryPath> --version`, or `null` when not installed or the probe failed. */
-  val version: Version? = null,
-)
-
 internal sealed interface PathFieldValue {
   /** A user-supplied custom executable path (stored per Eel machine in `PyCustomExecutablePaths`). */
-  data class Custom(val path: Path) : PathFieldValue
+  data class Custom(val path: String) : PathFieldValue
 
   /** Path auto-detected on PATH or in a well-known per-user install directory. */
-  data class AutoDetected(val path: Path) : PathFieldValue
+  data class AutoDetected(val path: String) : PathFieldValue
 
   /** Neither configured nor discoverable. */
   data object NotFound : PathFieldValue
@@ -141,15 +122,6 @@ internal sealed interface PathFieldValue {
  * which searches the tool's specific locations (e.g. conda's `~/miniconda3/bin`) — the same detection the interpreter
  * widget uses — so a tool installed outside `$PATH` is still found.
  */
-internal suspend fun detect(project: Project, tool: PyTool, customPath: Path?, knownPath: Path? = null): PathFieldValue {
-  if (customPath != null) return PathFieldValue.Custom(customPath)
-  if (knownPath != null) return PathFieldValue.AutoDetected(knownPath)
-  // Resolve via the tool's own executable cache — it searches the tool's specific locations (e.g. conda's
-  // ~/miniconda3/bin), so a tool installed outside $PATH is still found, matching how the interpreter widget detects it.
-  val auto = PyExecutableCache.getInstance().get(project.getEelDescriptor(), tool)
-  return if (auto != null) PathFieldValue.AutoDetected(auto) else PathFieldValue.NotFound
-}
-
 /**
  * Right-edge action icon kinds for the Path column. After a successful install / upgrade the
  * renderer paints a ✓ in this slot instead, driven by [ToolRow.lastSuccessMessage]; the ✓ path
@@ -157,8 +129,8 @@ internal suspend fun detect(project: Project, tool: PyTool, customPath: Path?, k
  */
 internal enum class PathIconKind(val icon: Icon?) {
   NONE(null),
-  INSTALL(PythonPytoolsUIIcons.Install),
-  UPGRADE(PythonPytoolsUIIcons.Upgrade),
+  INSTALL(PythonPytoolsFrontendIcons.UI.Expui.Install),
+  UPGRADE(PythonPytoolsFrontendIcons.UI.Expui.Upgrade),
   RESET(AllIcons.Diff.Revert),
 }
 
@@ -203,52 +175,59 @@ internal fun ToolRow.probeVersion(
   scope: CoroutineScope,
   project: Project,
   isCustomEdit: Boolean = false,
-  knownPath: Path? = null,
   onUpdated: (ToolRow) -> Unit,
 ) {
   validationJob?.cancel()
   val customPath = staged.customPath
   validationJob = scope.launch {
-    // Step 1: resolve the displayed path off the EDT — detection does disk I/O.
-    val detected = withContext(Dispatchers.IO) {
-      detect(project, tool, customPath, knownPath)
-    }
-    val path = when (detected) {
-      is PathFieldValue.Custom -> detected.path
-      is PathFieldValue.AutoDetected -> detected.path
-      PathFieldValue.NotFound -> null
-    }
-
-    // Step 2: publish the resolved path so the cell can render it before the version arrives.
-    withContext(Dispatchers.Main) {
-      if (staged.customPath != customPath) return@withContext
-      pathFieldValue = detected
-      if (versionedFor != path) {
-        version = null
-        versionedFor = path
-        belowMinVersionMessage = null
+    if (isCustomEdit && customPath != null) {
+      pathFieldValue = PathFieldValue.Custom(customPath)
+      versionedFor = customPath
+      when (val result = PyToolApi.getInstance().validatePath(
+        PyToolPathRequest(PyToolRequest(project.projectId(), tool.toolId), customPath),
+      )) {
+        is PyToolValidationDto.Valid -> {
+          pathError = null
+          version = result.version
+        }
+        is PyToolValidationDto.Invalid -> {
+          pathError = result.message
+          version = null
+        }
       }
-      if (path == null) pathError = null
+      belowMinVersionMessage = computeBelowMinMessage(tool, version)
       onUpdated(this@probeVersion)
+      return@launch
     }
-    if (path == null) return@launch
-
-    // Step 3: run `<path> --version` on background.
-    val result = tool.validateCustomPath(path)
-    val error = (result as? Result.Failure<*>)?.error?.toString()
-    val resolvedVersion = (result as? Result.Success<*>)?.result as? Version
-
-    // Step 4: publish the version (and any custom-edit error) on the EDT, but only if the
-    // user input we probed against is still the staged value.
-    withContext(Dispatchers.Main) {
-      if (staged.customPath != customPath) return@withContext
-      if (versionedFor != path) return@withContext
-      if (isCustomEdit) pathError = error
-      version = resolvedVersion
-      belowMinVersionMessage = computeBelowMinMessage(tool, resolvedVersion)
-      onUpdated(this@probeVersion)
-    }
+    val state = PyToolApi.getInstance().getStates(
+      com.intellij.python.pytools.common.PyToolsRequest(project.projectId(), listOf(tool.toolId)),
+    ).singleOrNull() ?: return@launch
+    applyBackendState(state, updateStagedPath = !isCustomEdit)
+    onUpdated(this@probeVersion)
   }
+}
+
+internal fun ToolRow.applyBackendState(
+  state: PyToolStateDto,
+  updateStagedPath: Boolean = false,
+  updateStagedEnabled: Boolean = false,
+) {
+  persistedEnabled = state.enabled
+  if (updateStagedEnabled) staged = staged.copy(enabled = state.enabled)
+  val customPath = state.path.takeIf { state.pathKind == PyToolPathKind.CUSTOM }
+  persistedCustomPath = customPath
+  if (updateStagedPath) staged = staged.copy(customPath = customPath)
+  pathFieldValue = when (state.pathKind) {
+    PyToolPathKind.CUSTOM -> state.path?.let(PathFieldValue::Custom)
+    PyToolPathKind.DETECTED -> state.path?.let(PathFieldValue::AutoDetected)
+    null -> null
+  } ?: PathFieldValue.NotFound
+  versionedFor = state.path
+  version = state.version
+  pathError = null
+  belowMinVersionMessage = computeBelowMinMessage(tool, state.version)
+  canInstall = state.canInstall
+  latestVersion = state.latestVersion
 }
 
 /**
@@ -256,9 +235,9 @@ internal fun ToolRow.probeVersion(
  * or `null` if the tool declares no minimum, the probe hasn't completed yet, or the version is fine.
  * The pytools [Version] is a string wrapper; parse it through the platform's comparable Version.
  */
-private fun computeBelowMinMessage(tool: PyTool, version: Version?): String? {
+private fun computeBelowMinMessage(tool: PyTool, version: String?): String? {
   val minimum = tool.minimumSupportedVersion ?: return null
-  val actual = version?.value?.let { PlatformVersion.parseVersion(it) } ?: return null
+  val actual = version?.let { PlatformVersion.parseVersion(it) } ?: return null
   if (actual >= minimum) return null
   return PyToolsUiBundle.message(
     "settings.external.tools.path.below.minimum.tooltip",
@@ -281,14 +260,8 @@ private fun formatVersion(v: PlatformVersion): String =
 internal fun ToolRow.browseExecutablePath(
   project: Project,
   parent: Component?,
-  onPathChosen: (Path) -> Unit,
+  onPathChosen: (String) -> Unit,
 ) {
-  val current = staged.customPath ?: when (val d = pathFieldValue) {
-    is PathFieldValue.Custom -> d.path
-    is PathFieldValue.AutoDetected -> d.path
-    else -> null
-  }
-  val toSelect = current?.let { VirtualFileManager.getInstance().findFileByNioPath(it) }
   val descriptor = FileChooserDescriptorFactory.singleFile()
     .withTitle(PyToolsUiBundle.message("select.path.to.executable"))
   descriptor.isForcedToUseIdeaFileChooser = true
@@ -297,48 +270,8 @@ internal fun ToolRow.browseExecutablePath(
   // The lookup is unavoidable for converting the picked file back to a VirtualFile, and the
   // chooser keeps the EDT busy by design, so wrap the call in a known-issue suppression.
   SlowOperations.knownIssue("PY-89945").use {
-    FileChooser.chooseFile(descriptor, project, parent, toSelect) { file ->
-      onPathChosen(file.toNioPath())
+    FileChooser.chooseFile(descriptor, project, parent, null) { file ->
+      onPathChosen(file.path)
     }
   }
-}
-
-/**
- * Lightweight read-action snapshot of a project Python SDK: the [com.intellij.openapi.projectRoots.Sdk]
- * itself plus its precomputed display label. Captured once per probe pass so the per-tool SDK
- * detection doesn't have to keep re-touching the project model.
- */
-internal data class ProjectSdkSnapshot(
-  val sdk: Sdk,
-  val label: String,
-)
-
-/**
- * Take a snapshot of the project's Python SDKs.
- *
- * [getPyProjects] enumerates the Python projects only, and it awaits workspace-model synchronization with the on-disk
- * JPS model first, so an interpreter the project does have is not missed while the model is still loading (PY-86494).
- * The list is unique and alphabetically ordered, for stable downstream display.
- */
-internal suspend fun snapshotProjectSdks(project: Project): List<ProjectSdkSnapshot> =
-  project.getPyProjects()
-    .mapNotNull { it.residesOnModule.findPythonSdk() }
-    .distinct()
-    .sortedBy { it.name }
-    .map { ProjectSdkSnapshot(it, it.pythonInterpreterAsync().asItem().shortName) }
-
-/**
- * Compute [SdkAvailability] for [this] tool against a previously-taken [snapshotProjectSdks]
- * result. Performs blocking I/O (SDK enrichment + executable existence checks), so callers
- * must run it off the EDT. Pure with respect to [this] — multiple tools can share the same
- * snapshot without re-touching the project model.
- */
-internal suspend fun PyTool.detectInSdks(snapshot: List<ProjectSdkSnapshot>): SdkAvailability {
-  if (snapshot.isEmpty()) return SdkAvailability.NoProjectSdks
-  return SdkAvailability(snapshot.map { sdk ->
-    val binaryPath = findExecutableInSdk(sdk.sdk.pythonInterpreter())
-    // Probe `<binary> --version` for each installed env so the row can show the version after the path.
-    val version = binaryPath?.let { (validateCustomPath(it) as? Result.Success<*>)?.result as? Version }
-    SdkEntry(sdk = sdk.sdk, sdkLabel = sdk.label, binaryPath = binaryPath, version = version)
-  })
 }

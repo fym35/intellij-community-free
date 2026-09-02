@@ -8,5 +8,5 @@ internal class PyreflyDetailConfigurable(
   project: Project
 ) : PyLspToolDetailConfigurable<PyreflyConfiguration>(
   project = project,
-  tool = PyreflyPyTool.getInstance()
+  tool = PyreflyPyToolFrontend.getInstance()
 )

@@ -1,0 +1,111 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.python.pytools.common
+
+import com.intellij.platform.project.ProjectId
+import com.intellij.platform.rpc.RemoteApiProviderService
+import fleet.rpc.RemoteApi
+import fleet.rpc.Rpc
+import fleet.rpc.remoteApiDescriptor
+import kotlinx.serialization.Serializable
+import kotlinx.coroutines.flow.Flow
+import org.jetbrains.annotations.ApiStatus
+
+@Serializable
+@JvmInline
+value class PyToolId(val value: String)
+
+@Serializable
+data class PyToolRequest(val projectId: ProjectId, val toolId: PyToolId)
+
+@Serializable
+data class PyToolsRequest(val projectId: ProjectId, val toolIds: List<PyToolId>)
+
+@Serializable
+data class PyToolEnabledStateDto(val toolId: PyToolId, val enabled: Boolean)
+
+@Serializable
+data class PyToolsInitializationRequest(val projectId: ProjectId, val tools: List<PyToolEnabledStateDto>)
+
+@Serializable
+data class PyToolSetEnabledRequest(val tool: PyToolRequest, val enabled: Boolean)
+
+@Serializable
+enum class PyToolPathKind { CUSTOM, DETECTED }
+
+@Serializable
+data class PyToolStateDto(
+  val toolId: PyToolId,
+  val enabled: Boolean,
+  val path: String?,
+  val pathKind: PyToolPathKind?,
+  val version: String?,
+  val canInstall: Boolean,
+  val latestVersion: String? = null,
+)
+
+@Serializable
+data class PyToolPathRequest(val tool: PyToolRequest, val path: String)
+
+@Serializable
+data class PyToolSetPathRequest(val tool: PyToolRequest, val path: String?)
+
+@Serializable
+sealed interface PyToolValidationDto {
+  @Serializable data class Valid(val version: String?) : PyToolValidationDto
+  @Serializable data class Invalid(val message: String) : PyToolValidationDto
+}
+
+@Serializable
+sealed interface PyToolOperationResultDto {
+  @Serializable data class Success(val state: PyToolStateDto) : PyToolOperationResultDto
+  @Serializable data class Failure(val message: String) : PyToolOperationResultDto
+}
+
+@Serializable
+sealed interface PyToolSdkOperationResultDto {
+  @Serializable data class Success(val state: PyToolSdkStateDto) : PyToolSdkOperationResultDto
+  @Serializable data class Failure(val message: String) : PyToolSdkOperationResultDto
+}
+
+@Serializable
+data class PyToolSdkDto(val token: String, val label: String)
+
+@Serializable
+data class PyToolSdkStateDto(val sdk: PyToolSdkDto, val path: String?, val version: String?)
+
+@Serializable
+enum class PyToolDependencyGroupKind { DEPENDENCY_GROUP, OPTIONAL_DEPENDENCY }
+
+@Serializable
+data class PyToolDependencyGroupDto(val name: String, val kind: PyToolDependencyGroupKind)
+
+@Serializable
+data class PyToolSdkRequest(val tool: PyToolRequest, val sdk: PyToolSdkDto)
+
+@Serializable
+data class PyToolSdkInstallRequest(
+  val target: PyToolSdkRequest,
+  val dependencyGroup: PyToolDependencyGroupDto?,
+)
+
+/** Backend tool lifecycle. No EEL, filesystem, SDK, cache, process, manager, or backend entity crosses the wire. */
+@ApiStatus.Internal
+@Rpc
+interface PyToolApi : RemoteApi<Unit> {
+  suspend fun isStateInitialized(projectId: ProjectId): Boolean
+  suspend fun initializeState(request: PyToolsInitializationRequest)
+  suspend fun observeEnabledStates(projectId: ProjectId): Flow<List<PyToolEnabledStateDto>>
+  suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto>
+  suspend fun setEnabled(request: PyToolSetEnabledRequest): PyToolStateDto
+  suspend fun validatePath(request: PyToolPathRequest): PyToolValidationDto
+  suspend fun setPath(request: PyToolSetPathRequest): PyToolStateDto
+  suspend fun install(request: PyToolRequest): PyToolOperationResultDto
+  suspend fun upgrade(request: PyToolRequest): PyToolOperationResultDto
+  suspend fun getSdkStates(request: PyToolRequest): List<PyToolSdkStateDto>
+  suspend fun getDependencyGroups(request: PyToolSdkRequest): List<PyToolDependencyGroupDto>
+  suspend fun installIntoSdk(request: PyToolSdkInstallRequest): PyToolSdkOperationResultDto
+
+  companion object {
+    suspend fun getInstance(): PyToolApi = RemoteApiProviderService.resolve(remoteApiDescriptor<PyToolApi>())
+  }
+}

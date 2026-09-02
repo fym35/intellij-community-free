@@ -34,8 +34,8 @@
     <orderEntry type="module" module-name="intellij.libraries.eclipse.lsp4j" />
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.python.lsp.core" />
-    <orderEntry type="module" module-name="intellij.python.pytools.ui" />
+    <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
     <orderEntry type="module" module-name="intellij.platform.analysis" />
-    <orderEntry type="module" module-name="intellij.python.pytools" />
+    <orderEntry type="module" module-name="intellij.python.pytools.backend" />
   </component>
 </module>

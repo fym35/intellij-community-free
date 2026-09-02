@@ -15,14 +15,18 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.modules
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.python.pyright.BasedpyrightPyTool
-import com.intellij.python.pyright.PyrightPyTool
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.platform.project.projectId
+import com.intellij.python.pyright.BasedpyrightPyToolFrontend
+import com.intellij.python.pyright.PyrightPyToolFrontend
+import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolRequest
+import com.intellij.python.pytools.common.PyToolSetEnabledRequest
+import com.intellij.python.pytools.frontend.PyToolFrontend
+import com.intellij.python.pytools.frontend.PyToolsFrontendState
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
 import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
-import com.intellij.python.ruff.RuffPyTool
-import com.intellij.python.ty.TyPyTool
+import com.intellij.python.ruff.RuffPyToolFrontend
+import com.intellij.python.ty.TyPyToolFrontend
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.packaging.common.PythonPackageManagementListener
 import com.jetbrains.python.packaging.management.PythonPackageManager
@@ -37,11 +41,11 @@ private const val NOTIFICATION_GROUP_ID = "Python LSP Tools"
 private const val DONT_ASK_PROPERTY_PREFIX = "python.lsp.tool.dont.ask."
 
 private fun lspTools(): List<PyLspTool<*>> = listOf(
-  RuffPyTool.getInstance(),
+  RuffPyToolFrontend.getInstance(),
   //PyreflyPyTool.getInstance(),
-  BasedpyrightPyTool.getInstance(),
-  PyrightPyTool.getInstance(),
-  TyPyTool.getInstance(),
+  BasedpyrightPyToolFrontend.getInstance(),
+  PyrightPyToolFrontend.getInstance(),
+  TyPyToolFrontend.getInstance(),
 )
 
 /**
@@ -82,12 +86,12 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
    */
  suspend fun checkAndAdvertise() {
     val installedPackages = getInstalledPackages()
-    val pyToolsState = PyToolsState.getInstance(project)
+    val pyToolsState = PyToolsFrontendState.getInstance(project)
 
     val toolsToAdvertise = lspTools().mapNotNull { tool ->
       val isInstalled = tool.packageName.name in installedPackages
       val name = tool.presentableName
-      val isEnabled = pyToolsState.isEnabled(tool)
+      val isEnabled = pyToolsState.isEnabled(tool.toolId)
       if (isInstalled && (isEnabled || isDontAskSet(tool))) {
         thisLogger().debug("LSP tool '$name': installed=true, enabled=$isEnabled, dontAsk=${isDontAskSet(tool)}")
       }
@@ -162,8 +166,15 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
       .addAction(NotificationAction.createSimpleExpiring(PyBundle.message("lsp.tool.advertiser.yes")) {
         // Mirror the External Tools page's "Enable" toggle: flip the framework-level state and
         // run the tool's lifecycle hook (which starts the LSP server).
-        PyToolsState.getInstance(project).setEnabled(tool, true)
-        tool.onEnabledChanged(project, true)
+        cs.launch {
+          val state = PyToolApi.getInstance().setEnabled(
+            PyToolSetEnabledRequest(PyToolRequest(project.projectId(), tool.toolId), true),
+          )
+          PyToolsFrontendState.getInstance(project).apply(
+            com.intellij.python.pytools.common.PyToolEnabledStateDto(state.toolId, state.enabled),
+          )
+          tool.onEnabledChanged(project, true)
+        }
       })
       .addAction(NotificationAction.createSimpleExpiring(PyBundle.message("lsp.tool.advertiser.no")) {
         setDontAsk(tool)
@@ -175,11 +186,11 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
     notification.notify(project)
   }
 
-  private fun isDontAskSet(tool: PyTool): Boolean {
+  private fun isDontAskSet(tool: PyToolFrontend): Boolean {
     return PropertiesComponent.getInstance(project).getBoolean(DONT_ASK_PROPERTY_PREFIX + tool.presentableName, false)
   }
 
-  private fun setDontAsk(tool: PyTool) {
+  private fun setDontAsk(tool: PyToolFrontend) {
     thisLogger().debug("Setting don't-ask for LSP tool: ${tool.presentableName}")
     PropertiesComponent.getInstance(project).setValue(DONT_ASK_PROPERTY_PREFIX + tool.presentableName, true)
   }

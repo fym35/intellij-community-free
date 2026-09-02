@@ -34,6 +34,8 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
   model: PythonMutableTargetAddInterpreterModel<P>,
   protected val errorSink: ErrorSink,
 ) : PythonNewEnvironmentCreator<P>(model) {
+  protected abstract val pyToolPresentableName: String
+
   internal lateinit var basePythonComboBox: PythonInterpreterComboBox<P>
   internal lateinit var executablePath: ValidatedPathField<Version, P, ValidatedPath.Executable<P>>
 
@@ -52,16 +54,16 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
       )
 
       val missingExecutableText = if (model.fileSystem.toolPathCanBePersisted) {
-        message("sdk.create.custom.venv.missing.text", pyTool.presentableName)
+        message("sdk.create.custom.venv.missing.text", pyToolPresentableName)
       }
       else {
-        message("sdk.create.custom.tool.not.detected", pyTool.presentableName)
+        message("sdk.create.custom.tool.not.detected", pyToolPresentableName)
       }
       executablePath = validatablePathField(
         fileSystem = model.fileSystem,
         pathValidator = toolValidator,
         validationRequestor = validationRequestor,
-        labelText = message("sdk.create.custom.venv.executable.path", pyTool.presentableName),
+        labelText = message("sdk.create.custom.venv.executable.path", pyToolPresentableName),
         missingExecutableText = missingExecutableText,
         installAction = createInstallFix(errorSink),
         canBeEdited = model.fileSystem.toolPathCanBePersisted,
@@ -128,7 +130,7 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
    */
   @RequiresEdt
   protected fun createInstallFix(errorSink: ErrorSink): ActionLink {
-    return ActionLink(message("sdk.create.custom.venv.install.fix.title", pyTool.presentableName)) {
+    return ActionLink(message("sdk.create.custom.venv.install.fix.title", pyToolPresentableName)) {
       PythonSdkFlavor.clearExecutablesCache()
       installExecutable(errorSink)
       runWithModalProgressBlocking(ModalTaskOwner.guess(), message("sdk.create.custom.venv.progress.title.detect.executable")) {
@@ -144,7 +146,7 @@ internal abstract class CustomNewEnvironmentCreator<P : PathHolder>(
    */
   @RequiresEdt
   private fun installExecutable(errorSink: ErrorSink) {
-    runWithModalProgressBlocking(ModalTaskOwner.guess(), message("sdk.create.custom.venv.install.fix.title", pyTool.presentableName)) {
+    runWithModalProgressBlocking(ModalTaskOwner.guess(), message("sdk.create.custom.venv.install.fix.title", pyToolPresentableName)) {
       val eel = model.projectPathFlows.projectPath.first()?.getEelDescriptor()?.toEelApi() ?: localEel
       // performToolInstallation drops the detection cache on success, so the next lookup finds the new binary.
       (pyTool.performToolInstallation(eel) as? Result.Failure)?.let { errorSink.emit(it.error) }

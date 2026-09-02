@@ -2,8 +2,10 @@
 package com.intellij.python.uv.backend
 
 import com.intellij.python.pytools.backend.PyExecutable
-import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.backend.PyTool
+import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.backend.pyExecutable
 import com.intellij.python.uv.backend.PyUvBundle.message
 import com.intellij.python.uv.common.icons.PythonUvCommonIcons
@@ -23,11 +25,8 @@ const val UVX_EXECUTABLE: String = "uvx"
  * pip-tools, virtualenv, and pyenv with a single fast tool.
  */
 @ApiStatus.Internal
-class UvPyTool : PyTool, PackageManagerPyTool {
-  override val presentableName: String = "uv"
+class UvPyTool : PackageManagerPyTool {
   override val packageName: PyPackageName = PyPackageName.from("uv")
-  override val description: String get() = message("python.uv.tool.description")
-  override val icon: Icon get() = PythonUvCommonIcons.UV
 
   /** uv ships `uvx` (its tool runner) alongside `uv`, so it participates in the same custom-path/detection cache. */
   override val executables: List<PyExecutable> get() = listOf(this, pyExecutable(UVX_EXECUTABLE))
@@ -35,5 +34,17 @@ class UvPyTool : PyTool, PackageManagerPyTool {
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): UvPyTool = PyTool.EP_NAME.findExtensionOrFail(UvPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class UvPyToolFrontend : PackageManagerPyToolFrontend {
+  override val presentableName: String = "uv"
+  override val packageName: PyPackageName = PyPackageName.from("uv")
+  override val description: String get() = message("python.uv.tool.description")
+  override val icon: Icon get() = PythonUvCommonIcons.UV
+
+  companion object {
+    fun getInstance(): UvPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(UvPyToolFrontend::class.java)
   }
 }

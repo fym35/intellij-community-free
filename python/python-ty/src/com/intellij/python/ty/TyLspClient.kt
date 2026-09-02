@@ -15,7 +15,7 @@ class TyLspIntegrationProvider : PyLspToolIntegrationProvider() {
     TyLspClientDescriptor(module)
 }
 
-class TyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, TyPyTool.getInstance()) {
+class TyLspClientDescriptor(module: Module) : PyLspToolDescriptor(module, TyPyToolFrontend.getInstance()) {
   override fun lspArguments(): List<String> =
     listOf("server")
 

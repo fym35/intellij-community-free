@@ -45,5 +45,5 @@ object PackagePyToolManager : PyToolManager {
     GenericPyToolManagerProvider.managerFor(eel)?.upgrade(tool) ?: noInstaller(tool)
 
   private fun noInstaller(tool: PyTool): PyResult<Path> =
-    PyResult.localizedError(message("python.tool.install.no.installer", tool.presentableName))
+    PyResult.localizedError(message("python.tool.install.no.installer", tool.packageName.name))
 }

@@ -14,7 +14,7 @@ class PyrightConfigurable(
   project: Project
 ) : PyLspToolDetailConfigurable<PyrightConfiguration>(
   project = project,
-  tool = PyrightPyTool.getInstance()
+  tool = PyrightPyToolFrontend.getInstance()
 )
 
 @Service(Service.Level.PROJECT)

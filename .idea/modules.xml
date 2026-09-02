@@ -2016,12 +2016,10 @@
       <module fileurl="file://$PROJECT_DIR$/python/python-pyproject/intellij.python.pyproject.tests.iml" filepath="$PROJECT_DIR$/python/python-pyproject/intellij.python.pyproject.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pyrefly/intellij.python.pyrefly.iml" filepath="$PROJECT_DIR$/python/python-pyrefly/intellij.python.pyrefly.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pyright/intellij.python.pyright.iml" filepath="$PROJECT_DIR$/python/python-pyright/intellij.python.pyright.iml" />
-      <module fileurl="file://$PROJECT_DIR$/python/python-pytools/intellij.python.pytools.iml" filepath="$PROJECT_DIR$/python/python-pytools/intellij.python.pytools.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/backend/intellij.python.pytools.backend.iml" filepath="$PROJECT_DIR$/python/python-pytools/backend/intellij.python.pytools.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/common/intellij.python.pytools.common.iml" filepath="$PROJECT_DIR$/python/python-pytools/common/intellij.python.pytools.common.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/frontend/intellij.python.pytools.frontend.iml" filepath="$PROJECT_DIR$/python/python-pytools/frontend/intellij.python.pytools.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-pytools/frontend/tests/intellij.python.pytools.frontend.tests.iml" filepath="$PROJECT_DIR$/python/python-pytools/frontend/tests/intellij.python.pytools.frontend.tests.iml" />
-      <module fileurl="file://$PROJECT_DIR$/python/python-pytools-ui/intellij.python.pytools.ui.iml" filepath="$PROJECT_DIR$/python/python-pytools-ui/intellij.python.pytools.ui.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/backend/intellij.python.requirements.backend.iml" filepath="$PROJECT_DIR$/python/python-requirements/backend/intellij.python.requirements.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/common/intellij.python.requirements.common.iml" filepath="$PROJECT_DIR$/python/python-requirements/common/intellij.python.requirements.common.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-requirements/tests/intellij.python.requirements.tests.iml" filepath="$PROJECT_DIR$/python/python-requirements/tests/intellij.python.requirements.tests.iml" />

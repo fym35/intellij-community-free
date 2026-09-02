@@ -60,7 +60,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.python.community.execService.asGeneralCommandLine
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.getExecutableWithBaseArgs
-import com.intellij.python.pytools.backend.isActiveOn
+import com.intellij.python.pytools.frontend.isActiveOn
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
 import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
 import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
@@ -100,14 +100,14 @@ abstract class PyLspToolIntegrationProvider : LspIntegrationProvider {
       Disposer.register(listenerDisposable) {
         listenerConnectedForProjects.remove(project)
       }
-      subscribeOnChanges(descriptor.pyTool, project, listenerDisposable)
+      subscribeOnChanges(descriptor.pyTool.backendTool, project, listenerDisposable)
       // The set is app-level (the provider is an application extension); drop the project when it is
       // disposed so we don't retain disposed projects (caught by the test-framework leak checker).
       Disposer.register(PythonPluginDisposable.getInstance(project), Disposable { listenerConnectedForProjects.remove(project) })
     }
 
     runBlockingMaybeCancellable {
-      descriptor.pyTool.getExecutableWithBaseArgs(moduleOrProject, descriptor.executableName)
+      descriptor.pyTool.backendTool.getExecutableWithBaseArgs(moduleOrProject, descriptor.executableName)
     }.onFailure { return }
 
     clientStarter.ensureClientStarted(descriptor)
@@ -189,7 +189,7 @@ abstract class PyLspToolDescriptor(
   override fun createCommandLine(): GeneralCommandLine {
     val moduleOrProject = ModuleOrProject.ModuleAndProject(module)
     val executable = runBlockingMaybeCancellable {
-      pyTool.getExecutableWithBaseArgs(moduleOrProject, executableName)
+      pyTool.backendTool.getExecutableWithBaseArgs(moduleOrProject, executableName)
     }
     val (binary, baseArgs) = executable.getOr { throw ExecutionException(it.error.message) }
     val cmd = binary.asGeneralCommandLine().getOr { throw ExecutionException(it.error.message) }
@@ -256,7 +256,7 @@ abstract class PyLspToolDescriptor(
 
 open class PyLspToolCustomization(
   val toolConfig: PyLspToolSettings,
-  private val pyTool: PyTool,
+  private val pyTool: PyLspTool<*>,
   private val project: Project,
 ) : LspCustomization() {
   val Diagnostic.presentableCode: String?
@@ -425,6 +425,9 @@ open class PyLspToolCustomization(
 
   open fun codeCustomizer(@Nls code: String): @Nls String = code
 }
+
+private val PyLspTool<*>.backendTool: PyTool
+  get() = requireNotNull(PyTool.findByPackageName(packageName.name))
 
 @Service(Service.Level.PROJECT)
 class PyLspService(val cs: CoroutineScope)

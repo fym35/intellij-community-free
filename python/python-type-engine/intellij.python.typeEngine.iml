@@ -44,7 +44,7 @@
     <orderEntry type="module" module-name="intellij.platform.util.ui" />
     <orderEntry type="module" module-name="intellij.platform.lang" />
     <orderEntry type="module" module-name="intellij.platform.statistics" />
-    <orderEntry type="module" module-name="intellij.python.pytools" />
-    <orderEntry type="module" module-name="intellij.python.pytools.ui" />
+    <orderEntry type="module" module-name="intellij.python.pytools.backend" />
+    <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
   </component>
 </module>

@@ -6,8 +6,8 @@ import com.intellij.ide.setToolTipText
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
-import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.common.PyToolSdkDto
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.ActionLink
@@ -243,16 +243,16 @@ internal class PyExternalToolRowPanel(
     sdkSectionHolder.isVisible = true
   }
 
-  private fun sdkEntryLine(entry: SdkEntry): JComponent = horizontalLine().apply {
-    @NlsSafe val label = "${entry.sdkLabel}:  "
+  private fun sdkEntryLine(entry: com.intellij.python.pytools.common.PyToolSdkStateDto): JComponent = horizontalLine().apply {
+    @NlsSafe val label = "${entry.sdk.label}:  "
     add(JBLabel(label))
-    val path = entry.binaryPath
+    val path = entry.path
     if (path != null) {
-      @NlsSafe val pathText = path.toString()
+      @NlsSafe val pathText = path
       add(JBLabel(pathText).apply { foreground = UIUtil.getInactiveTextColor() })
       entry.version?.let { version ->
         add(Box.createHorizontalStrut(JBUI.scale(6)))
-        @NlsSafe val versionText = "v${version.value}"
+        @NlsSafe val versionText = "v$version"
         add(JBLabel(versionText).apply { foreground = UIUtil.getInactiveTextColor() })
       }
     }
@@ -276,8 +276,8 @@ internal class PyExternalToolRowPanel(
   private fun pathLine(): JComponent = horizontalLine().apply {
     val detected = row.pathFieldValue
     val (text, muted) = when (detected) {
-      is PathFieldValue.Custom -> detected.path.toString() to false
-      is PathFieldValue.AutoDetected -> detected.path.toString() to true
+      is PathFieldValue.Custom -> detected.path to false
+      is PathFieldValue.AutoDetected -> detected.path to true
       PathFieldValue.NotFound, null -> PyToolsUiBundle.message("settings.external.tools.path.not.found") to true
     }
     @NlsSafe val valueText = text
@@ -294,8 +294,7 @@ internal class PyExternalToolRowPanel(
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(8)))
 
-    val canInstall = row.tool.manager?.canInstall(host.project.getEelDescriptor()) == true
-    when (iconKindFor(row, detected, canInstall) { host.isUpgradeAvailable(it) }) {
+    when (iconKindFor(row, detected, row.canInstall) { host.isUpgradeAvailable(it) }) {
       PathIconKind.INSTALL ->
         add(ActionLink(PyToolsUiBundle.message("settings.external.tools.install.link")) { host.installOnPath(row) })
       PathIconKind.UPGRADE ->

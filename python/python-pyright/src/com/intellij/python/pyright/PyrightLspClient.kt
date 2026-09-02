@@ -11,7 +11,7 @@ import com.intellij.platform.lsp.api.stopAndRestartClientsIfNeeded
 import com.intellij.platform.lsp.api.stopClients
 import com.intellij.python.lsp.core.PyLspToolDescriptor
 import com.intellij.python.lsp.core.PyLspToolIntegrationProvider
-import com.intellij.python.pytools.backend.isEnabledOn
+import com.intellij.python.pytools.frontend.isEnabledOn
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
 import com.intellij.python.pytools.frontend.lsp.PyLspToolSettings
 import com.jetbrains.python.PythonPluginDisposable
@@ -19,8 +19,8 @@ import org.eclipse.lsp4j.DidChangeConfigurationParams
 
 /** The pyright-family tools sharing one LSP server, in priority order (basedpyright wins over pyright). */
 private fun pyrightFamilyTools(): List<PyLspTool<*>> = listOf(
-  BasedpyrightPyTool.getInstance(),
-  PyrightPyTool.getInstance(),
+  BasedpyrightPyToolFrontend.getInstance(),
+  PyrightPyToolFrontend.getInstance(),
 )
 
 /** The pyright-family tool that should serve a project: the first enabled one, or basedpyright as a (disabled) fallback. */

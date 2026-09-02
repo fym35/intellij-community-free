@@ -11,6 +11,8 @@ import com.intellij.platform.eel.provider.localEel
 import com.intellij.python.community.impl.conda.icons.PythonCommunityImplCondaIcons
 import com.intellij.python.community.impl.installer.CondaInstallManager
 import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.backend.PyExecutableCache
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolManager
@@ -30,11 +32,8 @@ import kotlinx.coroutines.withContext
  * pip/uv-installable tools it is not a Python package: it installs via its own [CondaInstallManager]
  * (see [CondaPyToolManager]), and shows only on the Package Managers page (it is not an `ExternalPyTool`).
  */
-class CondaPyTool : PyTool, PackageManagerPyTool {
-  override val presentableName: String = "Conda"
+class CondaPyTool : PackageManagerPyTool {
   override val packageName: PyPackageName = PyPackageName.from("conda")
-  override val description: String get() = PyCondaBundle.message("python.conda.tool.description")
-  override val icon: Icon get() = PythonCommunityImplCondaIcons.Anaconda
   override val manager: PyToolManager = CondaPyToolManager
 
   override val toolCommandSpec: ToolCommandSpec = pyExecutableSpec(fusId, listOf(
@@ -56,6 +55,17 @@ class CondaPyTool : PyTool, PackageManagerPyTool {
   @Suppress("CompanionObjectInExtension")
   companion object {
     fun getInstance(): CondaPyTool = PyTool.EP_NAME.findExtensionOrFail(CondaPyTool::class.java)
+  }
+}
+
+class CondaPyToolFrontend : PackageManagerPyToolFrontend {
+  override val presentableName: String = "Conda"
+  override val packageName: PyPackageName = PyPackageName.from("conda")
+  override val description: String get() = PyCondaBundle.message("python.conda.tool.description")
+  override val icon: Icon get() = PythonCommunityImplCondaIcons.Anaconda
+
+  companion object {
+    fun getInstance(): CondaPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(CondaPyToolFrontend::class.java)
   }
 }
 

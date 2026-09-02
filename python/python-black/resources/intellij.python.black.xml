@@ -23,8 +23,8 @@
     <module name="intellij.platform.vcs.impl"/>
     <module name="intellij.python.community"/>
     <module name="intellij.python.community.execService"/>
-    <module name="intellij.python.pytools"/>
-    <module name="intellij.python.pytools.ui"/>
+    <module name="intellij.python.pytools.backend"/>
+    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.sdk.backend"/>
   </dependencies>
   <!-- endregion -->
@@ -34,6 +34,7 @@
     <registryKey key="black.formatter.support.enabled" defaultValue="true" description="Enable Black formatter support"/>
 
     <python.pytools.pyTool implementation="com.intellij.python.black.BlackPyTool"/>
+    <python.pytools.pyToolFrontend implementation="com.intellij.python.black.BlackPyToolFrontend"/>
     <projectSettings service="com.intellij.python.black.configuration.BlackFormatterConfiguration"/>
     <formattingService implementation="com.intellij.python.black.BlackFormattingService"/>
     <statistics.notificationIdsHolder implementation="com.intellij.python.black.statistics.BlackFormatterIntegrationIdsHolder"/>

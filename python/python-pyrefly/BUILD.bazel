@@ -53,8 +53,8 @@ jvm_library(
         "//platform/statistics",
         "//platform/observable",
         "//platform/util:util-ui",
-        "//python/python-pytools:pytools",
-        "//python/python-pytools-ui:pytools-ui",
+        "//python/python-pytools/backend",
+        "//python/python-pytools/frontend",
     ],
 )
 
@@ -101,8 +101,8 @@ jvm_library(
         "//platform/statistics:statistics_test_lib",
         "//platform/observable:observable_test_lib",
         "//platform/util:util-ui_test_lib",
-        "//python/python-pytools:pytools_test_lib",
-        "//python/python-pytools-ui:pytools-ui_test_lib",
+        "//python/python-pytools/backend:backend_test_lib",
+        "//python/python-pytools/frontend:frontend_test_lib",
     ],
 )
 ### auto-generated section `build intellij.python.pyrefly` end

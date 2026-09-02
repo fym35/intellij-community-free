@@ -99,7 +99,8 @@
     <module name="intellij.python.processOutput.common"/>
     <module name="intellij.python.pydev"/>
     <module name="intellij.python.pyproject"/>
-    <module name="intellij.python.pytools"/>
+    <module name="intellij.python.pytools.common"/>
+    <module name="intellij.python.pytools.backend"/>
     <module name="intellij.python.requirements.backend"/>
     <module name="intellij.python.sdk.backend"/>
     <module name="intellij.python.sdk.common"/>
@@ -118,6 +119,8 @@
   <resource-bundle>messages.PyBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceInterface="com.intellij.python.pytools.backend.PyToolSdkBackendService"
+                        serviceImplementation="com.jetbrains.python.packaging.management.PyToolSdkBackendServiceImpl"/>
     <applicationService serviceInterface="com.jetbrains.python.errorProcessing.ErrorSink"
                         serviceImplementation="com.jetbrains.python.impl.ShowingMessageErrorSink"/>
     <python.pytools.genericPyToolManagerProvider implementation="com.jetbrains.python.sdk.configuration.SystemPythonToolManagerProvider"/>

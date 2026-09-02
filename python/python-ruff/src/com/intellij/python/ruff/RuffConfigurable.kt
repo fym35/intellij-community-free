@@ -16,11 +16,11 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 /**
  * Project-wide Ruff detail configurable.
  *
- * Path / discovery mode / enabled state live in [com.intellij.python.pytools.backend.PyToolsState] and are edited from the
+ * Path, discovery, and enabled state are backend-owned and are edited from the
  * `External Tools` table; this dialog only exposes the tool-specific feature toggles.
  */
 class RuffConfigurable(project: Project) :
-  PyLspToolDetailConfigurable<RuffConfiguration>(project, RuffPyTool.getInstance()) {
+  PyLspToolDetailConfigurable<RuffConfiguration>(project, RuffPyToolFrontend.getInstance()) {
 
   override fun Panel.extraRows() {
     row("") {

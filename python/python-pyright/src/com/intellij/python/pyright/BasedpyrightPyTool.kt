@@ -5,7 +5,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
@@ -16,7 +17,16 @@ import javax.swing.Icon
  * such as stricter type inference and language-server capabilities otherwise exclusive to Pylance.
  */
 @ApiStatus.Internal
-class BasedpyrightPyTool : PyLspTool<BasedpyrightConfiguration>(), ExternalPyTool {
+class BasedpyrightPyTool : PyTool {
+  override val packageName: PyPackageName = PyPackageName.from("basedpyright")
+
+  companion object {
+    fun getInstance(): BasedpyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(BasedpyrightPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class BasedpyrightPyToolFrontend : PyLspTool<BasedpyrightConfiguration>(), ExternalPyTool {
   override val presentableName: String = "Basedpyright"
   override val description: String get() = PyrightBundle.message("basedpyright.tool.description")
   override val packageName: PyPackageName = PyPackageName.from("basedpyright")
@@ -33,6 +43,7 @@ class BasedpyrightPyTool : PyLspTool<BasedpyrightConfiguration>(), ExternalPyToo
 
   @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): BasedpyrightPyTool = PyTool.EP_NAME.findExtensionOrFail(BasedpyrightPyTool::class.java)
+    fun getInstance(): BasedpyrightPyToolFrontend =
+      PyToolFrontend.EP_NAME.findExtensionOrFail(BasedpyrightPyToolFrontend::class.java)
   }
 }

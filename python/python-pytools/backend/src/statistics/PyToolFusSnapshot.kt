@@ -2,12 +2,12 @@
 package com.intellij.python.pytools.backend.statistics
 
 /**
- * Tool-supplied configuration snapshot consumed by `PyToolUsagesCollector` when it emits the
- * `configuration.changed` FUS event. Each [com.intellij.python.pytools.backend.PyTool] populates every field it actually owns;
- * fields the tool does not own stay null and are reported as `UNSURE`.
+ * Tool-supplied configuration snapshot consumed by `PyToolUsagesCollector` when it emits the `configuration.changed` FUS event.
+ * Each [com.intellij.python.pytools.frontend.PyToolFrontend] populates every field it owns.
+ * Fields that the tool does not own stay null and are reported as `UNSURE`.
  *
- * The default [com.intellij.python.pytools.backend.PyTool.configurationFusSnapshot] returns a snapshot with [enabled]
- * and [customPath] filled in — enough for tools without LSP-style feature flags.
+ * The default [com.intellij.python.pytools.frontend.PyToolFrontend.configurationFusSnapshot] fills [enabled] and [customPath].
+ * This data is enough for tools without LSP feature flags.
  * LSP-backed tools override and `copy(...)` the default to add their feature fields.
  */
 data class PyToolFusSnapshot(

@@ -3,8 +3,8 @@ package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.ide.ui.search.SearchableOptionContributor
 import com.intellij.ide.ui.search.SearchableOptionProcessor
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.PackageManagerPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
+import com.intellij.python.pytools.frontend.PackageManagerPyToolFrontend as PackageManagerPyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 
 /**

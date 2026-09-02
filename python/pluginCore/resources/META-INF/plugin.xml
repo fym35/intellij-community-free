@@ -70,7 +70,6 @@ The Python plug-in provides smart editing for Python scripts. The feature set of
     <module name="intellij.python.packaging"/>
     <module name="intellij.python.requirements.common"/>
     <module name="intellij.python.requirements.backend"/>
-    <module name="intellij.python.pytools"/>
     <module name="intellij.python.community.services.shared"/>
     <module name="intellij.python.community.services.internal.impl"/>
     <module name="intellij.python.community.services.systemPython"/>
@@ -96,7 +95,6 @@ The Python plug-in provides smart editing for Python scripts. The feature set of
     <module name="intellij.python.terminal.shared"/>
     <module name="intellij.python.terminal.backend"/>
     <module name="intellij.python.terminal.frontend"/>
-    <module name="intellij.python.pytools.ui"/>
     <module name="intellij.python.black"/>
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.lsp.impl"/>

@@ -7,9 +7,10 @@ import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineProjectSettings
 import com.intellij.python.lsp.core.typeEngine.PyTypeEngineType
 import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.isActiveOn
+import com.intellij.python.pytools.frontend.isActiveOn
 import com.intellij.python.pytools.frontend.lsp.PyLspTool
-import com.intellij.python.pytools.backend.ExternalPyTool
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
@@ -20,7 +21,16 @@ import javax.swing.Icon
  * written in Rust by Astral (currently in preview).
  */
 @ApiStatus.Internal
-class TyPyTool : PyLspTool<TyConfiguration>(), ExternalPyTool {
+class TyPyTool : PyTool {
+  override val packageName: PyPackageName = PyPackageName.from("ty")
+
+  companion object {
+    fun getInstance(): TyPyTool = PyTool.EP_NAME.findExtensionOrFail(TyPyTool::class.java)
+  }
+}
+
+@ApiStatus.Internal
+class TyPyToolFrontend : PyLspTool<TyConfiguration>(), ExternalPyTool {
   override val presentableName: String = "ty"
   override val description: String get() = TyBundle.message("ty.tool.description")
   override val packageName: PyPackageName = PyPackageName.from("ty")
@@ -46,6 +56,6 @@ class TyPyTool : PyLspTool<TyConfiguration>(), ExternalPyTool {
 
   @Suppress("CompanionObjectInExtension")
   companion object {
-    fun getInstance(): TyPyTool = PyTool.EP_NAME.findExtensionOrFail(TyPyTool::class.java)
+    fun getInstance(): TyPyToolFrontend = PyToolFrontend.EP_NAME.findExtensionOrFail(TyPyToolFrontend::class.java)
   }
 }

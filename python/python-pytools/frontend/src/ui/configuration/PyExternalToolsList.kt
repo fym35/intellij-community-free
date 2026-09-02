@@ -3,14 +3,18 @@ package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.util.Disposer
-import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.backend.PyToolsState
-import com.intellij.python.pytools.backend.ExternalPyTool
-import com.intellij.python.pytools.backend.getCustomExecutablePath
-import com.intellij.python.pytools.backend.setCustomExecutablePath
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import com.intellij.platform.project.projectId
+import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolSdkDto
+import com.intellij.python.pytools.common.PyToolSetEnabledRequest
+import com.intellij.python.pytools.common.PyToolSetPathRequest
+import com.intellij.python.pytools.common.PyToolRequest
+import com.intellij.python.pytools.common.PyToolsRequest
+import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
+import com.intellij.python.pytools.frontend.PyToolsFrontendState
+import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.statistics.PyToolActionSource
 import com.intellij.python.pytools.frontend.statistics.PyToolUsagesCollector
 import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
@@ -19,12 +23,9 @@ import com.intellij.ui.components.panels.VerticalLayout
 import com.intellij.util.ui.JBUI
 import org.jetbrains.annotations.Nls
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.awt.Dimension
 import java.awt.Rectangle
-import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.Scrollable
@@ -55,7 +56,7 @@ internal interface RowHost {
   fun installOnPath(row: ToolRow)
   fun upgradeOnPath(row: ToolRow)
   fun resetPath(row: ToolRow)
-  fun installIntoSdk(row: ToolRow, sdk: Sdk, anchor: JComponent)
+  fun installIntoSdk(row: ToolRow, sdk: PyToolSdkDto, anchor: JComponent)
 }
 
 /**
@@ -73,14 +74,13 @@ internal class PyExternalToolsList(
   private val uv: PyToolManagementController,
 ) : RowHost {
 
-  /** Target whose per-machine custom paths this page shows/edits (the project's environment). */
-  private val eelDescriptor = project.getEelDescriptor()
+  private val persistedPaths = mutableMapOf<com.intellij.python.pytools.common.PyToolId, String?>()
 
   /** Source-of-truth row list, materialised once from the [PyTool] extension point. */
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
     .filter { it is ExternalPyTool }
     .sortedBy { it.presentableName.lowercase() }
-    .map { ToolRow(it, stagedFor(it)) }
+    .map { ToolRow(it, RowState(enabled = isEngineFor(it), customPath = null)) }
 
   private val rowPanels: Map<ToolRow, PyExternalToolRowPanel> =
     rows.associateWith { PyExternalToolRowPanel(it, this) }
@@ -120,7 +120,7 @@ internal class PyExternalToolsList(
           }
           // Was on only because it was the staged engine (not persisted-enabled) and no longer is →
           // revert to off, so staging an engine and switching away leaves the tool unchanged.
-          lastStagedEngine == pkg && staged != pkg && row.staged.enabled && !snapshotOf(row.tool).enabled -> {
+          lastStagedEngine == pkg && staged != pkg && row.staged.enabled && !snapshotOf(row).enabled -> {
             row.staged = row.staged.copy(enabled = false); refreshRow(row)
           }
         }
@@ -181,7 +181,7 @@ internal class PyExternalToolsList(
   }
 
   override fun browsePath(row: ToolRow) {
-    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen.toString()) }
+    row.browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
   }
 
   override fun installOnPath(row: ToolRow): Unit = uv.installTool(row, PyToolActionSource.SETTINGS_TABLE)
@@ -190,13 +190,13 @@ internal class PyExternalToolsList(
 
   override fun resetPath(row: ToolRow): Unit = setCustomPath(row, "")
 
-  override fun installIntoSdk(row: ToolRow, sdk: Sdk, anchor: JComponent): Unit =
+  override fun installIntoSdk(row: ToolRow, sdk: PyToolSdkDto, anchor: JComponent): Unit =
     uv.installIntoSdkChoosingGroup(row, sdk, anchor, PyToolActionSource.SETTINGS_TABLE)
 
   /** Route a chosen/cleared custom path through the standard re-probe + refresh flow. */
   private fun setCustomPath(row: ToolRow, value: String) {
     val trimmed = value.trim()
-    row.staged = row.staged.copy(customPath = trimmed.takeIf { it.isNotEmpty() }?.let { Path.of(it) })
+    row.staged = row.staged.copy(customPath = trimmed.takeIf { it.isNotEmpty() })
     probeRow(row, isCustomEdit = true)
     refreshRow(row)
   }
@@ -208,8 +208,20 @@ internal class PyExternalToolsList(
     // Clear any leftover ✓ from a previous settings session — keeping it would mislead the user
     // about whether the underlying tool state is still up to date.
     rows.forEach { it.lastSuccessMessage = null }
-    rows.forEach { probeRow(it) }
+    scope.launch { loadInitialStates() }
     scope.launch { probeAllSdks() }
+  }
+
+  private suspend fun loadInitialStates() {
+    val states = PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), rows.map { it.tool.toolId })).associateBy { it.toolId }
+    rows.forEach { row ->
+      states[row.tool.toolId]?.let {
+        row.applyBackendState(it, updateStagedPath = true, updateStagedEnabled = true)
+        if (!row.staged.enabled && isEngineFor(row.tool)) row.staged = row.staged.copy(enabled = true)
+        persistedPaths[row.tool.toolId] = row.persistedCustomPath
+      }
+      refreshRow(row)
+    }
   }
 
   /**
@@ -217,35 +229,51 @@ internal class PyExternalToolsList(
    * for every row (avoids each tool re-touching the project model).
    */
   private suspend fun probeAllSdks() {
-    val sdks = withContext(Dispatchers.IO) { snapshotProjectSdks(project) }
     for (row in rows) {
-      val avail = withContext(Dispatchers.IO) { row.tool.detectInSdks(sdks) }
-      withContext(Dispatchers.Main) {
-        row.sdkAvailability = avail
-        refreshRow(row)
-      }
+      val entries = PyToolApi.getInstance().getSdkStates(PyToolRequest(project.projectId(), row.tool.toolId))
+      row.sdkAvailability = SdkAvailability(entries)
+      refreshRow(row)
     }
   }
 
   /** True iff any row has unsaved edits — a staged enable/path diff, or a dirty detail configurable. */
   fun isModified(): Boolean = rows.any { row ->
-    row.staged != snapshotOf(row.tool) || row.detail?.isModified() == true
+    row.staged != snapshotOf(row) || row.detail?.isModified() == true
   }
 
-  /** Persist all rows' staged state into [PyToolsState] and apply any dirty detail configurables. */
+  /** Persist all rows' staged state on the backend and apply any dirty detail configurables. */
   fun apply() {
     checkNoPathErrors(rows)
-    val state = PyToolsState.getInstance(project)
     rows.forEach { row ->
-      val current = snapshotOf(row.tool)
+      val current = snapshotOf(row)
       val detailModified = row.detail?.isModified() == true
       val rowChanged = row.staged != current || detailModified
       if (row.staged.enabled != current.enabled) {
-        state.setEnabled(row.tool, row.staged.enabled)
+        val backendState = runWithModalProgressBlocking(
+          project,
+          PyToolsUiBundle.message("settings.external.tools.apply.progress"),
+        ) {
+          PyToolApi.getInstance().setEnabled(
+            PyToolSetEnabledRequest(PyToolRequest(project.projectId(), row.tool.toolId), row.staged.enabled),
+          )
+        }
+        row.applyBackendState(backendState)
+        PyToolsFrontendState.getInstance(project).apply(
+          com.intellij.python.pytools.common.PyToolEnabledStateDto(backendState.toolId, backendState.enabled),
+        )
         row.tool.onEnabledChanged(project, row.staged.enabled)
       }
       if (row.staged.customPath != current.customPath) {
-        row.tool.setCustomExecutablePath(eelDescriptor, row.staged.customPath)
+        val backendState = runWithModalProgressBlocking(
+          project,
+          PyToolsUiBundle.message("settings.external.tools.apply.progress"),
+        ) {
+          PyToolApi.getInstance().setPath(
+            PyToolSetPathRequest(PyToolRequest(project.projectId(), row.tool.toolId), row.staged.customPath),
+          )
+        }
+        row.applyBackendState(backendState)
+        persistedPaths[row.tool.toolId] = row.persistedCustomPath
       }
       if (detailModified) {
         try {
@@ -271,7 +299,7 @@ internal class PyExternalToolsList(
   /** Revert all rows' staged state to the persisted snapshot and reset any open detail configurables. */
   fun reset() {
     rows.forEach { row ->
-      row.staged = stagedFor(row.tool)
+      row.staged = stagedFor(row)
       row.detail?.reset()
       // Re-probe so the path field / version reflect the reverted path, and clear any stale error
       // from a rejected custom edit (a non-custom probe never clears it on its own).
@@ -327,11 +355,10 @@ internal class PyExternalToolsList(
 
   // ---------- Snapshot helper ----------
 
-  private fun snapshotOf(tool: PyTool): RowState {
-    val state = PyToolsState.getInstance(project)
+  private fun snapshotOf(row: ToolRow): RowState {
     return RowState(
-      enabled = state.isEnabled(tool),
-      customPath = tool.getCustomExecutablePath(eelDescriptor),
+      enabled = row.persistedEnabled,
+      customPath = persistedPaths[row.tool.toolId],
     )
   }
 
@@ -341,9 +368,9 @@ internal class PyExternalToolsList(
    * the engine selection as a pending "enabled" edit; since [snapshotOf] stays the modified/apply
    * baseline, the edit is detected and persisted on Apply, and discarded if not applied.
    */
-  private fun stagedFor(tool: PyTool): RowState {
-    val persisted = snapshotOf(tool)
-    return if (!persisted.enabled && isEngineFor(tool)) persisted.copy(enabled = true) else persisted
+  private fun stagedFor(row: ToolRow): RowState {
+    val persisted = snapshotOf(row)
+    return if (!persisted.enabled && isEngineFor(row.tool)) persisted.copy(enabled = true) else persisted
   }
 
   /**

@@ -89,8 +89,7 @@ internal class PyCustomExecutablePaths : PersistentStateComponent<PyCustomExecut
 
   /**
    * One-time (first-run) migration of the legacy per-tool [PropertiesComponent] path keys into the
-   * local machine's entry; the old keys are then cleared so the migration is one-way. Mirrors
-   * `PyToolsState.noStateLoaded`.
+   * local machine's entry; the old keys are then cleared so the migration is one-way.
    */
   @Synchronized
   override fun noStateLoaded() {

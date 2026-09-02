@@ -12,8 +12,8 @@
     <module name="intellij.python.lsp.core"/>
     <module name="intellij.python.pyrefly"/>
     <module name="intellij.python.pyright"/>
-    <module name="intellij.python.pytools"/>
-    <module name="intellij.python.pytools.ui"/>
+    <module name="intellij.python.pytools.backend"/>
+    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.ruff"/>
     <module name="intellij.python.sdk.backend"/>
     <module name="intellij.python.ty"/>

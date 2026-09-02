@@ -5,6 +5,8 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.toNioPathOrNull
 import com.intellij.python.community.common.tools.ToolId
 import com.intellij.python.community.impl.poetry.backend.PoetryPyTool
+import com.intellij.python.community.impl.poetry.backend.PyPoetryBundle
+import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImplPoetryCommonIcons
 import com.intellij.python.community.impl.poetry.common.POETRY_TOOL_ID
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.sdk.backend.PySdkBundle
@@ -48,6 +50,8 @@ private const val VERSIONS_KEY: String = "poetry.systemPythons"
 
 internal class PoetryEvoEnvironmentProvider : PyToolEvoEnvironmentProvider() {
   override val tool: PyTool get() = PoetryPyTool.getInstance()
+  override val label: String get() = PySdkBundle.message("evolution.node.label.poetry")
+  override val icon get() = PythonCommunityImplPoetryCommonIcons.Poetry
   override val toolId: ToolId get() = POETRY_TOOL_ID
 
   /** An interpreter of this node's environments carries this flavor, which is what names this node as the active one. */

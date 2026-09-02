@@ -26,6 +26,7 @@ import com.intellij.python.sdk.common.evolution.EvoRecreateDto
 import com.intellij.python.sdk.common.evolution.EvoSectionDto
 import com.intellij.python.venv.PipPyTool
 import com.intellij.python.venv.createVenv
+import com.intellij.python.venv.icons.PythonVenvIcons
 import com.intellij.python.venv.sdk.flavors.VirtualEnvSdkFlavor
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.sdk.ModuleOrProject
@@ -63,9 +64,9 @@ internal class VenvEvoEnvironmentProvider : PyEvoEnvironmentProvider {
   /** An interpreter of this node's environments carries this flavor, which is what names this node as the active one. */
   override val sdkFlavor: Class<out PythonSdkFlavor<*>> get() = VirtualEnvSdkFlavor::class.java
   override val nodeKind: EvoNodeKind get() = EvoNodeKind.TOOL
-  override val label: String get() = tool.presentableName
+  override val label: String get() = PySdkBundle.message("evolution.node.label.pip")
   override val fusId: String get() = tool.fusId
-  override val icon: Icon get() = tool.icon
+  override val icon: Icon get() = PythonVenvIcons.VirtualEnv
 
   /**
    * Every discovered virtualenv, one made by another tool included.

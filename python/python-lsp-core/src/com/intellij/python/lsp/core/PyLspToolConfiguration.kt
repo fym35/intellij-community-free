@@ -2,10 +2,7 @@
 package com.intellij.python.lsp.core
 
 import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.util.xmlb.XmlSerializerUtil
-import java.nio.file.Path
-import kotlin.io.path.Path
 
 /** Default SDK marker for tools that previously stored a per-tool SDK name. */
 const val DEFAULT_ENVIRONMENT: String = "Project Default"
@@ -13,18 +10,16 @@ const val DEFAULT_ENVIRONMENT: String = "Project Default"
 /**
  * Storage file for LSP tool settings. This file is saved in .idea/ and can be committed to VCS.
  *
- * Holds project-wide [com.intellij.python.pytools.backend.PyToolsState] (the source of truth for enabled/mode/customPath)
- * plus each tool's remaining feature toggles (inspections, completions, inlay hints, documentation, ...).
+ * Holds each tool's remaining frontend feature toggles (inspections, completions, inlay hints, documentation, ...).
+ * Tool enablement is backend-owned and mirrored separately.
  */
 const val LSP_TOOLS_STORAGE_FILE: String = "pyLspTools.xml"
 
 /**
- * Per-tool feature settings persisted alongside [com.intellij.python.pytools.backend.PyToolsState].
+ * Per-tool frontend feature settings.
  *
- * The discovery mode / custom path live centrally in `PyToolsState`. The legacy fields here are kept
- * as a write-through mirror: each tool's `onEnabledChanged` / `onModeChanged` / `onCustomPathChanged`
- * callback updates them so existing code paths (LSP server start, FUS reporting, ...) keep working
- * without needing to know about the central state.
+ * The legacy fields remain only for one-way migration. Backend services own enablement, executable
+ * discovery, and custom paths.
  */
 interface PyLspToolSettings {
   @Deprecated("replaced with PyToolState", ReplaceWith("PyTool.isEnabledOn(project)"))
@@ -38,9 +33,6 @@ interface PyLspToolSettings {
   @Deprecated("replaced with PyToolState", ReplaceWith("PyTool.executeOn()"))
   var sdkName: String
 }
-
-@Deprecated("replaced with PyToolState", ReplaceWith("PyTool.executeOn()"))
-val PyLspToolSettings.executablePath: Path? get() = pathToExecutable.ifEmpty { null }?.let { Path(it) }
 
 abstract class PyLspToolConfiguration<State : PyLspToolConfiguration<State>> : PersistentStateComponent<State>,
                                                                                PyLspToolSettings {
@@ -66,18 +58,17 @@ abstract class PyLspToolConfiguration<State : PyLspToolConfiguration<State>> : P
   override fun loadState(state: State): Unit = XmlSerializerUtil.copyBean(state, this as State)
 
   /**
-   * Reads the pre-[PyToolsState] `enabled` flag into a [PyToolsState.ToolEntry] and clears the legacy
-   * enable / path fields from this configuration, so [PyToolsState]'s one-time migration
+   * Reads the legacy `enabled` flag and clears the legacy enable / path fields, so the one-time migration
    * is one-way: re-running it can never resurrect the old values. The legacy custom path is dropped, not
    * migrated — custom paths now live per Eel machine in `PyCustomExecutablePaths`, and importing a stale
    * per-project value here could clobber one the user already set. Feature flags (inspections,
    * completions, ...) are left untouched.
    */
   @Suppress("DEPRECATION")
-  fun migrateToPyToolState(): PyToolsState.ToolEntry {
-    val entry = PyToolsState.ToolEntry(enabled = enabled)
+  fun migrateToPyToolState(): Boolean {
+    val migratedEnabled = enabled
     enabled = false
     pathToExecutable = ""
-    return entry
+    return migratedEnabled
   }
 }

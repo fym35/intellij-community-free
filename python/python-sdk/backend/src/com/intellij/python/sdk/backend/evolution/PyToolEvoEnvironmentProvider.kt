@@ -11,8 +11,7 @@ import org.jetbrains.annotations.Nls
 import javax.swing.Icon
 
 /**
- * Base class for an Evo widget node backed by a [PyTool]: the node's label, icon and availability all come from the
- * tool, so a provider only has to declare its identity and its environment layout.
+ * Base class for an Evo widget node backed by a [PyTool].
  *
  * Availability is "the tool's executable resolves on this machine" for every such tool — and it is what decides whether
  * the node appears at all — so it belongs here rather than being restated per provider. Resolution goes through
@@ -33,9 +32,9 @@ abstract class PyToolEvoEnvironmentProvider : PyEvoEnvironmentProvider {
    */
   protected abstract val tool: PyTool
 
-  override val label: @Nls String get() = tool.presentableName
+  abstract override val label: @Nls String
 
-  override val icon: Icon get() = tool.icon
+  abstract override val icon: Icon
 
   override val nodeKind: EvoNodeKind get() = EvoNodeKind.TOOL
 

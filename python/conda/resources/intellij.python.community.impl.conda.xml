@@ -13,7 +13,8 @@
     <module name="intellij.python.community"/>
     <module name="intellij.python.community.impl.installer"/>
     <module name="intellij.python.processOutput.common"/>
-    <module name="intellij.python.pytools"/>
+    <module name="intellij.python.pytools.backend"/>
+    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.requirements.backend"/>
     <module name="intellij.python.sdk.backend"/>
     <module name="intellij.yaml"/>
@@ -22,6 +23,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <python.processOutput.common.processOutputIconMapping implementation="com.intellij.python.community.impl.conda.CondaIconMapping"/>
     <python.pytools.pyTool implementation="com.intellij.python.community.impl.conda.CondaPyTool"/>
+    <python.pytools.pyToolFrontend implementation="com.intellij.python.community.impl.conda.CondaPyToolFrontend"/>
     <!-- Claim environment.yml/environment.yaml as YAML files belonging to the Python plugin so that the
          plugin advertiser doesn't promote unrelated third-party plugins for these conda env files (PY-89976). -->
     <fileType name="YAML" fileNames="environment.yml;environment.yaml"/>

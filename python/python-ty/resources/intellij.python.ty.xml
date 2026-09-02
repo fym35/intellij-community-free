@@ -24,8 +24,8 @@
     <module name="intellij.platform.smRunner"/>
     <module name="intellij.platform.statistics"/>
     <module name="intellij.python.lsp.core"/>
-    <module name="intellij.python.pytools"/>
-    <module name="intellij.python.pytools.ui"/>
+    <module name="intellij.python.pytools.backend"/>
+    <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.xml.parser"/>
   </dependencies>
   <!-- endregion -->
@@ -40,6 +40,7 @@
     <python.lsp.typeEngineConfigurable implementation="com.intellij.python.ty.typeEngine.TyPyTypeEngine"/>
     <projectSettings service="com.intellij.python.ty.TyConfiguration"/>
     <python.pytools.pyTool implementation="com.intellij.python.ty.TyPyTool"/>
+    <python.pytools.pyToolFrontend implementation="com.intellij.python.ty.TyPyToolFrontend"/>
   </extensions>
 
   <extensions defaultExtensionNs="Pythonid">

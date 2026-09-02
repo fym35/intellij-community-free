@@ -7,22 +7,20 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.python.pytools.backend.PyTool
-import com.intellij.python.pytools.frontend.lsp.LSP_TOOLS_STORAGE_FILE
+import com.intellij.python.pytools.common.PyToolEnabledStateDto
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.util.xmlb.annotations.OptionTag
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Central per-project state for all Python tools that participate in the [PyTool] extension point.
- *
- * One [ToolEntry] per tool, keyed by [PyTool.fusId]; a tool absent from [State.tools] is at its defaults.
- * The first time a project has no stored state (see [noStateLoaded]) each tool's pre-existing configuration is
- * imported once via [PyTool.migrateLegacyState], which also clears the old settings so the migration is one-way and can
- * never resurrect stale values after a reset to defaults.
- */
+private const val LSP_TOOLS_STORAGE_FILE = "pyLspTools.xml"
+
+/** Backend-authoritative enabled state for Python tools. */
 @Service(Service.Level.PROJECT)
 @State(name = "PyToolsState", storages = [Storage(LSP_TOOLS_STORAGE_FILE)])
-class PyToolsState(private val project: Project) : PersistentStateComponent<PyToolsState.State> {
+class PyToolsState : PersistentStateComponent<PyToolsState.State> {
   data class ToolEntry(
     @OptionTag
     val enabled: Boolean = false,
@@ -32,40 +30,51 @@ class PyToolsState(private val project: Project) : PersistentStateComponent<PyTo
     @OptionTag
     val tools: MutableMap<String, ToolEntry> = ConcurrentHashMap(),
   ) {
-    internal fun persist(tool: PyTool, entry: ToolEntry) {
-      if (entry == DEFAULT_TOOL_ENTRY) {
-        tools.remove(tool.fusId)
-      }
-      else {
-        tools[tool.fusId] = entry
-      }
+    internal fun persist(toolId: PyToolId, entry: ToolEntry) {
+      if (entry == DEFAULT_TOOL_ENTRY) tools.remove(toolId.value)
+      else tools[toolId.value] = entry
     }
   }
 
   private var state = State()
+  private var initialized = false
+  private val enabledState = MutableStateFlow<List<PyToolEnabledStateDto>>(emptyList())
 
   override fun getState(): State = state
+
   override fun loadState(state: State) {
     this.state = state
+    initialized = true
+    publish()
   }
 
-  /**
-   * Runs once per project, the first time there is no stored [PyToolsState] yet: imports each tool's pre-existing
-   * configuration via [PyTool.migrateLegacyState] (which also clears the old settings). Because the old settings are cleared,
-   * re-running this after a reset to defaults imports nothing and cannot resurrect stale values.
-   */
-  override fun noStateLoaded() {
-    for (tool in PyTool.EP_NAME.extensionList) {
-      val entry = tool.migrateLegacyState(project) ?: continue
-      state.persist(tool, entry)
-    }
+  fun isInitialized(): Boolean = initialized
+
+  fun initialize(entries: List<PyToolEnabledStateDto>) {
+    if (initialized) return
+    entries.forEach { state.persist(it.toolId, ToolEntry(it.enabled)) }
+    initialized = true
+    publish()
   }
 
-  fun getEntry(tool: PyTool): ToolEntry = state.tools[tool.fusId] ?: DEFAULT_TOOL_ENTRY
+  fun getEntry(toolId: PyToolId): ToolEntry = state.tools[toolId.value] ?: DEFAULT_TOOL_ENTRY
 
-  fun isEnabled(tool: PyTool): Boolean = getEntry(tool).enabled
-  fun setEnabled(tool: PyTool, value: Boolean) {
-    state.persist(tool, getEntry(tool).copy(enabled = value))
+  fun isEnabled(toolId: PyToolId): Boolean = getEntry(toolId).enabled
+
+  fun isEnabled(tool: PyTool): Boolean = isEnabled(PyToolId(tool.packageName.name))
+
+  fun setEnabled(toolId: PyToolId, value: Boolean) {
+    state.persist(toolId, getEntry(toolId).copy(enabled = value))
+    initialized = true
+    publish()
+  }
+
+  fun setEnabled(tool: PyTool, value: Boolean) = setEnabled(PyToolId(tool.packageName.name), value)
+
+  fun enabledStates(): StateFlow<List<PyToolEnabledStateDto>> = enabledState.asStateFlow()
+
+  private fun publish() {
+    enabledState.value = state.tools.map { (id, entry) -> PyToolEnabledStateDto(PyToolId(id), entry.enabled) }
   }
 
   companion object {

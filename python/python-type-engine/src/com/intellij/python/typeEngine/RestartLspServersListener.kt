@@ -20,6 +20,7 @@ import com.intellij.python.pyrefly.PyreflyPyTool
 import com.intellij.python.pyrefly.PyreflyUsageCollector
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
+import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
 import com.intellij.python.lsp.core.getInstalledToolPackage
 import com.jetbrains.python.extensions.getSdk
@@ -101,7 +102,7 @@ internal class RestartLspServersListener(val project: Project) : PyLspListener, 
             PyTool.findByPackageName(pkg)?.let { tool ->
               if (state.isEnabled(tool)) {
                 state.setEnabled(tool, false)
-                tool.onEnabledChanged(project, false)
+                PyToolFrontend.findByPackageName(tool.packageName.name)?.onEnabledChanged(project, false)
               }
             }
           }

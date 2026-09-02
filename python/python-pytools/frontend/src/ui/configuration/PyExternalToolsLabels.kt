@@ -69,11 +69,11 @@ internal fun pathDetailsTooltip(row: ToolRow): HtmlChunk? {
     has = true
   }
   when (val d = row.pathFieldValue) {
-    is PathFieldValue.Custom -> line(d.path.toString())
-    is PathFieldValue.AutoDetected -> line(d.path.toString())
+    is PathFieldValue.Custom -> line(d.path)
+    is PathFieldValue.AutoDetected -> line(d.path)
     PathFieldValue.NotFound, null -> Unit
   }
-  row.version?.let { line(PyToolsUiBundle.message("settings.external.tools.path.version.tooltip", it.toString())) }
+  row.version?.let { line(PyToolsUiBundle.message("settings.external.tools.path.version.tooltip", it)) }
   row.belowMinVersionMessage?.let { line(it) }
   row.pathError?.let { line(it) }
   return if (has) builder.wrapWith(HtmlChunk.html()) else null
@@ -94,7 +94,7 @@ internal fun installedVersionLabel(row: ToolRow): JComponent? {
   val resolved = row.pathFieldValue is PathFieldValue.Custom || row.pathFieldValue is PathFieldValue.AutoDetected
   val version = row.version
   if (!resolved || version == null) return null
-  @NlsSafe val text = "v${version.value}"
+  @NlsSafe val text = "v$version"
   return JBLabel(text).apply { foreground = UIUtil.getInactiveTextColor() }
 }
 

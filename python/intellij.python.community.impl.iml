@@ -205,7 +205,8 @@
     <orderEntry type="module" module-name="intellij.python.community.impl.conda" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.collections.immutable" />
     <orderEntry type="module" module-name="intellij.python.requirements.backend" exported="" />
-    <orderEntry type="module" module-name="intellij.python.pytools" />
+    <orderEntry type="module" module-name="intellij.python.pytools.common" />
+    <orderEntry type="module" module-name="intellij.python.pytools.backend" />
     <orderEntry type="module" module-name="intellij.python.uv.backend" />
     <orderEntry type="module" module-name="intellij.platform.testIntegration" />
     <orderEntry type="module" module-name="intellij.platform.testIntegration.ui" />

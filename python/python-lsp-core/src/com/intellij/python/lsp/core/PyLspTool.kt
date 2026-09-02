@@ -18,7 +18,8 @@ abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool {
   /** Per-project settings service backing this tool — the single source of its configuration. */
   abstract fun configuration(project: Project): C
 
-  override fun migrateLegacyState(project: Project): PyToolsState.ToolEntry = configuration(project).migrateToPyToolState()
+  override fun migrateLegacyState(project: Project): PyToolsState.ToolEntry =
+    PyToolsState.ToolEntry(configuration(project).migrateToPyToolState())
 
   override fun configurationFusSnapshot(project: Project): PyToolFusSnapshot {
     val cfg = configuration(project)

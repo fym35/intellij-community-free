@@ -57,6 +57,7 @@ internal class EnvironmentCreatorPoetry<P : PathHolder>(
 ) : CustomNewEnvironmentCreator<P>(model, errorSink) {
   override val interpreterType: InterpreterType = InterpreterType.POETRY
   override val pyTool: PyTool = PoetryPyTool.getInstance()
+  override val pyToolPresentableName: String = "Poetry"
   override val toolValidator: ToolValidator<P> = model.poetryViewModel.toolValidator
   override val toolExecutable: ObservableProperty<ValidatedPath.Executable<P>?> = model.poetryViewModel.poetryExecutable
   override val toolExecutablePersister: suspend (P) -> Unit = { pathHolder ->
