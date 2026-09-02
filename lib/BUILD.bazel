@@ -7452,16 +7452,6 @@ jvm_import(
     source_jar = "@io_ktor-ktor-client-mock-jvm-3_4_1-sources_http//file",
 )
 
-java_library(
-    name = "ktor-network-tls",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":io_ktor-ktor-network-tls-jvm-3_4_1_http_import",
-        ":io_ktor-ktor-network-jvm-3_4_1_http_import",
-    ],
-)
-
 copy_file(
     name = "io.ktor/ktor-serialization-kotlinx-json-jvm-3.4.1.jar_copy",
     src = "@io_ktor-ktor-serialization-kotlinx-json-jvm-3_4_1_http//file",
@@ -13413,6 +13403,16 @@ jvm_import(
     jar = "@io_ktor-ktor-io-jvm-3_4_1_http//file",
     source_jar = "@io_ktor-ktor-io-jvm-3_4_1-sources_http//file",
     visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-ktor-network-tls-ktor-network-tls",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":io_ktor-ktor-network-tls-jvm-3_4_1_http_import",
+        ":io_ktor-ktor-network-jvm-3_4_1_http_import",
+    ],
 )
 
 copy_file(
