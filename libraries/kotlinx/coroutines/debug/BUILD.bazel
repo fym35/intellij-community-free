@@ -14,16 +14,16 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-debug"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-debug-kotlinx-coroutines-debug"],
     runtime_deps = [
         # do not sort,
         "//libraries/kotlinx/coroutines/core",
-        "@lib//:kotlinx-coroutines-debug",
+        "@lib//:libraries-kotlinx-coroutines-debug-kotlinx-coroutines-debug",
     ],
 )
 
 content_module_jar(
-    libraries = ["@lib//:kotlinx-coroutines-debug"],
+    libraries = ["@lib//:libraries-kotlinx-coroutines-debug-kotlinx-coroutines-debug"],
     module = ":debug",
 )
 
@@ -37,7 +37,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.kotlinx.coroutines.debug",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:kotlinx-coroutines-debug"],
+    exports = ["@lib//:libraries-kotlinx-coroutines-debug-kotlinx-coroutines-debug"],
     runtime_deps = [
         # do not sort,
         ":debug",

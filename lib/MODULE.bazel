@@ -5524,20 +5524,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-debug-1_10_2-intellij-2_http",
-    downloaded_file_path = "kotlinx-coroutines-debug-1.10.2-intellij-2.jar",
-    sha256 = "b3953d4dab6bd76ecdb478b1573a2103512ec9ca244e77b2825e6a970565d5d1",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-debug/1.10.2-intellij-2/kotlinx-coroutines-debug-1.10.2-intellij-2.jar",
-)
-
-http_file(
-    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-debug-1_10_2-intellij-2-sources_http",
-    downloaded_file_path = "kotlinx-coroutines-debug-1.10.2-intellij-2-sources.jar",
-    sha256 = "a16e4c415cc1d89036cf1fdddcae0ca4d271eb99d91c093a6d38ac11c5ac4a75",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-debug/1.10.2-intellij-2/kotlinx-coroutines-debug-1.10.2-intellij-2-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlinx-kotlinx-io-core-jvm-0_7_0_http",
     downloaded_file_path = "kotlinx-io-core-jvm-0.7.0.jar",
     sha256 = "6ededc9be4d878aea80c7dd609f91bfc47fcd3d36cc91fd0f3f328fbd6656c8f",
@@ -10456,6 +10442,20 @@ http_file(
     downloaded_file_path = "kotlinx-collections-immutable-jvm-0.5.0-sources.jar",
     sha256 = "49cc02cb15dac26a800e9cc35f3fc76e647a202eaddf979276dd9eed95d5bb87",
     url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-collections-immutable-jvm/0.5.0/kotlinx-collections-immutable-jvm-0.5.0-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-debug-1_10_2-intellij-2_http",
+    downloaded_file_path = "kotlinx-coroutines-debug-1.10.2-intellij-2.jar",
+    sha256 = "b3953d4dab6bd76ecdb478b1573a2103512ec9ca244e77b2825e6a970565d5d1",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-debug/1.10.2-intellij-2/kotlinx-coroutines-debug-1.10.2-intellij-2.jar",
+)
+
+http_file(
+    name = "org_jetbrains_intellij_deps_kotlinx-kotlinx-coroutines-debug-1_10_2-intellij-2-sources_http",
+    downloaded_file_path = "kotlinx-coroutines-debug-1.10.2-intellij-2-sources.jar",
+    sha256 = "a16e4c415cc1d89036cf1fdddcae0ca4d271eb99d91c093a6d38ac11c5ac4a75",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/intellij/deps/kotlinx/kotlinx-coroutines-debug/1.10.2-intellij-2/kotlinx-coroutines-debug-1.10.2-intellij-2-sources.jar",
 )
 
 http_file(
