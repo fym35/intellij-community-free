@@ -12,7 +12,6 @@ import com.intellij.openapi.vcs.VcsShowConfirmationOption.Value.DO_ACTION_SILENT
 import com.intellij.openapi.vcs.VcsShowConfirmationOption.Value.DO_NOTHING_SILENTLY
 import com.intellij.openapi.vcs.changes.ChangeListListener
 import com.intellij.openapi.vcs.changes.ChangeListManager
-import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.changes.VcsIgnoreManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -67,7 +66,7 @@ internal class ExternallyAddedFilesProcessorImpl(
 
     if (needDoForCurrentProject()) {
       LOG.debug("Add external files to ${vcs.displayName} silently ", files)
-      addChosenFiles(doFilterFiles(files))
+      addChosenFiles(collectUnversionedUnder(files))
     }
   }
 
@@ -113,8 +112,7 @@ internal class ExternallyAddedFilesProcessorImpl(
             && VcsConfiguration.getInstance(project).ADD_EXTERNAL_FILES_SILENTLY)
   }
 
-  private fun doFilterFiles(files: Collection<VirtualFile>): Collection<VirtualFile> {
-    val parents = files.toHashSet()
+  private fun collectUnversionedUnder(parents: Set<VirtualFile>): Set<VirtualFile> {
     return ChangeListManager.getInstance(project).unversionedFilesPaths
       .asSequence()
       .mapNotNull { it.virtualFile }

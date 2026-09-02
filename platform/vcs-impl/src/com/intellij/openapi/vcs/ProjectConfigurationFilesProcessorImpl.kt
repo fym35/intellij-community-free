@@ -50,7 +50,7 @@ internal class ProjectConfigurationFilesProcessorImpl(
    * Schedule notification or silent addition instead.
    */
   fun filterNotProjectConfigurationFiles(files: List<VirtualFile>): List<VirtualFile> {
-    val projectConfigurationFiles = doFilterFiles(files)
+    val projectConfigurationFiles = filterProjectConfigurationFiles(files)
 
     if (projectConfigurationFiles.isNotEmpty()) {
       if (foundProjectConfigurationFiles.compareAndSet(false, true)) {
@@ -64,15 +64,15 @@ internal class ProjectConfigurationFilesProcessorImpl(
   override fun unchangedFileStatusChanged(upToDate: Boolean) {
     if (upToDate && foundProjectConfigurationFiles.compareAndSet(true, false)) {
       val unversionedFiles = ChangeListManager.getInstance(project).unversionedFilesPaths.mapNotNull { it.virtualFile }
-      val unversionedProjectConfigurationFiles = doFilterFiles(unversionedFiles)
+      val unversionedProjectConfigurationFiles = filterProjectConfigurationFiles(unversionedFiles)
       if (unversionedProjectConfigurationFiles.isNotEmpty()) {
         setForCurrentProject(VcsImplUtil.isProjectSharedInVcs(project))
-        processFiles(unversionedProjectConfigurationFiles.toList())
+        processFiles(unversionedProjectConfigurationFiles)
       }
     }
   }
 
-  override fun doFilterFiles(files: Collection<VirtualFile>): Collection<VirtualFile> {
+  private fun filterProjectConfigurationFiles(files: Collection<VirtualFile>): Set<VirtualFile> {
     val projectConfigDir = getProjectConfigDir(project)
 
     return files

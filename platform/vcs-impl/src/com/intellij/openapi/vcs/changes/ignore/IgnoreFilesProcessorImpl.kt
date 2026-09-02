@@ -78,7 +78,7 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
 
     val restFiles = silentlyIgnoreFilesInsideConfigDir(files)
     if (needProcessIgnoredFiles() && restFiles.isNotEmpty()) {
-      processFiles(restFiles)
+      processFiles(collectUnversionedUnder(restFiles))
     }
   }
 
@@ -86,7 +86,7 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     val configDir = project.stateStore.directoryStorePath ?: return files
     val configDirFile = LocalFileSystem.getInstance().findFileByNioFile(configDir) ?: return files
     val filesInConfigDir = files.filter { VfsUtil.isAncestor(configDirFile, it, true) }
-    val unversionedFilesInConfigDir = doFilterFiles(filesInConfigDir)
+    val unversionedFilesInConfigDir = collectUnversionedUnder(filesInConfigDir)
 
     runInEdt {
       writeIgnores(project, unversionedFilesInConfigDir)
@@ -203,13 +203,13 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     return VfsUtilCore.isAncestor(storeDir, this, true)
   }
 
-  override fun doFilterFiles(files: Collection<VirtualFile>): List<VirtualFile> {
+  private fun collectUnversionedUnder(files: Collection<VirtualFile>): Set<VirtualFile> {
     val parents = files.toHashSet()
     return ChangeListManager.getInstance(project).unversionedFilesPaths
       .asSequence()
       .mapNotNull { it.virtualFile }
       .filter { isUnder(parents, it) }
-      .toList()
+      .toSet()
   }
 
   override fun rememberForAllProjects() {

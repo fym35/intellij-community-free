@@ -241,9 +241,6 @@ c:com.intellij.openapi.vcs.DefaultRepositoryLocation
 com.intellij.openapi.vcs.EditFileProvider
 - a:editFiles(com.intellij.openapi.vfs.VirtualFile[]):V
 - a:getRequestText():java.lang.String
-com.intellij.openapi.vcs.FilesProcessor
-- com.intellij.openapi.Disposable
-- a:processFiles(java.util.Collection):V
 c:com.intellij.openapi.vcs.FilterDescendantVirtualFileConvertible
 - com.intellij.openapi.vcs.AbstractFilterChildren
 - <init>(java.util.function.Function,java.util.Comparator):V
