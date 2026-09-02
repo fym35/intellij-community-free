@@ -566,7 +566,9 @@ data class BuildOptions(
   var storeGitRevision: Boolean = getBooleanProperty("intellij.build.store.git.revision", true)
 
   /**
-   * Specifies an additional list of compatible plugin names which should not be built, see [org.jetbrains.intellij.build.productLayout.ProductModulesLayout.compatiblePluginsToIgnore]
+   * The additional main modules of the compatible plugins that the build must not build.
+   *
+   * @see org.jetbrains.intellij.build.productLayout.ProductModulesLayout.compatiblePluginsToIgnore
    */
   var compatiblePluginsToIgnore: Set<String> = getSetProperty("intellij.build.compatible.plugins.to.ignore")
 

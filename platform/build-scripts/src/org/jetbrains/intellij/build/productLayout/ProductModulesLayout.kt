@@ -137,7 +137,10 @@ class ProductModulesLayout {
   var buildAllCompatiblePlugins: Boolean = true
 
   /**
-   * List of plugin names which should not be built even if they are compatible and [buildAllCompatiblePlugins] is true
+   * The main modules of the plugins that the build must not build, even when the plugin is compatible
+   * and [buildAllCompatiblePlugins] is `true`.
+   *
+   * Add to this list, and do not replace it, because the default value holds [DEV_ONLY_PLUGINS].
    */
   var compatiblePluginsToIgnore: PersistentList<String> = persistentListOf()
 
