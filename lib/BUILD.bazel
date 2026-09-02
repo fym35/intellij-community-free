@@ -6439,21 +6439,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.jetbrains.nativecerts/jvm-native-trusted-roots-1.1.7.jar_copy",
-    src = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7_http//file",
-    out = "org.jetbrains.nativecerts/jvm-native-trusted-roots-1.1.7.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "jvm-native-trusted-roots",
-    jar = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7_http//file",
-    source_jar = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.ehcache/sizeof-0.4.0.jar_copy",
     src = "@org_ehcache-sizeof-0_4_0_http//file",
     out = "org.ehcache/sizeof-0.4.0.jar",
@@ -12553,6 +12538,21 @@ jvm_import(
     name = "libraries-junit6-params-_j_unit6_params",
     jar = "@org_junit_jupiter-junit-jupiter-params-6_0_0_http//file",
     source_jar = "@org_junit_jupiter-junit-jupiter-params-6_0_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.nativecerts/jvm-native-trusted-roots-1.1.7.jar_copy",
+    src = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7_http//file",
+    out = "org.jetbrains.nativecerts/jvm-native-trusted-roots-1.1.7.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-jvm-native-trusted-roots-jvm-native-trusted-roots",
+    jar = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7_http//file",
+    source_jar = "@org_jetbrains_nativecerts-jvm-native-trusted-roots-1_1_7-sources_http//file",
     visibility = ["//visibility:public"],
 )
 
