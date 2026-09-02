@@ -13,7 +13,6 @@ import com.intellij.platform.pluginGraph.PluginModuleId
 import com.intellij.platform.pluginGraph.TargetName
 import com.intellij.platform.pluginGraph.contentName
 import org.jetbrains.intellij.build.ModuleOutputProvider
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
 import org.jetbrains.intellij.build.productLayout.deps.ContentModuleDependencyPlanOutput
 import org.jetbrains.intellij.build.productLayout.deps.PluginDependencyPlanOutput
@@ -50,9 +49,7 @@ import org.jetbrains.jps.model.java.JpsJavaLibraryType
 import org.jetbrains.jps.model.java.JpsJavaModuleType
 import org.jetbrains.jps.model.library.JpsMavenRepositoryLibraryDescriptor
 import org.jetbrains.jps.model.library.JpsRepositoryLibraryType
-import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModule
-import org.jetbrains.jps.model.module.JpsModuleReference
 import org.jetbrains.jps.model.serialization.JpsModelSerializationDataService
 import org.jetbrains.jps.model.serialization.impl.JpsModuleSerializationDataExtensionImpl
 import org.jetbrains.jps.util.JpsPathUtil
@@ -750,8 +747,6 @@ private fun isTestPluginByName(pluginName: String): Boolean {
 
 internal fun createTestModuleOutputProvider(project: JpsProject): ModuleOutputProvider {
   return object : ModuleOutputProvider {
-    private val projectLibraryToModuleMapCache by lazy { buildTestProjectLibraryToModuleMap(project) }
-
     override fun findModule(name: String): JpsModule? = project.modules.find { it.name == name }
 
     override fun findRequiredModule(name: String): JpsModule {
@@ -769,8 +764,6 @@ internal fun createTestModuleOutputProvider(project: JpsProject): ModuleOutputPr
       throw UnsupportedOperationException("Not needed for this test")
     }
 
-    override fun getProjectLibraryToModuleMap(): Map<String, String> = projectLibraryToModuleMapCache
-
     override fun getAllModules(): List<JpsModule> = project.modules
 
     override fun readFileContentFromModuleOutput(module: JpsModule, relativePath: String, forTests: Boolean): ByteArray {
@@ -784,38 +777,6 @@ internal fun createTestModuleOutputProvider(project: JpsProject): ModuleOutputPr
       return baseDir.resolve("${module.name}.iml")
     }
   }
-}
-
-private fun buildTestProjectLibraryToModuleMap(project: JpsProject): Map<String, String> {
-  val javaExtensionService = JpsJavaExtensionService.getInstance()
-  val result = HashMap<String, String>()
-
-  for (module in project.modules) {
-    val moduleName = module.name
-    if (!moduleName.startsWith(LIB_MODULE_PREFIX)) {
-      continue
-    }
-
-    for (dep in module.dependenciesList.dependencies) {
-      if (dep !is JpsLibraryDependency) {
-        continue
-      }
-
-      val libRef = dep.libraryReference
-      if (libRef.parentReference is JpsModuleReference) {
-        continue
-      }
-
-      if (javaExtensionService.getDependencyExtension(dep)?.isExported != true) {
-        continue
-      }
-
-      val libName = dep.library?.name ?: libRef.libraryName
-      result.put(libName, moduleName)
-    }
-  }
-
-  return result
 }
 
 // ========== Validation Rule Test Utilities ==========
@@ -861,7 +822,6 @@ internal fun testGenerationModel(
       discoveredProducts = emptyList(),
       projectRoot = Path.of("."),
       outputProvider = effectiveOutputProvider,
-      projectLibraryToModuleMap = effectiveOutputProvider.getProjectLibraryToModuleMap(),
       libraryLicenses = libraryLicenses,
       communityLibraryLicenses = communityLibraryLicenses,
       pluginAllowedMissingDependencies = pluginAllowedMissingDependencies,
@@ -1018,8 +978,6 @@ private fun stubModuleOutputProvider(): ModuleOutputProvider {
     override fun findLibraryRoots(libraryName: String, moduleLibraryModuleName: String?): List<Path> {
       throw UnsupportedOperationException("Stub")
     }
-
-    override fun getProjectLibraryToModuleMap(): Map<String, String> = emptyMap()
 
     override fun readFileContentFromModuleOutput(module: JpsModule, relativePath: String, forTests: Boolean): ByteArray {
       throw UnsupportedOperationException("Stub")

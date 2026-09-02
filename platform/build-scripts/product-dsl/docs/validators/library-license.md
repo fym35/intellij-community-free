@@ -54,4 +54,3 @@ Ensures every third-party library that reaches a distribution has a license entr
 - [community-library-license.md](community-library-license.md)
 - [validation-rules.md](../validation-rules.md)
 - [errors.md](../errors.md)
-- [library-module.md](library-module.md)

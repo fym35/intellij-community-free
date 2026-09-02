@@ -228,8 +228,6 @@ internal class ArchivedCompilationContextTest {
 
     override fun findLibraryRoots(libraryName: String, moduleLibraryModuleName: String?): List<Path> = emptyList()
 
-    override fun getProjectLibraryToModuleMap(): Map<String, String> = emptyMap()
-
     override fun getModuleOutputRoots(module: JpsModule, forTests: Boolean): List<Path> {
       return if (!forTests && module == this.module) listOf(moduleOutputRoot) else emptyList()
     }

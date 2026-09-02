@@ -32,9 +32,7 @@ import org.jetbrains.intellij.build.productLayout.stats.SuppressionType
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.util.isProductionRuntimeDependency
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
-import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModuleDependency
-import org.jetbrains.jps.model.module.JpsModuleReference
 import java.nio.file.Path
 
 /**
@@ -109,7 +107,6 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
               contentModuleName = moduleName,
               descriptorCache = model.descriptorCache,
               outputProvider = model.outputProvider,
-              projectLibraryToModuleMap = model.config.projectLibraryToModuleMap,
               pluginGraph = model.pluginGraph,
               isTestDescriptor = isTestDescriptorModule,
               suppressionConfig = model.suppressionConfig,
@@ -188,7 +185,6 @@ internal fun planContentModuleDependenciesWithBothSets(
   contentModuleName: ContentModuleName,
   descriptorCache: ModuleDescriptorCache,
   outputProvider: ModuleOutputProvider? = null,
-  projectLibraryToModuleMap: Map<String, String> = emptyMap(),
   pluginGraph: PluginGraph,
   isTestDescriptor: Boolean,
   suppressionConfig: SuppressionConfig,
@@ -213,7 +209,6 @@ internal fun planContentModuleDependenciesWithBothSets(
     contentModuleName = contentModuleName,
     prodInfo = prodInfo,
     outputProvider = outputProvider,
-    projectLibraryToModuleMap = projectLibraryToModuleMap,
     graph = pluginGraph,
     suppressionConfig = suppressionConfig,
     updateSuppressions = updateSuppressions,
@@ -241,7 +236,6 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
   contentModuleName: ContentModuleName,
   prodInfo: ModuleDescriptorCache.DescriptorInfo,
   outputProvider: ModuleOutputProvider?,
-  projectLibraryToModuleMap: Map<String, String>,
   graph: PluginGraph,
   suppressionConfig: SuppressionConfig,
   updateSuppressions: Boolean,
@@ -298,7 +292,6 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
     moduleName = contentModuleName,
     includeTestScope = includeTestScopeForWrittenDeps,
     outputProvider = outputProvider,
-    projectLibraryToModuleMap = projectLibraryToModuleMap,
   )
   val prodGraphModuleDeps = prodGraphDeps.moduleDeps
   val prodGraphPluginDeps = prodGraphDeps.pluginDeps
@@ -307,7 +300,6 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
     moduleName = contentModuleName,
     includeTestScope = true,
     outputProvider = outputProvider,
-    projectLibraryToModuleMap = projectLibraryToModuleMap,
   ).moduleDeps
   val nonProductionGraphModuleDeps = testGraphModuleDeps - prodGraphModuleDeps
   val xmlOnlySuppressionCandidateModuleDeps = existingXmlModulesAsContentModuleName.filterTo(LinkedHashSet()) {
@@ -588,13 +580,11 @@ internal fun computeJpsDeps(
   moduleName: ContentModuleName,
   includeTestScope: Boolean,
   outputProvider: ModuleOutputProvider? = null,
-  projectLibraryToModuleMap: Map<String, String> = emptyMap(),
 ): JpsDeps {
   val allowedModuleDeps = computeDirectJpsRuntimeModuleDeps(
     outputProvider = outputProvider,
     moduleName = moduleName,
     includeTestScope = includeTestScope,
-    projectLibraryToModuleMap = projectLibraryToModuleMap,
   )
   val moduleDeps = HashSet<ContentModuleName>()
   val pluginDeps = HashSet<PluginId>()
@@ -633,27 +623,15 @@ private fun computeDirectJpsRuntimeModuleDeps(
   outputProvider: ModuleOutputProvider?,
   moduleName: ContentModuleName,
   includeTestScope: Boolean,
-  projectLibraryToModuleMap: Map<String, String>,
 ): Set<ContentModuleName>? {
   val module = outputProvider?.findModule(moduleName.value) ?: return null
   val javaExtensionService = JpsJavaExtensionService.getInstance()
-  val libraryToModuleMap = projectLibraryToModuleMap.ifEmpty { outputProvider.getProjectLibraryToModuleMap() }
   val result = HashSet<ContentModuleName>()
 
+  // a library dependency adds nothing: a library reaches a module only through its wrapper module, which is a module dependency
   for (element in module.dependenciesList.dependencies) {
-    if (!isProductionRuntimeDependency(element, javaExtensionService, withTests = includeTestScope)) {
-      continue
-    }
-    when (element) {
-      is JpsModuleDependency -> result.add(ContentModuleName(element.moduleReference.moduleName))
-      is JpsLibraryDependency -> {
-        val libraryReference = element.libraryReference
-        if (libraryReference.parentReference is JpsModuleReference) {
-          continue
-        }
-        val libraryModuleName = libraryToModuleMap.get(libraryReference.libraryName) ?: continue
-        result.add(ContentModuleName(libraryModuleName))
-      }
+    if (element is JpsModuleDependency && isProductionRuntimeDependency(element, javaExtensionService, withTests = includeTestScope)) {
+      result.add(ContentModuleName(element.moduleReference.moduleName))
     }
   }
 

@@ -310,7 +310,6 @@ private fun generatePluginDependency(
         contentModuleName = contentModule,
         descriptorCache = descriptorCache,
         outputProvider = outputProvider,
-        projectLibraryToModuleMap = outputProvider.getProjectLibraryToModuleMap(),
         pluginGraph = graph,
         isTestDescriptor = isTestModule,
         suppressionConfig = effectiveConfig,

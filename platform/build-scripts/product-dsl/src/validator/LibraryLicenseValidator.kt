@@ -24,8 +24,8 @@ import org.jetbrains.jps.model.library.JpsRepositoryLibraryType
  * Output: `MissingLibraryLicenseError`.
  * Auto-fix: no.
  *
- * The rule walks the production modules of the plugin graph. `LibraryModuleValidator` and `TestLibraryScopeValidator`
- * read the JPS model through the same scope. The walk is recursive, so a module also reports the libraries of its
+ * The rule walks the production modules of the plugin graph. `TestLibraryScopeValidator`
+ * reads the JPS model through the same scope. The walk is recursive, so a module also reports the libraries of its
  * production runtime closure. A module that a plugin layout adds, and that the graph does not hold, is covered while
  * a module in the graph depends on it.
  *

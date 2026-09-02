@@ -102,13 +102,6 @@ data class ModuleSetGenerationConfig(
   @JvmField val pluginAllowedMissingDependencies: Map<ContentModuleName, Set<ContentModuleName>> = emptyMap(),
 
   /**
-   * Map from project library name to the library module that exports it.
-   * Built from JPS library modules (e.g., intellij.libraries.*) and used to map project
-   * library dependencies to module targets.
-   */
-  @JvmField val projectLibraryToModuleMap: Map<String, String> = emptyMap(),
-
-  /**
    * Path to the suppressions.json file.
    * If null, suppression config is not loaded/saved.
    * Should be set by the caller (e.g., ultimateGenerator.kt).

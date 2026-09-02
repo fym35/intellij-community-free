@@ -74,7 +74,6 @@ class ModelBuildingStageTest {
         discoveredProducts = emptyList(),
         projectRoot = tempDir,
         outputProvider = outputProvider,
-        projectLibraryToModuleMap = outputProvider.getProjectLibraryToModuleMap(),
       )
 
       val model = ModelBuildingStage.execute(

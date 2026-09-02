@@ -270,7 +270,7 @@ internal object ModelBuildingStage {
     }
     recordGenerationTiming("seedDslTestPluginTargets", phaseTimings) { seedDslTestPluginTargets(builder, dslTestPluginsByProduct) }
     recordGenerationTiming("addJpsDependencies", phaseTimings) {
-      addJpsDependencies(builder, outputProvider, config.projectLibraryToModuleMap)
+      addJpsDependencies(builder, outputProvider)
     }
     recordGenerationTiming("registerReferencedPlugins", phaseTimings) {
       registerReferencedPlugins(builder, pluginContentCache, pluginInfos)
@@ -294,7 +294,7 @@ internal object ModelBuildingStage {
       )
     }
     recordGenerationTiming("addJpsDependencies #2", phaseTimings) {
-      addJpsDependencies(builder, outputProvider, config.projectLibraryToModuleMap)
+      addJpsDependencies(builder, outputProvider)
     }
     recordGenerationTiming("registerReferencedPlugins #2", phaseTimings) {
       registerReferencedPlugins(builder, pluginContentCache, pluginInfos)
@@ -1020,11 +1020,7 @@ internal object ModelBuildingStage {
     )
   }
 
-  private fun addJpsDependencies(
-    builder: PluginGraphBuilder,
-    outputProvider: ModuleOutputProvider,
-    projectLibraryToModuleMap: Map<String, String>,
-  ) {
+  private fun addJpsDependencies(builder: PluginGraphBuilder, outputProvider: ModuleOutputProvider) {
     // ═══════════════════════════════════════════════════════════════════════════════
     // Phase 6: JPS Dependencies
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -1040,7 +1036,7 @@ internal object ModelBuildingStage {
     //
     // @see classifyTarget for how these edges are used in dependency classification
     // ───────────────────────────────────────────────────────────────────────────────
-    builder.addJpsDependencies(outputProvider, projectLibraryToModuleMap)
+    builder.addJpsDependencies(outputProvider)
   }
 
   private fun seedDslTestPluginTargets(

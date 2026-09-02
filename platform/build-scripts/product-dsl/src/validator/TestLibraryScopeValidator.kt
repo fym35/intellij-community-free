@@ -51,7 +51,7 @@ internal object TestLibraryScopeValidator : PipelineNode {
 
     val violationsByModule = HashMap<ContentModuleName, MutableList<TestLibraryViolation>>()
 
-    // Single-pass: iterate content modules directly (like LibraryModuleValidator)
+    // Single-pass: iterate content modules directly
     graph.query {
       contentModules { contentModule ->
         val moduleName = contentModule.name()

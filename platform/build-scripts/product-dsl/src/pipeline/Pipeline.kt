@@ -39,7 +39,6 @@ import org.jetbrains.intellij.build.productLayout.validator.ContentModulePluginD
 import org.jetbrains.intellij.build.productLayout.validator.EmbeddedContentModuleDependencyValidator
 import org.jetbrains.intellij.build.productLayout.validator.ImplicitEmbeddedContentModuleValidator
 import org.jetbrains.intellij.build.productLayout.validator.LibraryLicenseValidator
-import org.jetbrains.intellij.build.productLayout.validator.LibraryModuleValidator
 import org.jetbrains.intellij.build.productLayout.validator.PluginContentDependencyValidator
 import org.jetbrains.intellij.build.productLayout.validator.PluginContentDuplicatesValidator
 import org.jetbrains.intellij.build.productLayout.validator.PluginContentStructureValidator
@@ -579,7 +578,6 @@ internal class GenerationPipeline(
           PluginDescriptorIdConflictValidator,
           ContentModuleDependencyValidator,
           ContentModuleDependencyDeclarationValidator,
-          LibraryModuleValidator,
           ImplicitEmbeddedContentModuleValidator,
         )
       )

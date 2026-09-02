@@ -87,10 +87,6 @@ private class ArchivedModuleOutputProvider(
     return null
   }
 
-  override fun getProjectLibraryToModuleMap(): Map<String, String> {
-    return delegateOutputProvider.getProjectLibraryToModuleMap()
-  }
-
   override fun toString(): String {
     return "ArchivedModuleOutputProvider(" +
            "archivesLocation=${storage.archivedOutputDirectory}, " +

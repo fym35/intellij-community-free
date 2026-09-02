@@ -35,7 +35,6 @@ import org.jetbrains.intellij.build.mapConcurrent
  *
  * @see org.jetbrains.intellij.build.productLayout.validator.SelfContainedModuleSetValidator for self-contained module set validation
  * @see org.jetbrains.intellij.build.productLayout.validator.ProductModuleSetValidator for product module set validation
- * @see org.jetbrains.intellij.build.productLayout.validator.LibraryModuleValidator for library module dependency validation
  */
 internal object ProductModuleDependencyGenerator : PipelineNode {
   override val id get() = NodeIds.PRODUCT_MODULE_DEPS
@@ -74,14 +73,12 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
             moduleName = contentModuleName,
             includeTestScope = false,
             outputProvider = model.outputProvider,
-            projectLibraryToModuleMap = model.config.projectLibraryToModuleMap,
           ).moduleDeps
           val testAwareDeps = computeJpsDeps(
             graph = graph,
             moduleName = contentModuleName,
             includeTestScope = true,
             outputProvider = model.outputProvider,
-            projectLibraryToModuleMap = model.config.projectLibraryToModuleMap,
           ).moduleDeps
           val dependencies = productionDeps.sortedBy { it.value }
           val nonProductionDependencies = testAwareDeps - productionDeps
