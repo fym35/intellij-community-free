@@ -189,8 +189,7 @@ private val LAYOUT_PACKED_PROJECT_LIBRARIES = setOf(
   "slf4j-jdk14",
   // PlatformModules.kt: its own jar, IJPL-248572
   "jetbrains.intellij.deps.java.atk.wrapper.linux",
-  // PlatformModules.kt: their own jars, IDEA-179784 / IDEA-205600
-  "javax.annotation-api",
+  // PlatformModules.kt: its own jar, IDEA-179784 / IDEA-205600
   "javax.activation",
   "jaxb-runtime",
   "jaxb-api",

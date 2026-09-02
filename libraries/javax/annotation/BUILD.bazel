@@ -14,11 +14,14 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    exports = ["@lib//:javax-annotation-api"],
-    runtime_deps = ["@lib//:javax-annotation-api"],
+    exports = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
+    runtime_deps = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
 )
 
-content_module_jar(module = ":annotation")
+content_module_jar(
+    libraries = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
+    module = ":annotation",
+)
 
 jvm_library(
     name = "annotation_test_lib",
@@ -30,7 +33,7 @@ jvm_library(
     kotlinc_opts = "@community//:k8",
     module_name = "intellij.libraries.javax.annotation",
     visibility = ["//visibility:public"],
-    exports = ["@lib//:javax-annotation-api"],
+    exports = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
     runtime_deps = [":annotation"],
 )
 ### auto-generated section `build intellij.libraries.javax.annotation` end

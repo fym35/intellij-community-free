@@ -5811,13 +5811,6 @@ jvm_import(
     visibility = ["//visibility:public"],
 )
 
-jvm_import(
-    name = "javax-annotation-api",
-    jar = "@javax_annotation-javax_annotation-api-1_3_2_http//file",
-    source_jar = "@javax_annotation-javax_annotation-api-1_3_2-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
 copy_file(
     name = "javax.inject/javax.inject-1.jar_copy",
     src = "@javax_inject-javax_inject-1_http//file",
@@ -11452,6 +11445,13 @@ jvm_import(
     name = "libraries-java-websocket-_java-_web_socket",
     jar = "@org_java-websocket-Java-WebSocket-1_6_0_http//file",
     source_jar = "@org_java-websocket-Java-WebSocket-1_6_0-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-javax-annotation-javax-annotation-api",
+    jar = "@javax_annotation-javax_annotation-api-1_3_2_http//file",
+    source_jar = "@javax_annotation-javax_annotation-api-1_3_2-sources_http//file",
     visibility = ["//visibility:public"],
 )
 
