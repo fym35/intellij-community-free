@@ -117,7 +117,7 @@ class MPSProperties : JetBrainsProductProperties() {
 
             layout.withModule("intellij.java.rt", "idea_rt.jar")
             layout.withProjectLibrary("Eclipse", "lib.jar", "withProjectLibrary")
-            layout.withProjectLibrary("http-client", "lib.jar", "withProjectLibrary")
+            layout.withModuleLibrary("http-client", "intellij.libraries.http.client", "lib.jar")
 //            layout.withoutProjectLibrary("Ant")
             layout.withoutProjectLibrary("Gradle")
             // the JPS build process reads the library from lib/; the wrapper module itself ships with the aether dependency resolver plugin

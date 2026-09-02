@@ -5353,59 +5353,6 @@ jvm_import(
 )
 
 copy_file(
-    name = "org.apache.httpcomponents/httpmime-4.5.14.jar_copy",
-    src = "@org_apache_httpcomponents-httpmime-4_5_14_http//file",
-    out = "org.apache.httpcomponents/httpmime-4.5.14.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.httpcomponents/httpclient-4.5.14.jar_copy",
-    src = "@org_apache_httpcomponents-httpclient-4_5_14_http//file",
-    out = "org.apache.httpcomponents/httpclient-4.5.14.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "org.apache.httpcomponents/httpcore-4.4.16.jar_copy",
-    src = "@org_apache_httpcomponents-httpcore-4_4_16_http//file",
-    out = "org.apache.httpcomponents/httpcore-4.4.16.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-java_library(
-    name = "http-client",
-    visibility = ["//visibility:public"],
-    exports = [
-        # do not sort,
-        ":org_apache_httpcomponents-httpmime-4_5_14_http_import",
-        ":org_apache_httpcomponents-httpclient-4_5_14_http_import",
-        ":org_apache_httpcomponents-httpcore-4_4_16_http_import",
-    ],
-)
-
-jvm_import(
-    name = "org_apache_httpcomponents-httpmime-4_5_14_http_import",
-    jar = "@org_apache_httpcomponents-httpmime-4_5_14_http//file",
-    source_jar = "@org_apache_httpcomponents-httpmime-4_5_14-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_httpcomponents-httpclient-4_5_14_http_import",
-    jar = "@org_apache_httpcomponents-httpclient-4_5_14_http//file",
-    source_jar = "@org_apache_httpcomponents-httpclient-4_5_14-sources_http//file",
-)
-
-jvm_import(
-    name = "org_apache_httpcomponents-httpcore-4_4_16_http_import",
-    jar = "@org_apache_httpcomponents-httpcore-4_4_16_http//file",
-    source_jar = "@org_apache_httpcomponents-httpcore-4_4_16-sources_http//file",
-)
-
-copy_file(
     name = "org.jetbrains.intellij.plugins/structure-intellij-3.331.jar_copy",
     src = "@org_jetbrains_intellij_plugins-structure-intellij-3_331_http//file",
     out = "org.jetbrains.intellij.plugins/structure-intellij-3.331.jar",
@@ -11033,6 +10980,59 @@ jvm_import(
     jar = "@org_hdrhistogram-HdrHistogram-2_2_2_http//file",
     source_jar = "@org_hdrhistogram-HdrHistogram-2_2_2-sources_http//file",
     visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.httpcomponents/httpmime-4.5.14.jar_copy",
+    src = "@org_apache_httpcomponents-httpmime-4_5_14_http//file",
+    out = "org.apache.httpcomponents/httpmime-4.5.14.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.httpcomponents/httpclient-4.5.14.jar_copy",
+    src = "@org_apache_httpcomponents-httpclient-4_5_14_http//file",
+    out = "org.apache.httpcomponents/httpclient-4.5.14.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.apache.httpcomponents/httpcore-4.4.16.jar_copy",
+    src = "@org_apache_httpcomponents-httpcore-4_4_16_http//file",
+    out = "org.apache.httpcomponents/httpcore-4.4.16.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "libraries-http-client-http-client",
+    visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        ":org_apache_httpcomponents-httpmime-4_5_14_http_import",
+        ":org_apache_httpcomponents-httpclient-4_5_14_http_import",
+        ":org_apache_httpcomponents-httpcore-4_4_16_http_import",
+    ],
+)
+
+jvm_import(
+    name = "org_apache_httpcomponents-httpmime-4_5_14_http_import",
+    jar = "@org_apache_httpcomponents-httpmime-4_5_14_http//file",
+    source_jar = "@org_apache_httpcomponents-httpmime-4_5_14-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_httpcomponents-httpclient-4_5_14_http_import",
+    jar = "@org_apache_httpcomponents-httpclient-4_5_14_http//file",
+    source_jar = "@org_apache_httpcomponents-httpclient-4_5_14-sources_http//file",
+)
+
+jvm_import(
+    name = "org_apache_httpcomponents-httpcore-4_4_16_http_import",
+    jar = "@org_apache_httpcomponents-httpcore-4_4_16_http//file",
+    source_jar = "@org_apache_httpcomponents-httpcore-4_4_16-sources_http//file",
 )
 
 copy_file(
