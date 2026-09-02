@@ -17,8 +17,10 @@ import com.intellij.polySymbols.utils.coalesceWith
 import com.intellij.polySymbols.utils.nameSegments
 import com.intellij.polySymbols.utils.withOffset
 import com.intellij.util.text.CharSequenceSubSequence
+import org.jetbrains.annotations.ApiStatus
 
-internal class SequencePattern(private val patternsProvider: () -> List<PolySymbolPattern>) : PolySymbolPattern() {
+@ApiStatus.Internal
+class SequencePattern(private val patternsProvider: () -> List<PolySymbolPattern>) : PolySymbolPattern() {
 
   constructor(vararg patterns: PolySymbolPattern) : this({ patterns.toList() })
 

@@ -2,7 +2,7 @@
 package com.intellij.polySymbols.customElements
 
 import com.intellij.polySymbols.customElements.json.CustomElementsManifest
-import com.intellij.polySymbols.impl.objectMapper
+import com.intellij.polySymbols.webTypes.impl.objectMapper
 import org.jetbrains.annotations.ApiStatus
 import java.io.File
 import java.io.FileInputStream

@@ -4,7 +4,7 @@ package com.intellij.polySymbols.webTypes
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.isInCancellableContext
 import com.intellij.openapi.progress.util.runWithCheckCanceled
-import com.intellij.polySymbols.impl.objectMapper
+import com.intellij.polySymbols.webTypes.impl.objectMapper
 import com.intellij.polySymbols.webTypes.json.WebTypes
 import com.intellij.util.text.SemVer
 import kotlinx.coroutines.job

@@ -940,6 +940,7 @@ platform/pluginManager/shared.base
 platform/pluginSystem/parser/impl
 platform/pluginSystem/testFramework
 platform/polySymbols
+platform/polySymbols-web
 platform/polySymbols/backend
 platform/pratt
 platform/problemsView/backend
