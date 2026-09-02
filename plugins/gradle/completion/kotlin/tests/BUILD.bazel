@@ -13,7 +13,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         "//plugins/kotlin:kotlin-plugin-community-main",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
         "@lib//:kotlin-stdlib",
         "//platform/core-api:core",
         "//platform/util",
@@ -53,7 +53,8 @@ jvm_library(
         # do not sort,
         "//libraries/assertj-core",
         "//libraries/assertj-core:assertj-core_test_lib",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
+        "//libraries/kotlin/test:libraries-kotlinTest_test_lib",
         "@lib//:kotlin-stdlib",
         "//platform/core-api:core",
         "//platform/core-api:core_test_lib",

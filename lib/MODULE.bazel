@@ -5370,20 +5370,6 @@ http_file(
 )
 
 http_file(
-    name = "org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http",
-    downloaded_file_path = "kotlin-test-2.4.20-RC3.jar",
-    sha256 = "231b7911182fba58a81c18d8482ff733e9fca1a48213086df0837cb94f51d4fa",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-test/2.4.20-RC3/kotlin-test-2.4.20-RC3.jar",
-)
-
-http_file(
-    name = "org_jetbrains_kotlin-kotlin-test-2_4_20-RC3-sources_http",
-    downloaded_file_path = "kotlin-test-2.4.20-RC3-sources.jar",
-    sha256 = "c1f6593aade90f8a3ea9669f60eebdcff231b534169dd0d15873410f337f0937",
-    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-test/2.4.20-RC3/kotlin-test-2.4.20-RC3-sources.jar",
-)
-
-http_file(
     name = "org_jetbrains_kotlin-kotlin-test-junit5-2_2_20_http",
     downloaded_file_path = "kotlin-test-junit5-2.2.20.jar",
     sha256 = "677dcbb681b33eb5df548f16171fcedf37214302a8b2d7731a37d30cdc6a20af",
@@ -10246,6 +10232,20 @@ http_file(
     downloaded_file_path = "kotlin-tooling-core-1.9.20-dev-8162-sources.jar",
     sha256 = "1b13cee4e9b562f5cd553370840c9b91d283235a61ffe87ca1efb069ede88294",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-tooling-core/1.9.20-dev-8162/kotlin-tooling-core-1.9.20-dev-8162-sources.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http",
+    downloaded_file_path = "kotlin-test-2.4.20-RC3.jar",
+    sha256 = "231b7911182fba58a81c18d8482ff733e9fca1a48213086df0837cb94f51d4fa",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-test/2.4.20-RC3/kotlin-test-2.4.20-RC3.jar",
+)
+
+http_file(
+    name = "org_jetbrains_kotlin-kotlin-test-2_4_20-RC3-sources_http",
+    downloaded_file_path = "kotlin-test-2.4.20-RC3-sources.jar",
+    sha256 = "c1f6593aade90f8a3ea9669f60eebdcff231b534169dd0d15873410f337f0937",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-test/2.4.20-RC3/kotlin-test-2.4.20-RC3-sources.jar",
 )
 
 http_file(

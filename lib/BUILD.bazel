@@ -6733,21 +6733,6 @@ java_library(
 )
 
 copy_file(
-    name = "org.jetbrains.kotlin/kotlin-test-2.4.20-RC3.jar_copy",
-    src = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http//file",
-    out = "org.jetbrains.kotlin/kotlin-test-2.4.20-RC3.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "kotlin-test",
-    jar = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http//file",
-    source_jar = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
     name = "org.jetbrains.kotlin/kotlin-test-junit5-2.2.20.jar_copy",
     src = "@org_jetbrains_kotlin-kotlin-test-junit5-2_2_20_http//file",
     out = "org.jetbrains.kotlin/kotlin-test-junit5-2.2.20.jar",
@@ -12834,6 +12819,21 @@ jvm_import(
     name = "libraries-kotlin-tooling-core-kotlin-tooling-core",
     jar = "@org_jetbrains_kotlin-kotlin-tooling-core-1_9_20-dev-8162_http//file",
     source_jar = "@org_jetbrains_kotlin-kotlin-tooling-core-1_9_20-dev-8162-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "org.jetbrains.kotlin/kotlin-test-2.4.20-RC3.jar_copy",
+    src = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http//file",
+    out = "org.jetbrains.kotlin/kotlin-test-2.4.20-RC3.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-kotlin_test-kotlin-test",
+    jar = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3_http//file",
+    source_jar = "@org_jetbrains_kotlin-kotlin-test-2_4_20-RC3-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

@@ -205,7 +205,7 @@ jvm_library(
         "//platform/structure-view-impl/plugin",
         "//platform/todo/plugin",
         "//platform/ide-core-impl",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
         "//platform/forms_rt:java-guiForms-rt",
     ],
 )
@@ -293,7 +293,8 @@ jvm_library(
         "//platform/backend/workspace:workspace_test_lib",
         "//platform/testFramework/junit5",
         "//platform/testFramework/junit5:junit5_test_lib",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
+        "//libraries/kotlin/test:libraries-kotlinTest_test_lib",
         "//platform/util",
         "//platform/util:util_test_lib",
         "//platform/util:util-ui",

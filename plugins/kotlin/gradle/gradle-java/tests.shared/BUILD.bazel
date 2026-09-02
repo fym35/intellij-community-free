@@ -19,7 +19,7 @@ jvm_library(
         "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
         "//platform/backend/workspace",
         "//libraries/kotlin/gradle-plugin-idea:libraries-kotlin-gradle-plugin-idea",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
         "//plugins/kotlin/gradle/gradle-java",
     ],
 )
@@ -115,7 +115,8 @@ jvm_library(
         "//libraries/kotlin/gradle-plugin-idea:libraries-kotlin-gradle-plugin-idea_test_lib",
         "//plugins/gradle/tooling-extension-impl:toolingExtension-tests",
         "//plugins/gradle/tooling-extension-impl:toolingExtension-tests_test_lib",
-        "@lib//:kotlin-test",
+        "//libraries/kotlin/test:libraries-kotlinTest",
+        "//libraries/kotlin/test:libraries-kotlinTest_test_lib",
         "//plugins/kotlin/base/project-model",
         "//plugins/kotlin/base/project-model:project-model_test_lib",
         "//plugins/kotlin/highlighting/highlighting-k2:kotlin-highlighting",
