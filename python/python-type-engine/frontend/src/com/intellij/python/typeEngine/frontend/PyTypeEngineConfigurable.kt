@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.lsp.core.typeEngine
+package com.intellij.python.typeEngine.frontend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.observable.properties.PropertyGraph
@@ -14,12 +14,9 @@ import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
 import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
-import com.intellij.python.typeEngine.TypeEngineFrontendBundle
 import com.intellij.python.typeEngine.common.PyTypeEngineApi
 import com.intellij.python.typeEngine.common.PyTypeEngineId
 import com.intellij.python.typeEngine.common.PyTypeEngineSelectionRequest
-import com.intellij.python.typeEngine.frontend.PyTypeEngineFrontend
-import com.intellij.python.typeEngine.frontend.PyTypeEngineFrontendState
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.SegmentedButton
 

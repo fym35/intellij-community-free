@@ -1,10 +1,9 @@
-package com.intellij.python.typeEngine
+package com.intellij.python.typeEngine.frontend
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurableProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.python.lsp.core.typeEngine.PyTypeEngineConfigurable
 
 /**
  * Provider for Type Engine configurable.

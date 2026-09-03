@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.typeEngine
+package com.intellij.python.typeEngine.frontend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -20,17 +20,13 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
-import com.intellij.python.lsp.core.typeEngine.PyTypeEngineConfigurable
 import com.intellij.platform.project.projectId
 import com.intellij.python.typeEngine.common.PyTypeEngineApi
 import com.intellij.python.typeEngine.common.PyTypeEngineEvent
 import com.intellij.python.typeEngine.common.PyTypeEngineEventRequest
 import com.intellij.python.typeEngine.common.PyTypeEngineId
 import com.intellij.python.typeEngine.common.PyTypeEngineSelectionRequest
-import com.intellij.python.typeEngine.frontend.PyTypeEngineFrontend
-import com.intellij.python.typeEngine.frontend.PyTypeEngineFrontendState
 import com.intellij.ui.components.Badge
-import com.intellij.util.messages.MessageBusConnection
 import com.jetbrains.python.PythonFileType
 import com.jetbrains.python.pyi.PyiFileType
 import kotlinx.coroutines.CoroutineScope
@@ -61,8 +57,16 @@ internal class PyTypeEngineStatusBarWidgetFactory : StatusBarWidgetFactory {
  */
 private class PyTypeEngineStatusBarWidget(
   project: Project,
-  scope: CoroutineScope,
-) : EditorBasedStatusBarPopup(project = project, isWriteableFileRequired = false, scope = scope) {
+  coroutineScope: CoroutineScope,
+) : EditorBasedStatusBarPopup(project = project, isWriteableFileRequired = false, scope = coroutineScope) {
+  init {
+    scope.launch {
+      PyTypeEngineFrontendState.getInstance(project).states().collect {
+        tryUpdateWidgetState()
+      }
+    }
+  }
+
   override fun ID(): String = ID
 
   override fun createInstance(project: Project): StatusBarWidget = PyTypeEngineStatusBarWidget(project, scope)
@@ -80,14 +84,6 @@ private class PyTypeEngineStatusBarWidget(
       TypeEngineFrontendBundle.message("widget.type.text", typeEngineName),
       true
     )
-  }
-
-  override fun registerCustomListeners(connection: MessageBusConnection) {
-    scope.launch {
-      PyTypeEngineFrontendState.getInstance(project).states().collect {
-        tryUpdateWidgetState()
-      }
-    }
   }
 
   override fun isEnabledForFile(file: VirtualFile?): Boolean = file?.fileType in setOf(PythonFileType.INSTANCE, PyiFileType.INSTANCE)

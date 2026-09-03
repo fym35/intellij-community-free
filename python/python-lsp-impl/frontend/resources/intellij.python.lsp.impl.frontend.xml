@@ -16,6 +16,6 @@
   </dependencies>
   <!-- endregion -->
   <extensions defaultExtensionNs="com.intellij">
-    <postStartupActivity implementation="com.intellij.python.lsp.impl.PyLspToolAdvertiserStartupActivity"/>
+    <postStartupActivity implementation="com.intellij.python.lsp.impl.frontend.PyLspToolAdvertiserStartupActivity"/>
   </extensions>
 </idea-plugin>

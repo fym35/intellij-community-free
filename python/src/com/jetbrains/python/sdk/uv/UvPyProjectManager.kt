@@ -26,7 +26,7 @@ import com.intellij.python.uv.backend.UvPyTool
 import com.intellij.python.uv.backend.runtime.createUvToolRuntime
 import com.intellij.python.uv.backend.runtime.uvCli
 import com.intellij.python.uv.common.UV_TOOL_ID
-import com.intellij.python.uv.common.UV_UI_INFO
+import com.intellij.python.community.impl.uv.common.UV_UI_INFO
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.python.PyToolUIInfo
 import com.jetbrains.python.Result

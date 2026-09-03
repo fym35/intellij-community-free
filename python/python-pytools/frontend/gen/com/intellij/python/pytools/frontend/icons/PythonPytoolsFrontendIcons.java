@@ -17,7 +17,7 @@ public final class PythonPytoolsFrontendIcons {
 
   public static final class Expui {
     /** 16x16 */ public static final @NotNull Icon Basedpyright = load("icons/com/intellij/python/pytools/expui/basedpyright.svg", -488066314, 0);
-    /** 16x16 */ public static final @NotNull Icon Black = load("icons/com/intellij/python/pytools/expui/black.svg", -443357570, 0);
+    /** 16x16 */ public static final @NotNull Icon Black = load("icons/com/intellij/python/pytools/expui/black.svg", -443357570, 2);
     /** 16x16 */ public static final @NotNull Icon Conda = load("icons/com/intellij/python/pytools/expui/conda.svg", -1287800788, 0);
     /** 16x16 */ public static final @NotNull Icon Hatch = load("icons/com/intellij/python/pytools/expui/hatch.svg", -1457519232, 0);
     /** 16x16 */ public static final @NotNull Icon Logo = load("icons/com/intellij/python/pytools/expui/logo.svg", 1041437607, 0);

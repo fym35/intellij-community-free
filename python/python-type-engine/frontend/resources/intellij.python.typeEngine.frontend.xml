@@ -33,11 +33,11 @@
                          id="com.intellij.python.lsp.core.PyTypeEngineConfigurable"
                          bundle="messages.TypeEngineFrontendBundle"
                          key="display.name"
-                         provider="com.intellij.python.typeEngine.PyChooserTypeEngineConfigurableProvider"
+                         provider="com.intellij.python.typeEngine.frontend.PyChooserTypeEngineConfigurableProvider"
                          groupWeight="190"
                          nonDefaultProject="true"/>
     <statusBarWidgetFactory id="pythonTypeEngineWidget"
-                            implementation="com.intellij.python.typeEngine.PyTypeEngineStatusBarWidgetFactory"
+                            implementation="com.intellij.python.typeEngine.frontend.PyTypeEngineStatusBarWidgetFactory"
                             order="after CodeStyleStatusBarWidget, before pythonInterpreterWidget"/>
   </extensions>
 </idea-plugin>

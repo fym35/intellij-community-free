@@ -5,7 +5,7 @@ package com.jetbrains.python.sdk.evolution
 
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.python.uv.backend.cli.uv.UvPythonEntry
-import com.intellij.python.uv.common.UV_UI_INFO
+import com.intellij.python.community.impl.uv.common.UV_UI_INFO
 import com.intellij.python.uv.backend.UvSystemPythonService
 import com.intellij.python.sdk.backend.evolution.evoEnvLeaf
 import com.intellij.python.sdk.common.evolution.EvoCurrentRecreateDto

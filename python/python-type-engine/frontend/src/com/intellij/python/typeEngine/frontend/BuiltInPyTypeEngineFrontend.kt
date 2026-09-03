@@ -3,7 +3,6 @@ package com.intellij.python.typeEngine.frontend
 
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.project.Project
-import com.intellij.python.typeEngine.TypeEngineFrontendBundle
 import com.intellij.python.typeEngine.common.PyTypeEngineId
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RowsRange
