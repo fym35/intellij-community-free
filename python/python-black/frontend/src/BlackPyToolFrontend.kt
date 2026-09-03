@@ -6,6 +6,7 @@ import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Version
 import com.intellij.python.black.common.PyBlackToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend
 import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
 import com.intellij.python.black.frontend.PyBlackFrontendBundle.message
@@ -14,7 +15,7 @@ import javax.swing.Icon
 internal class BlackPyToolFrontend : ExternalPyToolFrontend<PyBlackToolConfigurationDto> {
   override val presentableName: String = "Black"
   override val description: String get() = message("black.tool.description")
-  override val packageName: String = "black"
+  override val toolId: PyToolId = BLACK_TOOL_ID
   override val icon: Icon get() = PythonPytoolsFrontendIcons.Expui.Black
   override val minimumSupportedVersion: Version = Version(23, 11, 0)
   override val configurationClass: Class<PyBlackToolConfigurationDto> = PyBlackToolConfigurationDto::class.java
@@ -31,3 +32,5 @@ internal class BlackPyToolFrontend : ExternalPyToolFrontend<PyBlackToolConfigura
     }.joinToString(", ")
   }
 }
+
+internal val BLACK_TOOL_ID: PyToolId = PyToolId("black")

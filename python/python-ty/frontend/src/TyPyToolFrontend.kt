@@ -2,6 +2,7 @@
 package com.intellij.python.ty.frontend
 
 import com.intellij.python.lsp.core.frontend.LspPyToolFrontend
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
 import com.intellij.util.IconUtil
 import javax.swing.Icon
@@ -9,6 +10,6 @@ import javax.swing.Icon
 internal class TyPyToolFrontend : LspPyToolFrontend {
   override val presentableName: String = "ty"
   override val description: String get() = TyFrontendBundle.message("ty.tool.description")
-  override val packageName: String = "ty"
+  override val toolId: PyToolId = PyToolId("ty")
   override val icon: Icon = IconUtil.downscaleIconToSize(PythonPytoolsFrontendIcons.Expui.TY, 16, 16)
 }

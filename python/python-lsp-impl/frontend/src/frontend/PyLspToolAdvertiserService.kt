@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetEnabledRequest
 import com.intellij.python.pytools.frontend.PyToolFrontend
@@ -26,11 +27,11 @@ import org.jetbrains.annotations.ApiStatus
 private const val NOTIFICATION_GROUP_ID = "Python LSP Tools"
 private const val DONT_ASK_PROPERTY_PREFIX = "python.lsp.tool.dont.ask."
 
-private val ADVERTISED_TOOL_IDS = listOf("ruff", "basedpyright", "pyright", "ty")
+private val ADVERTISED_TOOL_IDS = listOf("ruff", "basedpyright", "pyright", "ty").map(::PyToolId)
 
-private fun lspTools(): List<LspPyToolFrontend> = ADVERTISED_TOOL_IDS.mapNotNull { packageName ->
-  PyToolFrontend.findByPackageName(packageName) as? LspPyToolFrontend
-}
+private fun lspTools(): List<LspPyToolFrontend> = ADVERTISED_TOOL_IDS
+  .mapNotNull(PyToolFrontend::findById)
+  .filterIsInstance<LspPyToolFrontend>()
 
 /**
  * Service that detects LSP tools installed in the user's virtual environment

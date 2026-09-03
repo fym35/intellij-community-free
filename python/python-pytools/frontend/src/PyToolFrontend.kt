@@ -14,33 +14,22 @@ import javax.swing.Icon
 
 interface PyToolFrontend {
   val presentableName: @NlsSafe String
-  val packageName: @NlsSafe String
+
+  /** The stable identifier shared with the backend tool. */
+  val toolId: PyToolId
+
   val icon: Icon
+
   val description: @Nls String
   val minimumSupportedVersion: Version? get() = null
-
-  val toolId: PyToolId get() = PyToolId(packageName)
 
   companion object {
     val EP_NAME: ExtensionPointName<PyToolFrontend> = ExtensionPointName.create("com.intellij.python.pytools.pyToolFrontend")
 
-    fun findByPackageName(packageName: String): PyToolFrontend? {
-      val normalized = normalizePackageName(packageName)
-      return EP_NAME.extensionList.firstOrNull { it.packageName == normalized }
-    }
+    /** Finds a frontend tool by its stable identifier. */
+    fun findById(toolId: PyToolId): PyToolFrontend? =
+      EP_NAME.extensionList.firstOrNull { it.toolId == toolId }
   }
-}
-
-private fun normalizePackageName(packageName: String): String {
-  var name = packageName.trim()
-    .removePrefix("\"")
-    .removeSuffix("\"")
-
-  if (!name.startsWith("_")) {
-    name = name.replace('_', '-')
-  }
-
-  return name.replace('.', '-').lowercase()
 }
 
 interface ExternalPyToolFrontend<C : PyToolConfigurationDto> : PyToolFrontend {
