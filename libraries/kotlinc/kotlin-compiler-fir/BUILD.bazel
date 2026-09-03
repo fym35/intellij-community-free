@@ -18,6 +18,7 @@ jvm_library(
         # do not sort,
         "@lib//:libraries-kotlinc-kotlin-compiler-fir-kotlinc-kotlin-compiler-fir",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-compiler-ir:libraries-kotlinc-kotlin-compiler-ir",
     ],
 )
 
@@ -36,6 +37,7 @@ jvm_library(
         # do not sort,
         ":libraries-kotlinc-kotlin-compiler-fir",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-ir:libraries-kotlinc-kotlin-compiler-ir_test_lib",
     ],
 )
 ### auto-generated section `build intellij.libraries.kotlinc.kotlin.compiler.fir` end

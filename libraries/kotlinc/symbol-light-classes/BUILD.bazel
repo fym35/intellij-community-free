@@ -20,6 +20,7 @@ jvm_library(
         "@lib//:libraries-kotlinc-symbol-light-classes-kotlinc-symbol-light-classes",
         "//platform/backend",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api",
         "//libraries/kotlinc/analysis-api-platform-interface:libraries-kotlinc-analysis-api-platform-interface",
     ],
 )
@@ -41,6 +42,7 @@ jvm_library(
         "//java/java-psi-impl:psi-impl_test_lib",
         "//platform/backend:backend_test_lib",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
+        "//libraries/kotlinc/analysis-api:libraries-kotlinc-analysis-api_test_lib",
         "//libraries/kotlinc/analysis-api-platform-interface:libraries-kotlinc-analysis-api-platform-interface_test_lib",
     ],
 )

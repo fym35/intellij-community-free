@@ -19,6 +19,7 @@ jvm_library(
         "@lib//:libraries-kotlinc-lombok-compiler-plugin-kotlinc-lombok-compiler-plugin",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
         "//libraries/kotlinc/kotlin-compiler-fir:libraries-kotlinc-kotlin-compiler-fir",
+        "//libraries/kotlinc/kotlin-compiler-ir:libraries-kotlinc-kotlin-compiler-ir",
     ],
 )
 
@@ -37,6 +38,7 @@ jvm_library(
         ":libraries-kotlinc-lombok-compiler-plugin",
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common_test_lib",
         "//libraries/kotlinc/kotlin-compiler-fir:libraries-kotlinc-kotlin-compiler-fir_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-ir:libraries-kotlinc-kotlin-compiler-ir_test_lib",
     ],
 )
 ### auto-generated section `build intellij.libraries.kotlinc.lombok.compiler.plugin` end
