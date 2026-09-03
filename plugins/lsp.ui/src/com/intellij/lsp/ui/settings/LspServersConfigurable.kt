@@ -7,6 +7,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.DumbAwareAction
@@ -16,11 +17,13 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.NamedConfigurable
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.lsp.api.LspClientManager
+import com.intellij.platform.lsp.api.LspIntegrationProvider
+import com.intellij.platform.lsp.impl.LspPluginServerConfiguration
+import com.intellij.platform.lsp.impl.LspServerSettingsProvider
 import com.intellij.ui.EditorNotifications
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.IconUtil
 import javax.swing.tree.TreeNode
-
 internal class LspServersConfigurable(private val project: Project) : MasterDetailsComponent(), SearchableConfigurable, Disposable {
   private val settings = LspServerSettings.getInstance(project)
 
@@ -69,16 +72,22 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
     }
 
     override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = selectedNode != null
+      e.presentation.isEnabled = selectedNode?.configurable is LspServerNamedConfigurable
     }
   }
 
   override fun initUi() {
-    settings.servers.forEach { server ->
-      val serverCopy = server.copy()
-      addServerNode(serverCopy)
-    }
+    addServerNodes()
     super.initUi()
+  }
+
+  private fun addServerNodes() {
+    for (server in settings.servers) {
+      addServerNode(server.copy())
+    }
+    LspServerSettingsProvider.EP_NAME.processWithPluginDescriptor { provider, pluginDescriptor ->
+      addPluginServerNode(provider, settings.getPluginConfiguration(provider), pluginDescriptor)
+    }
   }
 
   private fun generateUniqueName(): String {
@@ -101,6 +110,18 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
     return node
   }
 
+  private fun addPluginServerNode(
+    provider: LspServerSettingsProvider,
+    configuration: LspPluginServerConfiguration,
+    pluginDescriptor: PluginDescriptor,
+  ): MyNode {
+    val configurable = PluginLspServerNamedConfigurable(project, provider, configuration, pluginDescriptor, TREE_UPDATER)
+    val node = MyNode(configurable)
+    Disposer.register(this, configurable)
+    addNode(node, myRoot)
+    return node
+  }
+
   override fun wasObjectStored(editableObject: Any?): Boolean {
     if (editableObject is LspServerConfiguration) {
       return settings.servers.contains(editableObject)
@@ -114,10 +135,11 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
     super.apply()
 
     val newServers = mutableListOf<LspServerConfiguration>()
+    val pluginConfigurables = mutableListOf<PluginLspServerNamedConfigurable>()
     processNodes { node ->
-      if (node.configurable is LspServerNamedConfigurable) {
-        val config = (node.configurable as LspServerNamedConfigurable).editableObject
-        newServers.add(config)
+      when (val configurable = node.configurable) {
+        is LspServerNamedConfigurable -> newServers.add(configurable.editableObject)
+        is PluginLspServerNamedConfigurable -> pluginConfigurables.add(configurable)
       }
       true
     }
@@ -127,10 +149,21 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
       throw ConfigurationException(LspUiBundle.message("lsp.settings.error.duplicate.names", duplicateNames.joinToString(", ")))
     }
 
+    val providersToRestart = linkedSetOf<Class<out LspIntegrationProvider>>()
+    for (configurable in pluginConfigurables) {
+      val providerClass = configurable.applyConfiguration()
+      if (providerClass != null) {
+        providersToRestart.add(providerClass)
+      }
+    }
+
     settings.servers.clear()
     settings.servers.addAll(newServers)
     if (!project.isDefault) {
       LspClientManager.getInstance(project).stopAndRestartClientsIfNeeded(ConfigurableLspIntegrationProvider::class.java)
+      providersToRestart.forEach { providerClass ->
+        LspClientManager.getInstance(project).stopAndRestartClientsIfNeeded(providerClass)
+      }
       EditorNotifications.getInstance(project).updateAllNotifications()
     }
   }
@@ -156,11 +189,7 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
 
   override fun reset() {
     myRoot.removeAllChildren()
-
-    for (server in settings.servers) {
-      val serverCopy = server.copy()
-      addServerNode(serverCopy)
-    }
+    addServerNodes()
 
     super<MasterDetailsComponent>.reset()
   }

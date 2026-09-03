@@ -116,31 +116,28 @@ internal class LspServerConfigurable(
         }.topGap(TopGap.MEDIUM)
       }
 
-      val advancedSection = collapsibleGroup(LspUiBundle.message("lsp.settings.server.advanced.group")) {
-        row {
-          label(LspUiBundle.message("lsp.settings.server.init"))
-        }
-        row {
-          textArea()
-            .bindText(configuration::initializationOptions)
-            .rows(5)
-            .comment(LspUiBundle.message("lsp.settings.server.init.comment"))
-            .columns(COLUMNS_LARGE)
-        }
-
-        row(LspUiBundle.message("lsp.settings.server.environment.variables")) {
-          cell(EnvironmentVariablesTextFieldWithBrowseButton())
-            .bind(
-              componentGet = { component -> component.data },
-              componentSet = { component, data -> component.data = data },
-              MutableProperty(getter = { configuration.envVars.get() }, setter = { configuration.envVars.set(it) })
-            )
-            .align(AlignX.FILL)
-            .resizableColumn()
-          panel {}
-        }
+      row {
+        label(LspUiBundle.message("lsp.settings.server.init"))
       }
-      advancedSection.expanded = false
+      row {
+        textArea()
+          .bindText(configuration::initializationOptions)
+          .rows(5)
+          .comment(LspUiBundle.message("lsp.settings.server.init.comment"))
+          .columns(COLUMNS_LARGE)
+      }
+
+      row(LspUiBundle.message("lsp.settings.server.environment.variables")) {
+        cell(EnvironmentVariablesTextFieldWithBrowseButton())
+          .bind(
+            componentGet = { component -> component.data },
+            componentSet = { component, data -> component.data = data },
+            MutableProperty(getter = { configuration.envVars.get() }, setter = { configuration.envVars.set(it) })
+          )
+          .align(AlignX.FILL)
+          .resizableColumn()
+        panel {}
+      }
     }
   }
 
