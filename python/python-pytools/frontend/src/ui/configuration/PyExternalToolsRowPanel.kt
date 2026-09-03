@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.common.PyToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolSdkStateDto
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
@@ -178,7 +179,7 @@ internal class PyExternalToolRowPanel(
     if (detailBuilt) return
     detailBuilt = true
     val provider = row.detailConfigurableProvider ?: return
-    val configurable = row.detail ?: provider.createConfigurable(project).also { row.detail = it }
+    val configurable = row.detail ?: provider.createConfigurable(project, row.descriptor).also { row.detail = it }
     val component = configurable.createComponent() ?: return
     configurable.reset()
     detailHolder.add(component, BorderLayout.CENTER)
@@ -244,7 +245,7 @@ internal class PyExternalToolRowPanel(
     sdkSectionHolder.isVisible = true
   }
 
-  private fun sdkEntryLine(entry: com.intellij.python.pytools.common.PyToolSdkStateDto): JComponent = horizontalLine().apply {
+  private fun sdkEntryLine(entry: PyToolSdkStateDto): JComponent = horizontalLine().apply {
     @NlsSafe val label = "${entry.sdk.label}:  "
     add(JBLabel(label))
     val path = entry.path

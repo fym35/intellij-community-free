@@ -7,7 +7,6 @@ import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
 import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
-import com.intellij.python.pytools.common.PyToolConfigurationDto
 
 /**
  * Base for every LSP-backed [PyTool]. Captures the shared, non-UI wiring around a per-project
@@ -17,7 +16,7 @@ import com.intellij.python.pytools.common.PyToolConfigurationDto
  * UI concerns (the detail configurable, the features summary) deliberately live in the UI layer and
  * are not part of this base.
  */
-abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool {
+abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool<PyLspToolConfigurationDto> {
   abstract val lspServerName: @NlsSafe String
 
   /** Per-project settings service backing this tool — the single source of its configuration. */
@@ -46,8 +45,7 @@ abstract class PyLspTool<C : PyLspToolConfiguration<*>> : PyTool {
     )
   }
 
-  override fun applyConfigurationState(project: Project, state: PyToolConfigurationDto) {
-    require(state is PyLspToolConfigurationDto)
+  override fun applyConfigurationState(project: Project, state: PyLspToolConfigurationDto) {
     val cfg = configuration(project)
     cfg.inspections = state.inspections
     cfg.completions = state.completions

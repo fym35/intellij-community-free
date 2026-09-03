@@ -3,6 +3,7 @@ package com.intellij.python.venv
 
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolManager
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
 
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.ApiStatus
  * installs.
  */
 @ApiStatus.Internal
-class PipPyTool : PyTool {
+class PipPyTool : PyTool<PyToolConfigurationDto> {
   override val packageName: PyPackageName = PyPackageName.from("pip")
 
   override val manager: PyToolManager? get() = null

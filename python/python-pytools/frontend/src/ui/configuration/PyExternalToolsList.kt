@@ -4,6 +4,7 @@ package com.intellij.python.pytools.frontend.ui.configuration
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Version
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
@@ -17,6 +18,8 @@ import com.intellij.python.pytools.frontend.PyToolsFrontendState
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolEnabledStateDto
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.frontend.ui.PyToolTypeEnginePreview
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
@@ -69,10 +72,10 @@ internal class PyExternalToolsList(
   private val uv: PyToolManagementController,
 ) : RowHost {
 
-  private val persistedPaths = mutableMapOf<com.intellij.python.pytools.common.PyToolId, String?>()
+  private val persistedPaths = mutableMapOf<PyToolId, String?>()
 
   /** Source-of-truth row list, materialised once from the [PyTool] extension point. */
-  private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
+  private val rows: List<ToolRow> = PyTool.extensionList
     .filterIsInstance<ExternalPyTool<*>>()
     .sortedBy { it.presentableName.lowercase() }
     .map { ToolRow(it, RowState(enabled = false, customPath = null)) }
@@ -107,7 +110,7 @@ internal class PyExternalToolsList(
     // Live reflection of the staged engine on the tools' toggles.
     preview.stagedEnginePackage.afterChange(engineObserverDisposable) { staged ->
       rows.forEach { row ->
-        val pkg = row.tool.packageName
+        val pkg = row.tool.toolId.value
         when {
           // Became the staged engine → turn its toggle on.
           staged == pkg && !row.staged.enabled -> {
@@ -126,7 +129,7 @@ internal class PyExternalToolsList(
     // flip that tool's toggle off here too.
     preview.pendingDisable.afterChange(engineObserverDisposable) { pending ->
       rows.forEach { row ->
-        if (row.tool.packageName in pending && row.staged.enabled) {
+        if (row.tool.toolId.value in pending && row.staged.enabled) {
           row.staged = row.staged.copy(enabled = false); refreshRow(row)
         }
       }
@@ -167,7 +170,7 @@ internal class PyExternalToolsList(
   }
 
   override fun isUpgradeAvailable(row: ToolRow): Boolean = uv.isUpgradeAvailable(row)
-  override fun upgradeTargetVersion(row: ToolRow): String? = uv.latestVersionFor(row)
+  override fun upgradeTargetVersion(row: ToolRow): Version? = uv.latestVersionFor(row)
 
   override fun onRowExpanded(row: ToolRow) {
     // Keep one row open at a time. Many open rows make the page hard to read.
@@ -254,7 +257,7 @@ internal class PyExternalToolsList(
         }
         row.applyBackendState(backendState)
         PyToolsFrontendState.getInstance(project).apply(
-          com.intellij.python.pytools.common.PyToolEnabledStateDto(backendState.toolId, backendState.enabled),
+          PyToolEnabledStateDto(backendState.toolId, backendState.enabled),
         )
       }
       if (row.staged.customPath != current.customPath) {
@@ -377,6 +380,6 @@ internal class PyExternalToolsList(
    */
   private fun isEngineFor(tool: PyTool): Boolean {
     val staged = PyToolTypeEnginePreview.getInstance(project).stagedEnginePackage.get()
-    return if (staged != null) staged == tool.packageName else rows.first { it.tool == tool }.selectedAsTypeEngine
+    return if (staged != null) staged == tool.toolId.value else rows.first { it.tool == tool }.selectedAsTypeEngine
   }
 }

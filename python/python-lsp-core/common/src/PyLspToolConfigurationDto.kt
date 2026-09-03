@@ -11,12 +11,12 @@ import kotlin.reflect.KClass
 @Serializable
 @SerialName("python.lsp")
 data class PyLspToolConfigurationDto(
-  val inspections: Boolean,
-  val completions: Boolean?,
-  val inlayHints: Boolean?,
-  val documentation: Boolean?,
-  val formatting: Boolean? = null,
-  val sortImports: Boolean? = null,
+  var inspections: Boolean,
+  var completions: Boolean?,
+  var inlayHints: Boolean?,
+  var documentation: Boolean?,
+  var formatting: Boolean? = null,
+  var sortImports: Boolean? = null,
 ) : PyToolConfigurationDto
 
 class PyLspToolConfigurationSerializerProvider :

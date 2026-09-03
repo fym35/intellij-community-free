@@ -26,6 +26,7 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
+    exports = ["//python/python-pytools/common"],
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
@@ -65,6 +66,11 @@ jvm_library(
     kotlinc_opts = ":custom_backend",
     module_name = "intellij.python.pytools.backend",
     visibility = ["//visibility:public"],
+    exports = [
+        # do not sort,
+        "//python/python-pytools/common",
+        "//python/python-pytools/common:common_test_lib",
+    ],
     runtime_deps = [
         # do not sort,
         ":backend",

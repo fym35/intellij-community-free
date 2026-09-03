@@ -3,6 +3,7 @@ package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.util.Version
 import com.intellij.openapi.util.text.HtmlBuilder
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
@@ -63,7 +64,7 @@ internal fun headerText(displayText: String): JComponent = object : JComponent()
 
 internal interface PathActionHost {
   fun isUpgradeAvailable(row: ToolRow): Boolean
-  fun upgradeTargetVersion(row: ToolRow): String?
+  fun upgradeTargetVersion(row: ToolRow): Version?
   fun installOnPath(row: ToolRow)
   fun upgradeOnPath(row: ToolRow)
   fun resetPath(row: ToolRow)
@@ -128,7 +129,7 @@ internal fun pathDetailsTooltip(row: ToolRow): HtmlChunk? {
 
 /** Text for the Upgrade action link: "Upgrade to X.Y.Z" when the target version is known, else "Upgrade". */
 @Nls
-internal fun upgradeLinkText(latestVersion: String?): String =
+internal fun upgradeLinkText(latestVersion: Version?): String =
   if (latestVersion != null) PyToolsUiBundle.message("settings.external.tools.upgrade.to.version.link", latestVersion)
   else PyToolsUiBundle.message("settings.external.tools.upgrade.link")
 

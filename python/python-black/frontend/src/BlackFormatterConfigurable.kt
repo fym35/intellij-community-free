@@ -4,15 +4,14 @@ package com.intellij.python.black.frontend
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.util.Version
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
 import com.intellij.python.black.common.PyBlackToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolEventKind
+import com.intellij.python.pytools.common.PyToolDescriptorDto
 import com.intellij.python.pytools.common.PyToolLogEventRequest
-import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
 import com.intellij.python.pytools.common.getConfiguration
@@ -26,10 +25,9 @@ import com.intellij.util.ui.UIUtil
 
 internal class BlackFormatterConfigurable(
   private val project: Project,
-  toolId: PyToolId,
-  private val minimumSupportedVersion: Version,
+  private val descriptor: PyToolDescriptorDto,
 ) : BoundConfigurable(message("black.configurable.name")) {
-  private val request = PyToolRequest(project.projectId(), toolId)
+  private val request = PyToolRequest(project.projectId(), BLACK_TOOL_ID)
   private val configuration = runWithModalProgressBlocking(project, message("black.configurable.name")) {
     PyToolApi.getInstance().getConfiguration<PyBlackToolConfigurationDto>(request)
   }
@@ -47,8 +45,9 @@ internal class BlackFormatterConfigurable(
 
   override fun createPanel(): DialogPanel = panel {
     row {
-      comment(message("black.minimum.supported.version.hint",
-                      minimumSupportedVersion.toCompactString()))
+      descriptor.minimumSupportedVersion?.let {
+        comment(message("black.minimum.supported.version.hint", it))
+      }
     }
     row(message("black.cli.args.text.field.label")) {
       cell(cliArgumentsTextField)
@@ -81,11 +80,13 @@ internal class BlackFormatterConfigurable(
 
 private class BlackCliOptionFlag(val flag: String, val option: BlackFormatterOption) {
   fun description(): String {
-    if (flag.startsWith("--")) return option.description
-    val primaryFlag = option.flags.find { it.startsWith("--") }
+    if (isPrimaryFlag(flag)) return option.description
+    val primaryFlag = option.flags.find(::isPrimaryFlag)
     return if (primaryFlag != null) "See $primaryFlag" else option.description
   }
 }
+
+private fun isPrimaryFlag(flag: String): Boolean = flag.startsWith("--")
 
 private data class BlackFormatterOption(val flags: List<String>, val param: String?, val description: String)
 

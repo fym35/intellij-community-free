@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.util.Version
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.ide.progress.withModalProgress
 import com.intellij.platform.project.projectId
@@ -47,7 +48,7 @@ internal class PyToolManagementController(
 
   fun isUpgradeAvailable(toolRow: ToolRow): Boolean = toolRow.latestVersion != null
 
-  fun latestVersionFor(toolRow: ToolRow): String? = toolRow.latestVersion
+  fun latestVersionFor(toolRow: ToolRow): Version? = toolRow.latestVersion
 
   fun onShown(scope: CoroutineScope) {
     this.scope = scope
@@ -66,8 +67,8 @@ internal class PyToolManagementController(
     } ?: return
     logEvent(toolRow, source, PyToolEventKind.INSTALLED)
     toolRow.lastSuccessMessage = toolRow.version?.let {
-      PyToolsUiBundle.message("settings.external.tools.install.success.to.version.balloon", toolRow.packageName(), it)
-    } ?: PyToolsUiBundle.message("settings.external.tools.install.success.balloon", toolRow.packageName())
+      PyToolsUiBundle.message("settings.external.tools.install.success.to.version.balloon", toolRow.toolIdValue(), it)
+    } ?: PyToolsUiBundle.message("settings.external.tools.install.success.balloon", toolRow.toolIdValue())
   }
 
   fun upgradeTool(toolRow: ToolRow, source: PyToolActionSource) {
@@ -89,7 +90,7 @@ internal class PyToolManagementController(
     anchor: JComponent,
     source: PyToolActionSource,
   ) {
-    val activeScope = scope ?: return
+    val activeScope = checkNotNull(scope) { "The tools panel is not shown" }
     activeScope.launch {
       val groups = PyToolApi.getInstance().getDependencyGroups(PyToolSdkRequest(toolRow.request(), sdk))
       withContext(Dispatchers.EDT) {
@@ -105,7 +106,7 @@ internal class PyToolManagementController(
             text(groupName) { align = LcrInitParams.Align.RIGHT }
           })
           .setItemChosenCallback { group ->
-            scope?.launch {
+            activeScope.launch {
               installIntoSdk(toolRow, sdk, source, group)
             }
           }
@@ -121,8 +122,8 @@ internal class PyToolManagementController(
     source: PyToolActionSource,
     dependencyGroup: PyToolDependencyGroupDto? = null,
   ) {
-    val title = PyToolsUiBundle.message("settings.external.tools.install.progress", toolRow.packageName())
-    val errorTitle = PyToolsUiBundle.message("settings.external.tools.install.error.title", toolRow.packageName())
+    val title = PyToolsUiBundle.message("settings.external.tools.install.progress", toolRow.toolIdValue())
+    val errorTitle = PyToolsUiBundle.message("settings.external.tools.install.error.title", toolRow.toolIdValue())
     val result = withModalProgress(project, title) {
       PyToolApi.getInstance().installIntoSdk(
         PyToolSdkInstallRequest(PyToolSdkRequest(toolRow.request(), sdk), dependencyGroup),
@@ -174,8 +175,9 @@ internal class PyToolManagementController(
     errorTitleKey: String,
     action: suspend () -> PyToolOperationResultDto,
   ): PyToolStateDto? {
-    val title = PyToolsUiBundle.message(progressTitleKey, toolRow.packageName())
-    val errorTitle = PyToolsUiBundle.message(errorTitleKey, toolRow.packageName())
+    val activeScope = checkNotNull(scope) { "The tools panel is not shown" }
+    val title = PyToolsUiBundle.message(progressTitleKey, toolRow.toolIdValue())
+    val errorTitle = PyToolsUiBundle.message(errorTitleKey, toolRow.toolIdValue())
     toolRow.actionInProgress = true
     refreshRow(toolRow)
     val result = try {
@@ -187,25 +189,25 @@ internal class PyToolManagementController(
       throw e
     }
     toolRow.actionInProgress = false
-    if (!handleResult(toolRow, result, errorTitle)) return null
+    val state = handleResult(toolRow, result, errorTitle) ?: return null
     refreshRow(toolRow)
-    scope?.launch {
+    activeScope.launch {
       refreshToolState(toolRow)
       refreshUvAvailability()
     }
-    return (result as PyToolOperationResultDto.Success).state
+    return state
   }
 
-  private fun handleResult(toolRow: ToolRow, result: PyToolOperationResultDto, errorTitle: @Nls String): Boolean =
+  private fun handleResult(toolRow: ToolRow, result: PyToolOperationResultDto, errorTitle: @Nls String): PyToolStateDto? =
     when (result) {
       is PyToolOperationResultDto.Success -> {
         toolRow.applyBackendState(result.state)
-        true
+        result.state
       }
       is PyToolOperationResultDto.Failure -> {
         @NlsSafe val errorMessage = result.message
         Messages.showErrorDialog(project, errorMessage, errorTitle)
-        false
+        null
       }
     }
 
@@ -226,8 +228,8 @@ internal class PyToolManagementController(
     onStateChanged()
   }
 
-  private fun upgradeFeedbackMessage(toolRow: ToolRow, previous: String?, current: String?): String {
-    val name = toolRow.packageName()
+  private fun upgradeFeedbackMessage(toolRow: ToolRow, previous: Version?, current: Version?): String {
+    val name = toolRow.toolIdValue()
     return when {
       current != null && previous == current ->
         PyToolsUiBundle.message("settings.external.tools.upgrade.up.to.date.balloon", name, current)
@@ -245,5 +247,5 @@ internal class PyToolManagementController(
     }
   }
 
-  private fun ToolRow.packageName(): String = tool.packageName
+  private fun ToolRow.toolIdValue(): String = tool.toolId.value
 }

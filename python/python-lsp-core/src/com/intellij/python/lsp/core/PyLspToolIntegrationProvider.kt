@@ -113,12 +113,12 @@ abstract class PyLspToolIntegrationProvider : LspIntegrationProvider {
   fun presentableName(lspClient: LspClient): @NlsSafe String = lspClient.initializeResult?.serverInfo?.name
                                                                ?: lspClient.descriptor.presentableName
 
-  protected open fun subscribeOnChanges(pyTool: PyTool, project: Project, parentDisposable: Disposable) {
+  protected open fun subscribeOnChanges(pyTool: PyTool<*>, project: Project, parentDisposable: Disposable) {
     project.messageBus.connect(parentDisposable)
       .subscribe(PythonPackageManager.PACKAGE_MANAGEMENT_TOPIC, LspPackageListener(pyTool, project))
   }
 
-  inner class LspPackageListener(val pyTool: PyTool, val project: Project) : PythonPackageManagementListener {
+  inner class LspPackageListener(val pyTool: PyTool<*>, val project: Project) : PythonPackageManagementListener {
     var wasThisToolInstalled: Boolean? = null
 
     override fun packagesChanged(sdk: Sdk) {

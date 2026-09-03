@@ -46,14 +46,22 @@ data class PyToolLogEventRequest(
 )
 
 @Serializable
+data class PyToolPathDto(val value: String, val kind: PyToolPathKind)
+
+@Serializable
 enum class PyToolPathKind { CUSTOM, DETECTED }
+
+@Serializable
+data class PyToolDescriptorDto(
+  val minimumSupportedVersion: String? = null,
+)
 
 @Serializable
 data class PyToolStateDto(
   val toolId: PyToolId,
+  val descriptor: PyToolDescriptorDto,
   val enabled: Boolean,
-  val path: String?,
-  val pathKind: PyToolPathKind?,
+  val path: PyToolPathDto?,
   val version: String?,
   val canInstall: Boolean,
   val latestVersion: String? = null,

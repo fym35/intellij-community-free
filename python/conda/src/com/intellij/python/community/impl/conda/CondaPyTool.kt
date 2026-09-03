@@ -60,7 +60,7 @@ class CondaPyTool : PackageManagerPyTool {
  * freshly installed executable through [PyExecutableCache]. Updating conda from the IDE is not supported.
  */
 private object CondaPyToolManager : PyToolManager {
-  override suspend fun install(tool: PyTool, eel: EelApi): PyResult<Path> {
+  override suspend fun install(tool: PyTool<*>, eel: EelApi): PyResult<Path> {
     withContext(Dispatchers.EDT) {
       CondaInstallManager.installLatest(project = null)
     }
@@ -70,7 +70,7 @@ private object CondaPyToolManager : PyToolManager {
            ?: PyResult.localizedError(PyCondaBundle.message("python.conda.install.not.detected"))
   }
 
-  override suspend fun upgrade(tool: PyTool, eel: EelApi): PyResult<Path> =
+  override suspend fun upgrade(tool: PyTool<*>, eel: EelApi): PyResult<Path> =
     PyResult.localizedError(PyCondaBundle.message("python.conda.update.not.supported"))
 
   /** The Miniconda installer only targets the local machine, so Install is offered on local eels only. */

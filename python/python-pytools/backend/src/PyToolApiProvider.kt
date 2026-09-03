@@ -3,12 +3,15 @@ package com.intellij.python.pytools.backend
 
 import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.project.findProject
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.rpc.backend.RemoteApiProvider
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolDescriptorDto
 import com.intellij.python.pytools.common.PyToolEnabledStateDto
 import com.intellij.python.pytools.common.PyToolEventKind
 import com.intellij.python.pytools.common.PyToolId
@@ -16,6 +19,7 @@ import com.intellij.python.pytools.common.PyToolLogEventRequest
 import com.intellij.python.pytools.common.PyToolSetEnabledRequest
 import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
 import com.intellij.python.pytools.common.PyToolOperationResultDto
+import com.intellij.python.pytools.common.PyToolPathDto
 import com.intellij.python.pytools.common.PyToolPathKind
 import com.intellij.python.pytools.common.PyToolPathRequest
 import com.intellij.python.pytools.common.PyToolRequest
@@ -79,8 +83,9 @@ private object PyToolApiImpl : PyToolApi {
   }
 
   override suspend fun validatePath(request: PyToolPathRequest): PyToolValidationDto {
-    request.tool.projectId.findProject()
-    return when (val result = requireTool(request.tool).validateCustomPath(Path.of(request.path))) {
+    val project = request.tool.projectId.findProject()
+    val path = EelPath.parse(request.path, project.getEelDescriptor()).asNioPath()
+    return when (val result = requireTool(request.tool).validateCustomPath(path)) {
       is Result.Success -> PyToolValidationDto.Valid(result.result.value)
       is Result.Failure -> PyToolValidationDto.Invalid(result.error.toString())
     }
@@ -89,7 +94,9 @@ private object PyToolApiImpl : PyToolApi {
   override suspend fun setPath(request: PyToolSetPathRequest): PyToolStateDto {
     val project = request.tool.projectId.findProject()
     val tool = requireTool(request.tool)
-    tool.setCustomExecutablePath(project.getEelDescriptor(), request.path?.let(Path::of))
+    val descriptor = project.getEelDescriptor()
+    val path = request.path?.let { EelPath.parse(it, descriptor).asNioPath() }
+    tool.setCustomExecutablePath(descriptor, path)
     return state(project, tool)
   }
 
@@ -104,7 +111,7 @@ private object PyToolApiImpl : PyToolApi {
   override suspend fun setConfiguration(request: PyToolSetConfigurationRequest): PyToolStateDto {
     val project = request.tool.projectId.findProject()
     val tool = requireTool(request.tool)
-    tool.applyConfigurationState(project, request.configuration)
+    tool.applyConfigurationStateIfCompatible(project, request.configuration)
     return state(project, tool)
   }
 
@@ -139,7 +146,7 @@ private object PyToolApiImpl : PyToolApi {
 
   private suspend fun operate(
     request: PyToolRequest,
-    operation: suspend (Project, PyTool) -> PyResult<Path>,
+    operation: suspend (Project, PyTool<*>) -> PyResult<Path>,
   ): PyToolOperationResultDto {
     val project = request.projectId.findProject()
     val tool = requireTool(request)
@@ -158,28 +165,55 @@ private object PyToolApiImpl : PyToolApi {
     val descriptor = project.getEelDescriptor()
     val custom = executable.getCustomExecutablePath(descriptor)
     val path = custom ?: knownPath ?: PyExecutableCache.getInstance().get(descriptor, executable)
-    val tool = executable as? PyTool
-    val version = if (tool != null && path != null) {
-      (tool.validateCustomPath(path) as? Result.Success)?.result?.value
+    val details = when (executable) {
+      is PyTool<*> -> PyToolDetails(
+        version = path?.let {
+          when (val result = executable.validateCustomPath(it)) {
+            is Result.Success -> result.result.value
+            is Result.Failure -> null
+          }
+        },
+        minimumSupportedVersion = executable.minimumSupportedVersion?.toCompactString(),
+        canInstall = executable.manager?.canInstall(descriptor) == true,
+        configuration = executable.configurationState(project),
+        selectedAsTypeEngine = executable.isSelectedAsTypeEngine(project),
+      )
+      else -> PyToolDetails()
     }
-    else null
     return PyToolStateDto(
       toolId = PyToolId(executable.fusId),
+      descriptor = PyToolDescriptorDto(details.minimumSupportedVersion),
       enabled = PyToolsState.getInstance(project).isEnabled(PyToolId(executable.fusId)),
-      path = path?.toString(),
-      pathKind = when {
-        custom != null -> PyToolPathKind.CUSTOM
-        path != null -> PyToolPathKind.DETECTED
+      path = when {
+        custom != null -> PyToolPathDto(custom.toString(), PyToolPathKind.CUSTOM)
+        path != null -> PyToolPathDto(path.toString(), PyToolPathKind.DETECTED)
         else -> null
       },
-      version = version,
-      canInstall = tool?.manager?.canInstall(descriptor) == true,
+      version = details.version,
+      canInstall = details.canInstall,
       latestVersion = latestVersion,
-      configuration = tool?.configurationState(project),
-      selectedAsTypeEngine = tool?.isSelectedAsTypeEngine(project) == true,
+      configuration = details.configuration,
+      selectedAsTypeEngine = details.selectedAsTypeEngine,
     )
   }
 
-  private fun requireTool(request: PyToolRequest): PyTool =
+  private fun requireTool(request: PyToolRequest): PyTool<*> =
     PyTool.findByPackageName(request.toolId.value) ?: error("Unknown Python tool: " + request.toolId.value)
 }
+
+private fun <C : PyToolConfigurationDto> PyTool<C>.applyConfigurationStateIfCompatible(
+  project: Project,
+  state: PyToolConfigurationDto,
+) {
+  val currentState = configurationState(project) ?: return
+  if (!currentState.javaClass.isInstance(state)) return
+  applyConfigurationState(project, currentState.javaClass.cast(state))
+}
+
+private data class PyToolDetails(
+  val version: String? = null,
+  val minimumSupportedVersion: String? = null,
+  val canInstall: Boolean = false,
+  val configuration: PyToolConfigurationDto? = null,
+  val selectedAsTypeEngine: Boolean = false,
+)

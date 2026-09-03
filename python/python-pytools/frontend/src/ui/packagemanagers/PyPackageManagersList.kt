@@ -3,6 +3,7 @@ package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.ide.ui.search.SearchUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Version
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
@@ -62,7 +63,7 @@ internal class PyPackageManagersList(
   private val uv: PyToolManagementController,
 ) : PmHost {
 
-  private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
+  private val rows: List<ToolRow> = PyTool.extensionList
     .filterIsInstance<PackageManagerPyTool>()
     .sortedBy { it.presentableName.lowercase() }
     .map { ToolRow(it, RowState(enabled = true, customPath = null)) }
@@ -86,7 +87,7 @@ internal class PyPackageManagersList(
   // ---------- PmHost ----------
 
   override fun isUpgradeAvailable(row: ToolRow): Boolean = uv.isUpgradeAvailable(row)
-  override fun upgradeTargetVersion(row: ToolRow): String? = uv.latestVersionFor(row)
+  override fun upgradeTargetVersion(row: ToolRow): Version? = uv.latestVersionFor(row)
   override fun browsePath(row: ToolRow) {
     browseExecutablePath(project, view) { chosen -> setCustomPath(row, chosen) }
   }

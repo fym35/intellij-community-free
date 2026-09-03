@@ -58,8 +58,6 @@ class PyExternalToolsConfigurable(private val project: Project) : BoundSearchabl
    * search text (typically a tool's presentable name) to select and scroll the matching row.
    */
   override fun enableSearch(option: String?): Runnable? {
-    // The Settings framework may call this from the searchable-options index builder before the
-    // page is visible, i.e. before [createPanel] has run; bail out cleanly in that case.
     val toolsList = toolsList ?: return null
     // Settings calls this on every search-text change, including the transition back to an empty
     // query when the user clears the field. Return a Runnable for empty/no-match input so we can

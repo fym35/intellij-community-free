@@ -8,7 +8,6 @@ import com.intellij.python.lsp.core.PyLspTool
 import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
-import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.ruff.server.RuffLspIntegrationProvider
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
@@ -39,8 +38,7 @@ class RuffPyTool : PyLspTool<RuffConfiguration>() {
     )
   }
 
-  override fun applyConfigurationState(project: Project, state: PyToolConfigurationDto) {
-    require(state is PyLspToolConfigurationDto)
+  override fun applyConfigurationState(project: Project, state: PyLspToolConfigurationDto) {
     super.applyConfigurationState(project, state)
     val configuration = configuration(project)
     state.formatting?.let { configuration.formatting = it }

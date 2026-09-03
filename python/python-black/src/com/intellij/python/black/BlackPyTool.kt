@@ -2,12 +2,12 @@
 package com.intellij.python.black
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Version
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.python.black.configuration.BlackFormatterConfiguration
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.python.black.common.PyBlackToolConfigurationDto
-import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus
 
@@ -16,8 +16,9 @@ import org.jetbrains.annotations.ApiStatus
  * the PSF. It reformats source into a single, consistent style, leaving little to configure.
  */
 @ApiStatus.Internal
-class BlackPyTool : PyTool {
+class BlackPyTool : PyTool<PyBlackToolConfigurationDto> {
   override val packageName: PyPackageName = PyPackageName.from("black")
+  override val minimumSupportedVersion: Version = Version(23, 11, 0)
 
   @Suppress("DEPRECATION")
   override fun migrateLegacyState(project: Project): PyToolsState.ToolEntry {
@@ -32,8 +33,7 @@ class BlackPyTool : PyTool {
   override fun configurationState(project: Project): PyBlackToolConfigurationDto =
     PyBlackToolConfigurationDto(BlackFormatterConfiguration.getBlackConfiguration(project).cmdArguments)
 
-  override fun applyConfigurationState(project: Project, state: PyToolConfigurationDto) {
-    require(state is PyBlackToolConfigurationDto)
+  override fun applyConfigurationState(project: Project, state: PyBlackToolConfigurationDto) {
     BlackFormatterConfiguration.getBlackConfiguration(project).cmdArguments = state.arguments
   }
 

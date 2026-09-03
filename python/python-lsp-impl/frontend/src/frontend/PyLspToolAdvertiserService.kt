@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolEnabledStateDto
 import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetEnabledRequest
@@ -130,7 +131,7 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
             PyToolSetEnabledRequest(PyToolRequest(project.projectId(), tool.toolId), true),
           )
           PyToolsFrontendState.getInstance(project).apply(
-            com.intellij.python.pytools.common.PyToolEnabledStateDto(state.toolId, state.enabled),
+            PyToolEnabledStateDto(state.toolId, state.enabled),
           )
         }
       })
@@ -159,6 +160,7 @@ class PyLspToolAdvertiserService(private val project: Project, private val cs: C
       project.service<PyLspToolAdvertiserService>()
   }
 }
+
 
 class PyLspToolAdvertiserStartupActivity : ProjectActivity {
   override suspend fun execute(project: Project) {

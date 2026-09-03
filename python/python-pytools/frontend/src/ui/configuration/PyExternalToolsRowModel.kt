@@ -4,23 +4,25 @@ package com.intellij.python.pytools.frontend.ui.configuration
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
-import com.intellij.util.SlowOperations
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Version as PlatformVersion
+import com.intellij.openapi.util.Version
 import com.intellij.platform.project.projectId
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolConfigurationDto
+import com.intellij.python.pytools.common.PyToolDescriptorDto
 import com.intellij.python.pytools.common.PyToolPathKind
 import com.intellij.python.pytools.common.PyToolPathRequest
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSdkStateDto
 import com.intellij.python.pytools.common.PyToolStateDto
 import com.intellij.python.pytools.common.PyToolValidationDto
+import com.intellij.python.pytools.common.PyToolsRequest
 import com.intellij.python.pytools.frontend.PyToolFrontend as PyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.icons.PythonPytoolsFrontendIcons
+import com.intellij.util.SlowOperations
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -48,7 +50,7 @@ internal class ToolRow(
   /** Currently-running validation coroutine; cancelled on the next edit. */
   var validationJob: Job? = null,
   /** Version reported by `<path> --version` for [versionedFor]; null if probe is pending or failed. */
-  var version: String? = null,
+  var version: Version? = null,
   /** Path for which [version] was probed. Used to skip re-probing the same binary on repaint. */
   var versionedFor: String? = null,
   /**
@@ -57,7 +59,7 @@ internal class ToolRow(
    */
   var pathFieldValue: PathFieldValue? = null,
   /**
-   * Non-null when the resolved binary's version is below [PyTool.minimumSupportedVersion]. The
+   * Non-null when the resolved binary's version is below [minimumSupportedVersion]. The
    * string is a short human-readable hint suitable for the path tooltip; the renderer also uses
    * its presence as a signal to switch the path text to an attention color.
    */
@@ -86,7 +88,9 @@ internal class ToolRow(
    */
   var sdkAvailability: SdkAvailability? = null,
   var canInstall: Boolean = false,
-  var latestVersion: String? = null,
+  var latestVersion: Version? = null,
+  var minimumSupportedVersion: Version? = null,
+  var descriptor: PyToolDescriptorDto = PyToolDescriptorDto(),
   var configuration: PyToolConfigurationDto? = null,
   var selectedAsTypeEngine: Boolean = false,
 ) {
@@ -182,19 +186,19 @@ internal fun ToolRow.probeVersion(
       )) {
         is PyToolValidationDto.Valid -> {
           pathError = null
-          version = result.version
+          version = result.version?.let(Version::parseVersion)
         }
         is PyToolValidationDto.Invalid -> {
           pathError = result.message
           version = null
         }
       }
-      belowMinVersionMessage = computeBelowMinMessage(tool, version)
+      belowMinVersionMessage = computeBelowMinMessage(tool, minimumSupportedVersion, version)
       onUpdated(this@probeVersion)
       return@launch
     }
     val state = PyToolApi.getInstance().getStates(
-      com.intellij.python.pytools.common.PyToolsRequest(project.projectId(), listOf(tool.toolId)),
+      PyToolsRequest(project.projectId(), listOf(tool.toolId)),
     ).singleOrNull() ?: return@launch
     applyBackendState(state, updateStagedPath = !isCustomEdit)
     onUpdated(this@probeVersion)
@@ -208,42 +212,48 @@ internal fun ToolRow.applyBackendState(
 ) {
   persistedEnabled = state.enabled
   if (updateStagedEnabled) staged = staged.copy(enabled = state.enabled)
-  val customPath = state.path.takeIf { state.pathKind == PyToolPathKind.CUSTOM }
+  val path = state.path
+  val customPath = when (path?.kind) {
+    PyToolPathKind.CUSTOM -> path.value
+    PyToolPathKind.DETECTED, null -> null
+  }
   persistedCustomPath = customPath
   if (updateStagedPath) staged = staged.copy(customPath = customPath)
-  pathFieldValue = when (state.pathKind) {
-    PyToolPathKind.CUSTOM -> state.path?.let(PathFieldValue::Custom)
-    PyToolPathKind.DETECTED -> state.path?.let(PathFieldValue::AutoDetected)
-    null -> null
-  } ?: PathFieldValue.NotFound
-  versionedFor = state.path
-  version = state.version
+  pathFieldValue = when (path?.kind) {
+    PyToolPathKind.CUSTOM -> PathFieldValue.Custom(path.value)
+    PyToolPathKind.DETECTED -> PathFieldValue.AutoDetected(path.value)
+    null -> PathFieldValue.NotFound
+  }
+  versionedFor = path?.value
+  version = state.version?.let(Version::parseVersion)
   pathError = null
-  belowMinVersionMessage = computeBelowMinMessage(tool, state.version)
+  descriptor = state.descriptor
+  minimumSupportedVersion = descriptor.minimumSupportedVersion?.let(Version::parseVersion)
+  belowMinVersionMessage = computeBelowMinMessage(tool, minimumSupportedVersion, version)
   canInstall = state.canInstall
-  latestVersion = state.latestVersion
+  latestVersion = state.latestVersion?.let(Version::parseVersion)
   configuration = state.configuration
   selectedAsTypeEngine = state.selectedAsTypeEngine
 }
 
 /**
- * Returns a localized "Below minimum" hint when [version] is older than [PyTool.minimumSupportedVersion],
+ * Returns a localized "Below minimum" hint when [version] is older than [ToolRow.minimumSupportedVersion],
  * or `null` if the tool declares no minimum, the probe hasn't completed yet, or the version is fine.
  * Parse the backend version string through the platform's comparable version type.
  */
-private fun computeBelowMinMessage(tool: PyTool, version: String?): String? {
-  val minimum = tool.minimumSupportedVersion ?: return null
-  val actual = version?.let { PlatformVersion.parseVersion(it) } ?: return null
-  if (actual >= minimum) return null
+private fun computeBelowMinMessage(tool: PyTool, minimum: Version?, version: Version?): String? {
+  minimum ?: return null
+  version ?: return null
+  if (version >= minimum) return null
   return PyToolsUiBundle.message(
     "settings.external.tools.path.below.minimum.tooltip",
     tool.presentableName,
     formatVersion(minimum),
-    formatVersion(actual),
+    formatVersion(version),
   )
 }
 
-private fun formatVersion(v: PlatformVersion): String =
+private fun formatVersion(v: Version): String =
   if (v.bugfix > 0) "${v.major}.${v.minor}.${v.bugfix}" else "${v.major}.${v.minor}"
 
 /**

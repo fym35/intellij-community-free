@@ -37,7 +37,7 @@ suspend fun findExecutableInPath(eelApi: EelApi, executableName: String): Path? 
  * [PyExecutableCache] keeps for its TTL. Without this a just-installed tool can stay invisible to callers — the
  * Settings page and the interpreter widget both resolve availability through the cache — for minutes.
  */
-private fun PyTool.invalidateDetectionAfter(result: PyResult<Path>, eel: EelApi) {
+private fun PyTool<*>.invalidateDetectionAfter(result: PyResult<Path>, eel: EelApi) {
   if (result !is Result.Success) return
   val cache = PyExecutableCache.getInstance()
   executables.forEach { cache.invalidate(eel.descriptor, it) }
@@ -49,7 +49,7 @@ private fun PyTool.invalidateDetectionAfter(result: PyResult<Path>, eel: EelApi)
  * path, or an error when the tool has no installer ([PyTool.manager] is `null`). On success the tool's cached
  * detection is invalidated ([invalidateDetectionAfter]) so callers see the new binary immediately.
  */
-suspend fun PyTool.performToolInstallation(eel: EelApi): PyResult<Path> =
+suspend fun PyTool<*>.performToolInstallation(eel: EelApi): PyResult<Path> =
   (manager?.install(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
     .also { invalidateDetectionAfter(it, eel) }
 
@@ -58,6 +58,6 @@ suspend fun PyTool.performToolInstallation(eel: EelApi): PyResult<Path> =
  * [PyTool.manager]. Returns the resolved executable path, or an error when the tool has no installer. On success
  * the tool's cached detection is invalidated ([invalidateDetectionAfter]) so a moved/upgraded binary is re-resolved.
  */
-suspend fun PyTool.performToolUpgrade(eel: EelApi): PyResult<Path> =
+suspend fun PyTool<*>.performToolUpgrade(eel: EelApi): PyResult<Path> =
   (manager?.upgrade(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
     .also { invalidateDetectionAfter(it, eel) }

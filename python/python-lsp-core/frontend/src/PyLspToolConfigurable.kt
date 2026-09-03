@@ -9,34 +9,7 @@ import com.intellij.ui.dsl.builder.bindSelected
 import kotlin.reflect.KMutableProperty0
 import org.jetbrains.annotations.Nls
 
-internal interface PyLspToolSettings {
-  var inspections: Boolean
-  var completions: Boolean?
-  var inlayHints: Boolean?
-  var documentation: Boolean?
-  var formatting: Boolean?
-  var sortImports: Boolean?
-}
-
-internal class PyLspToolSettingsModel(state: PyLspToolConfigurationDto) : PyLspToolSettings {
-  override var inspections: Boolean = state.inspections
-  override var completions: Boolean? = state.completions
-  override var inlayHints: Boolean? = state.inlayHints
-  override var documentation: Boolean? = state.documentation
-  override var formatting: Boolean? = state.formatting
-  override var sortImports: Boolean? = state.sortImports
-
-  fun toDto(): PyLspToolConfigurationDto = PyLspToolConfigurationDto(
-    inspections = inspections,
-    completions = completions,
-    inlayHints = inlayHints,
-    documentation = documentation,
-    formatting = formatting,
-    sortImports = sortImports,
-  )
-}
-
-fun KMutableProperty0<Boolean?>.toSafeProperty(default: Boolean = false): MutableProperty<Boolean> =
+internal fun KMutableProperty0<Boolean?>.toSafeProperty(default: Boolean = false): MutableProperty<Boolean> =
   MutableProperty({ get() ?: default }, { set(it) })
 
 /**
@@ -47,7 +20,7 @@ fun KMutableProperty0<Boolean?>.toSafeProperty(default: Boolean = false): Mutabl
 internal object PyLspToolFeatureRows {
   fun build(
     panel: Panel,
-    settings: PyLspToolSettings,
+    settings: PyLspToolConfigurationDto,
     inlayHintLabel: @Nls String = message("checkbox.inlay.hints"),
     extra: (Panel.() -> Unit)? = null,
   ) {

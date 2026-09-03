@@ -18,7 +18,7 @@ class PyToolUsagesCollector : CounterUsagesCollector() {
      * via [PyTool.configurationFusSnapshot], so every call site only needs the tool reference
      * plus the originating UI [source].
      */
-    fun logConfigurationChanged(project: Project, tool: PyTool, source: PyToolActionSource) {
+    fun logConfigurationChanged(project: Project, tool: PyTool<*>, source: PyToolActionSource) {
       val s = tool.configurationFusSnapshot(project)
       CONFIGURATION_CHANGED.log(
         project,
@@ -39,10 +39,10 @@ class PyToolUsagesCollector : CounterUsagesCollector() {
       DISABLE_RULE.log(project, forFile)
     }
 
-    fun logToolInstalled(project: Project, tool: PyTool, source: PyToolActionSource) {
+    fun logToolInstalled(project: Project, tool: PyTool<*>, source: PyToolActionSource) {
       TOOL_INSTALLED.log(project, tool.fusId, source)
     }
-    fun logToolUpdated(project: Project, tool: PyTool, source: PyToolActionSource) {
+    fun logToolUpdated(project: Project, tool: PyTool<*>, source: PyToolActionSource) {
       TOOL_UPDATED.log(project, tool.fusId, source)
     }
   }
