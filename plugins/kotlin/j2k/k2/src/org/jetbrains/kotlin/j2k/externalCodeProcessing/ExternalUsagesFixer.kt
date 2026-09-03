@@ -2,6 +2,7 @@
 
 package org.jetbrains.kotlin.j2k.externalCodeProcessing
 
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.session.analyze
@@ -27,12 +28,19 @@ class ExternalUsagesFixer(private val usages: List<JKMemberInfoWithUsages>) {
     private val jvmFieldAnnotatedDeclarations: MutableSet<KtNamedDeclaration> = mutableSetOf()
     private val jvmStaticAnnotatedDeclarations: MutableSet<KtNamedDeclaration> = mutableSetOf()
 
-    fun fix() {
+    /** Returns the files the usages live in, not the edits that landed: [JKExternalConversion.apply] skips what it cannot rewrite. */
+    fun fix(): Set<VirtualFile> {
         for (usage in usages) {
             usage.fix()
         }
         conversions.sort()
+        // Read the containing files before applying: a conversion replaces the element it was built from.
+        val changedFiles = conversions.mapNotNullTo(LinkedHashSet()) { it.usage.containingFile?.virtualFile }
         conversions.forEach(JKExternalConversion::apply)
+        for (declaration in jvmFieldAnnotatedDeclarations + jvmStaticAnnotatedDeclarations) {
+            declaration.containingFile?.virtualFile?.let(changedFiles::add)
+        }
+        return changedFiles
     }
 
     private fun JKMemberInfoWithUsages.fix() {
