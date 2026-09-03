@@ -69,9 +69,9 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     if (!upToDate) return
     if (ApplicationManager.getApplication().isUnitTestMode) return
 
-    val files: List<VirtualFile>
+    val files: Set<VirtualFile>
     UNPROCESSED_FILES_LOCK.write {
-      files = unprocessedFiles.toList()
+      files = unprocessedFiles.toSet()
       unprocessedFiles.clear()
     }
     if (files.isEmpty()) return
@@ -82,10 +82,10 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     }
   }
 
-  private fun silentlyIgnoreFilesInsideConfigDir(files: List<VirtualFile>): List<VirtualFile> {
+  private fun silentlyIgnoreFilesInsideConfigDir(files: Set<VirtualFile>): Set<VirtualFile> {
     val configDir = project.stateStore.directoryStorePath ?: return files
     val configDirFile = LocalFileSystem.getInstance().findFileByNioFile(configDir) ?: return files
-    val filesInConfigDir = files.filter { VfsUtil.isAncestor(configDirFile, it, true) }
+    val filesInConfigDir = files.filterTo(mutableSetOf()) { VfsUtil.isAncestor(configDirFile, it, true) }
     val unversionedFilesInConfigDir = collectUnversionedUnder(filesInConfigDir)
 
     runInEdt {
@@ -203,8 +203,7 @@ internal class IgnoreFilesProcessorImpl(project: Project, parentDisposable: Disp
     return VfsUtilCore.isAncestor(storeDir, this, true)
   }
 
-  private fun collectUnversionedUnder(files: Collection<VirtualFile>): Set<VirtualFile> {
-    val parents = files.toHashSet()
+  private fun collectUnversionedUnder(parents: Set<VirtualFile>): Set<VirtualFile> {
     return ChangeListManager.getInstance(project).unversionedFilesPaths
       .asSequence()
       .mapNotNull { it.virtualFile }
