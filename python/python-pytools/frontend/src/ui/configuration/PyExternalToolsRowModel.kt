@@ -90,8 +90,7 @@ internal class ToolRow(
   var configuration: PyToolConfigurationDto? = null,
   var selectedAsTypeEngine: Boolean = false,
 ) {
-  /** This tool's detail-panel provider, or `null` when the tool has no detail configurable. */
-  val detailConfigurableProvider: ExternalPyTool? = tool as? ExternalPyTool
+  val detailConfigurableProvider: ExternalPyTool<*>? = tool as? ExternalPyTool<*>
 }
 
 /**

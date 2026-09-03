@@ -1,9 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.frontend.ui
+package com.intellij.python.lsp.core.frontend
 
 import com.intellij.openapi.util.NlsSafe
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
-import com.intellij.python.pytools.frontend.LspPyToolFrontend
+import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 
 /**
  * Shared comma-separated summary of the standard LSP feature toggles, for `PyTool.summaryFor`.

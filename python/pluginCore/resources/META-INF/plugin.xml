@@ -48,7 +48,10 @@ The Python plug-in provides smart editing for Python scripts. The feature set of
     <module name="intellij.python.community.impl.poetry.frontend"/>
     <module name="intellij.python.uv.frontend"/>
     <module name="intellij.python.venv.frontend"/>
+    <module name="intellij.python.black.common"/>
     <module name="intellij.python.black.frontend"/>
+    <module name="intellij.python.lsp.core.common"/>
+    <module name="intellij.python.lsp.core.frontend"/>
     <module name="intellij.python.pyright.frontend"/>
     <module name="intellij.python.pyrefly.frontend"/>
     <module name="intellij.python.ruff.frontend"/>

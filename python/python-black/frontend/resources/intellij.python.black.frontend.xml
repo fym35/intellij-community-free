@@ -1,6 +1,6 @@
 <idea-plugin>
+  <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
-    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.core.ui"/>
     <module name="intellij.platform.frontend"/>
@@ -13,10 +13,11 @@
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.rpc"/>
     <module name="intellij.platform.util.ui"/>
+    <module name="intellij.python.black.common"/>
     <module name="intellij.python.pytools.common"/>
     <module name="intellij.python.pytools.frontend"/>
-    <!-- endregion -->
   </dependencies>
+  <!-- endregion -->
   <extensions defaultExtensionNs="com.intellij">
     <python.pytools.pyToolFrontend implementation="com.intellij.python.black.frontend.BlackPyToolFrontend"/>
   </extensions>

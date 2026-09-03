@@ -6,7 +6,7 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.python.black.configuration.BlackFormatterConfiguration
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
-import com.intellij.python.pytools.common.PyBlackToolConfigurationDto
+import com.intellij.python.black.common.PyBlackToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.jetbrains.python.packaging.PyPackageName
 import org.jetbrains.annotations.ApiStatus

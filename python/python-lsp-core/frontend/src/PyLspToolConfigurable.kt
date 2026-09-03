@@ -1,7 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.frontend.ui
+package com.intellij.python.lsp.core.frontend
 
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
+import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle.message
 import com.intellij.ui.dsl.builder.MutableProperty
 import com.intellij.ui.dsl.builder.Panel

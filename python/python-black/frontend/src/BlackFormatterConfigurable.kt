@@ -4,19 +4,19 @@ package com.intellij.python.black.frontend
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.util.Version
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
-import com.intellij.python.pytools.common.PyBlackToolConfigurationDto
+import com.intellij.python.black.common.PyBlackToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolEventKind
-import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolLogEventRequest
+import com.intellij.python.pytools.common.PyToolId
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
-import com.intellij.python.pytools.common.PyToolsRequest
+import com.intellij.python.pytools.common.getConfiguration
 import com.intellij.python.black.frontend.PyBlackFrontendBundle.message
-import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.ui.TextFieldWithAutoCompletionListProvider
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
@@ -24,12 +24,16 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import com.intellij.util.ui.UIUtil
 
-internal class BlackFormatterConfigurable(private val project: Project) : BoundConfigurable(message("black.configurable.name")) {
-  private val request = PyToolRequest(project.projectId(), PyToolId("black"))
-  private var storedArguments = runWithModalProgressBlocking(project, message("black.configurable.name")) {
-    val state = PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), listOf(request.toolId))).single()
-    (state.configuration as PyBlackToolConfigurationDto).arguments
+internal class BlackFormatterConfigurable(
+  private val project: Project,
+  toolId: PyToolId,
+  private val minimumSupportedVersion: Version,
+) : BoundConfigurable(message("black.configurable.name")) {
+  private val request = PyToolRequest(project.projectId(), toolId)
+  private val configuration = runWithModalProgressBlocking(project, message("black.configurable.name")) {
+    PyToolApi.getInstance().getConfiguration<PyBlackToolConfigurationDto>(request)
   }
+  private var storedArguments = configuration.arguments
 
   private val cliArgumentsTextField = BlackTextFieldWithAutoCompletion(project, object :
     TextFieldWithAutoCompletionListProvider<BlackCliOptionFlag>(BLACK_OPTIONS.toCliOptionFlags()) {
@@ -44,7 +48,7 @@ internal class BlackFormatterConfigurable(private val project: Project) : BoundC
   override fun createPanel(): DialogPanel = panel {
     row {
       comment(message("black.minimum.supported.version.hint",
-                      requireNotNull(PyToolFrontend.findByPackageName("black")).minimumSupportedVersion!!.toCompactString()))
+                      minimumSupportedVersion.toCompactString()))
     }
     row(message("black.cli.args.text.field.label")) {
       cell(cliArgumentsTextField)
@@ -62,7 +66,7 @@ internal class BlackFormatterConfigurable(private val project: Project) : BoundC
     super.apply()
     runWithModalProgressBlocking(project, message("black.configurable.name")) {
       val api = PyToolApi.getInstance()
-      api.setConfiguration(PyToolSetConfigurationRequest(request, PyBlackToolConfigurationDto(storedArguments)))
+      api.setConfiguration(PyToolSetConfigurationRequest(request, configuration.copy(arguments = storedArguments)))
       api.logEvent(PyToolLogEventRequest(request, PyToolActionSource.SETTINGS_DETAIL, PyToolEventKind.CONFIGURATION_CHANGED))
     }
   }

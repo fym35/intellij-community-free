@@ -37,6 +37,7 @@
     <orderEntry type="module" module-name="intellij.platform.analysis" />
     <orderEntry type="module" module-name="intellij.platform.codeStyle" />
     <orderEntry type="module" module-name="intellij.python.lsp.core" />
+    <orderEntry type="module" module-name="intellij.python.lsp.core.common" />
     <orderEntry type="module" module-name="intellij.toml.core" />
     <orderEntry type="module" module-name="intellij.libraries.gson" />
     <orderEntry type="module" module-name="intellij.platform.indexing" />

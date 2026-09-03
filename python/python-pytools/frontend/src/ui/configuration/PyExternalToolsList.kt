@@ -73,7 +73,7 @@ internal class PyExternalToolsList(
 
   /** Source-of-truth row list, materialised once from the [PyTool] extension point. */
   private val rows: List<ToolRow> = PyTool.EP_NAME.extensionList
-    .filterIsInstance<ExternalPyTool>()
+    .filterIsInstance<ExternalPyTool<*>>()
     .sortedBy { it.presentableName.lowercase() }
     .map { ToolRow(it, RowState(enabled = false, customPath = null)) }
 

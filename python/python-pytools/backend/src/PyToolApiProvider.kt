@@ -8,6 +8,7 @@ import com.intellij.platform.project.findProject
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.rpc.backend.RemoteApiProvider
 import com.intellij.python.pytools.common.PyToolApi
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolEnabledStateDto
 import com.intellij.python.pytools.common.PyToolEventKind
 import com.intellij.python.pytools.common.PyToolId
@@ -53,6 +54,11 @@ private object PyToolApiImpl : PyToolApi {
 
   override suspend fun observeEnabledStates(projectId: ProjectId) =
     PyToolsState.getInstance(projectId.findProject()).enabledStates()
+
+  override suspend fun getConfiguration(request: PyToolRequest): PyToolConfigurationDto? {
+    val project = request.projectId.findProject()
+    return requireTool(request).configurationState(project)
+  }
 
   override suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto> {
     val project = request.projectId.findProject()

@@ -1787,6 +1787,7 @@ python/pluginMinor
 python/pluginMinorRider
 python/python-ast
 python/python-black
+python/python-black/common
 python/python-black/frontend
 python/python-black/tests
 python/python-copyright
@@ -1799,6 +1800,8 @@ python/python-grazie
 python/python-hatch
 python/python-hatch/frontend
 python/python-lsp-core
+python/python-lsp-core/common
+python/python-lsp-core/frontend
 python/python-lsp-impl/frontend
 python/python-markdown
 python/python-minimap

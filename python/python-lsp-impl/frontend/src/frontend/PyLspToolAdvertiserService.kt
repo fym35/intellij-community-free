@@ -17,7 +17,7 @@ import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetEnabledRequest
 import com.intellij.python.pytools.frontend.PyToolFrontend
 import com.intellij.python.pytools.frontend.PyToolsFrontendState
-import com.intellij.python.pytools.frontend.LspPyToolFrontend
+import com.intellij.python.lsp.core.frontend.LspPyToolFrontend
 import com.intellij.python.pytools.frontend.ui.configuration.PyExternalToolsConfigurable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

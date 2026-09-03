@@ -1951,6 +1951,7 @@
       <module fileurl="file://$PROJECT_DIR$/python/ide/newUiOnboarding/intellij.pycharm.community.newUiOnboarding.iml" filepath="$PROJECT_DIR$/python/ide/newUiOnboarding/intellij.pycharm.community.newUiOnboarding.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-ast/intellij.python.ast.iml" filepath="$PROJECT_DIR$/python/python-ast/intellij.python.ast.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-black/intellij.python.black.iml" filepath="$PROJECT_DIR$/python/python-black/intellij.python.black.iml" />
+      <module fileurl="file://$PROJECT_DIR$/python/python-black/common/intellij.python.black.common.iml" filepath="$PROJECT_DIR$/python/python-black/common/intellij.python.black.common.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-black/frontend/intellij.python.black.frontend.iml" filepath="$PROJECT_DIR$/python/python-black/frontend/intellij.python.black.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-black/tests/intellij.python.black.tests.iml" filepath="$PROJECT_DIR$/python/python-black/tests/intellij.python.black.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/intellij.python.commonTests.iml" filepath="$PROJECT_DIR$/python/intellij.python.commonTests.iml" />
@@ -2002,6 +2003,8 @@
       <module fileurl="file://$PROJECT_DIR$/python/intellij.python.helpers.tests.iml" filepath="$PROJECT_DIR$/python/intellij.python.helpers.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/IntelliLang-python/intellij.python.langInjection.iml" filepath="$PROJECT_DIR$/python/IntelliLang-python/intellij.python.langInjection.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-lsp-core/intellij.python.lsp.core.iml" filepath="$PROJECT_DIR$/python/python-lsp-core/intellij.python.lsp.core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/python/python-lsp-core/common/intellij.python.lsp.core.common.iml" filepath="$PROJECT_DIR$/python/python-lsp-core/common/intellij.python.lsp.core.common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/python/python-lsp-core/frontend/intellij.python.lsp.core.frontend.iml" filepath="$PROJECT_DIR$/python/python-lsp-core/frontend/intellij.python.lsp.core.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-lsp-impl/frontend/intellij.python.lsp.impl.frontend.iml" filepath="$PROJECT_DIR$/python/python-lsp-impl/frontend/intellij.python.lsp.impl.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.iml" filepath="$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.iml" />
       <module fileurl="file://$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.tests.iml" filepath="$PROJECT_DIR$/python/python-markdown/intellij.python.markdown.tests.iml" />

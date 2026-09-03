@@ -34,6 +34,8 @@
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.platform.lsp" />
     <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
+    <orderEntry type="module" module-name="intellij.python.lsp.core.common" />
+    <orderEntry type="module" module-name="intellij.python.lsp.core.frontend" />
     <orderEntry type="module" module-name="intellij.platform.frontend" />
   </component>
 </module>

@@ -5,9 +5,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.python.lsp.core.PyLspTool
+import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.ruff.server.RuffLspIntegrationProvider
 import com.jetbrains.python.packaging.PyPackageName

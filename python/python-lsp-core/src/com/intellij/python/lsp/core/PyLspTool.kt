@@ -6,7 +6,7 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.python.pytools.backend.PyTool
 import com.intellij.python.pytools.backend.PyToolsState
 import com.intellij.python.pytools.backend.statistics.PyToolFusSnapshot
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
+import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolConfigurationDto
 
 /**

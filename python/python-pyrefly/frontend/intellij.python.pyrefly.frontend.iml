@@ -36,6 +36,8 @@
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.platform.rpc" />
     <orderEntry type="module" module-name="intellij.python.pytools.common" />
+    <orderEntry type="module" module-name="intellij.python.lsp.core.common" />
+    <orderEntry type="module" module-name="intellij.python.lsp.core.frontend" />
     <orderEntry type="module" module-name="intellij.python.pytools.frontend" />
     <orderEntry type="module" module-name="intellij.python.typeEngine.common" />
     <orderEntry type="module" module-name="intellij.python.typeEngine.frontend" />

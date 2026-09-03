@@ -37,6 +37,8 @@ jvm_library(
         "//platform/projectModel-api:projectModel",
         "//platform/lsp",
         "//python/python-pytools/frontend",
+        "//python/python-lsp-core/common",
+        "//python/python-lsp-core/frontend",
         "//platform/platform-frontend:frontend",
     ],
 )
@@ -65,6 +67,8 @@ jvm_library(
         "//platform/projectModel-api:projectModel_test_lib",
         "//platform/lsp:lsp_test_lib",
         "//python/python-pytools/frontend:frontend_test_lib",
+        "//python/python-lsp-core/common:common_test_lib",
+        "//python/python-lsp-core/frontend:frontend_test_lib",
         "//platform/platform-frontend:frontend_test_lib",
     ],
 )

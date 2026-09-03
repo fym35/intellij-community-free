@@ -10,6 +10,8 @@
     <module name="intellij.platform.project"/>
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.rpc"/>
+    <module name="intellij.python.lsp.core.common"/>
+    <module name="intellij.python.lsp.core.frontend"/>
     <module name="intellij.python.pytools.common"/>
     <module name="intellij.python.pytools.frontend"/>
     <module name="intellij.python.typeEngine.common"/>

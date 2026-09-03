@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.python.pytools.frontend.ui
+package com.intellij.python.lsp.core.frontend
 
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.options.UnnamedConfigurable
@@ -7,15 +7,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
+import com.intellij.python.lsp.core.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolActionSource
 import com.intellij.python.pytools.common.PyToolApi
 import com.intellij.python.pytools.common.PyToolEventKind
 import com.intellij.python.pytools.common.PyToolLogEventRequest
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
-import com.intellij.python.pytools.common.PyToolsRequest
-import com.intellij.python.pytools.frontend.LspPyToolFrontend
+import com.intellij.python.pytools.common.getConfiguration
+import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 
@@ -28,10 +28,10 @@ private class PyLspToolDetailConfigurable(
 ) : BoundConfigurable(tool.presentableName) {
   private val request = PyToolRequest(project.projectId(), tool.toolId)
   private val settings: PyLspToolSettingsModel by lazy {
-    val state = runWithModalProgressBlocking(project, PyToolsUiBundle.message("settings.external.tools.apply.progress")) {
-      PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), listOf(tool.toolId))).single()
+    val configuration = runWithModalProgressBlocking(project, PyToolsUiBundle.message("settings.external.tools.apply.progress")) {
+      PyToolApi.getInstance().getConfiguration<PyLspToolConfigurationDto>(request)
     }
-    PyLspToolSettingsModel(state.configuration as PyLspToolConfigurationDto)
+    PyLspToolSettingsModel(configuration)
   }
 
   override fun createPanel(): DialogPanel = panel {

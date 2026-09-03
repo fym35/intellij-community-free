@@ -26,21 +26,8 @@ data class PyToolEnabledStateDto(val toolId: PyToolId, val enabled: Boolean)
 @Serializable
 data class PyToolSetEnabledRequest(val tool: PyToolRequest, val enabled: Boolean)
 
-@Serializable
-sealed interface PyToolConfigurationDto
-
-@Serializable
-data class PyLspToolConfigurationDto(
-  val inspections: Boolean,
-  val completions: Boolean?,
-  val inlayHints: Boolean?,
-  val documentation: Boolean?,
-  val formatting: Boolean? = null,
-  val sortImports: Boolean? = null,
-) : PyToolConfigurationDto
-
-@Serializable
-data class PyBlackToolConfigurationDto(val arguments: String) : PyToolConfigurationDto
+@Serializable(with = PyToolConfigurationSerializer::class)
+interface PyToolConfigurationDto
 
 @Serializable
 data class PyToolSetConfigurationRequest(val tool: PyToolRequest, val configuration: PyToolConfigurationDto)
@@ -126,6 +113,7 @@ interface PyToolApi : RemoteApi<Unit> {
   suspend fun isStateInitialized(projectId: ProjectId): Boolean
   suspend fun initializeState(projectId: ProjectId)
   suspend fun observeEnabledStates(projectId: ProjectId): Flow<List<PyToolEnabledStateDto>>
+  suspend fun getConfiguration(request: PyToolRequest): PyToolConfigurationDto?
   suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto>
   suspend fun setEnabled(request: PyToolSetEnabledRequest): PyToolStateDto
   suspend fun setConfiguration(request: PyToolSetConfigurationRequest): PyToolStateDto
@@ -141,4 +129,10 @@ interface PyToolApi : RemoteApi<Unit> {
   companion object {
     suspend fun getInstance(): PyToolApi = RemoteApiProviderService.resolve(remoteApiDescriptor<PyToolApi>())
   }
+}
+
+@ApiStatus.Internal
+suspend inline fun <reified C : PyToolConfigurationDto> PyToolApi.getConfiguration(request: PyToolRequest): C {
+  return getConfiguration(request) as? C
+         ?: error("Unexpected configuration for Python tool: ${request.toolId.value}")
 }

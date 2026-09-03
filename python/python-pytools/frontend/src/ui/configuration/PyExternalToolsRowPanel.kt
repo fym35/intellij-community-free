@@ -3,9 +3,11 @@ package com.intellij.python.pytools.frontend.ui.configuration
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.setToolTipText
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
+import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.frontend.ExternalPyToolFrontend as ExternalPyTool
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
 import com.intellij.ui.JBColor
@@ -74,7 +76,7 @@ internal class PyExternalToolRowPanel(
       // When the tool is in use (e.g. it is the project's staged/persisted type engine) confirm before
       // turning it off instead of hard-disabling the toggle; on decline, restore the toggle and bail.
       val isEngine = host.isTypeEngine(row)
-      val confirmation = (tool as? ExternalPyTool)?.enableToggleConfirmation(newEnabled, isEngine)
+      val confirmation = row.detailConfigurableProvider?.enableToggleConfirmation(newEnabled, isEngine)
       if (confirmation != null &&
           !MessageDialogBuilder.yesNo(PyToolsUiBundle.message("settings.external.tools.toggle.confirm.title"), confirmation)
             .ask(this@PyExternalToolRowPanel)) {
@@ -205,7 +207,7 @@ internal class PyExternalToolRowPanel(
     @NlsSafe val options: String? = when {
       !row.staged.enabled -> null
       checkBoxes.isNotEmpty() -> checkBoxes.filter { it.isSelected }.joinToString(", ") { it.text }.ifBlank { null }
-      else -> tool.summary(project, row.configuration).takeIf { it.isNotBlank() }
+      else -> row.detailConfigurableProvider?.summaryFor(project, row.configuration)?.takeIf { it.isNotBlank() }
     }
     val noFeatures = row.staged.enabled && options == null
     summaryLabel.text = when {
@@ -347,5 +349,17 @@ internal class PyExternalToolRowPanel(
     }
     walk(root)
     return result
+  }
+}
+
+private fun <C : PyToolConfigurationDto> ExternalPyTool<C>.summaryFor(
+  project: Project,
+  configuration: PyToolConfigurationDto?,
+): String {
+  if (configuration == null) return ""
+  return if (configurationClass.isInstance(configuration)) {
+    summary(project, configurationClass.cast(configuration))
+  } else {
+    ""
   }
 }

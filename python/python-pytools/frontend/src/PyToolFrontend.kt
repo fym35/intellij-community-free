@@ -7,11 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.Version
 import com.intellij.python.pytools.common.PyToolId
-import com.intellij.python.pytools.common.PyLspToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
-import com.intellij.python.pytools.frontend.ui.createLspToolConfigurable
-import com.intellij.python.pytools.frontend.ui.pyLspToolFeaturesSummary
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
 
@@ -21,8 +18,6 @@ interface PyToolFrontend {
   val icon: Icon
   val description: @Nls String
   val minimumSupportedVersion: Version? get() = null
-
-  fun summary(project: Project, configuration: PyToolConfigurationDto?): @NlsSafe String = ""
 
   val toolId: PyToolId get() = PyToolId(packageName)
 
@@ -48,8 +43,12 @@ private fun normalizePackageName(packageName: String): String {
   return name.replace('.', '-').lowercase()
 }
 
-interface ExternalPyToolFrontend : PyToolFrontend {
+interface ExternalPyToolFrontend<C : PyToolConfigurationDto> : PyToolFrontend {
+  val configurationClass: Class<C>
+
   fun createConfigurable(project: Project): UnnamedConfigurable
+
+  fun summary(project: Project, configuration: C): @NlsSafe String = ""
 
   fun enableToggleConfirmation(isOn: Boolean, isTypeEngine: Boolean): @Nls String? {
     if (isOn || !isTypeEngine) return null
@@ -58,13 +57,3 @@ interface ExternalPyToolFrontend : PyToolFrontend {
 }
 
 interface PackageManagerPyToolFrontend : PyToolFrontend
-
-interface LspPyToolFrontend : ExternalPyToolFrontend {
-  override fun createConfigurable(project: Project): UnnamedConfigurable = createLspToolConfigurable(project, this)
-  override fun summary(project: Project, configuration: PyToolConfigurationDto?): String {
-    val state = configuration as? PyLspToolConfigurationDto ?: return ""
-    return pyLspToolFeaturesSummary(state, this)
-  }
-  val formattingLabel: @Nls String? get() = null
-  val sortImportsLabel: @Nls String? get() = null
-}
