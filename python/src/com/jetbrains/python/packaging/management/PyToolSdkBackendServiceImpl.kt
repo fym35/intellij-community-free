@@ -17,10 +17,10 @@ import com.intellij.python.pytools.common.PyToolSdkInstallRequest
 import com.intellij.python.pytools.common.PyToolSdkOperationResultDto
 import com.intellij.python.pytools.common.PyToolSdkRequest
 import com.intellij.python.pytools.common.PyToolSdkStateDto
+import com.intellij.python.sdk.backend.asItem
 import com.intellij.python.sdk.backend.findToolExecutable
 import com.intellij.python.sdk.backend.pythonInterpreterAsync
 import com.jetbrains.python.Result
-import com.jetbrains.python.sdk.pyInterpreterPresentation
 import com.jetbrains.python.sdk.pythonSdk
 
 internal class PyToolSdkBackendServiceImpl : PyToolSdkBackendService {
@@ -63,7 +63,7 @@ internal class PyToolSdkBackendServiceImpl : PyToolSdkBackendService {
   private fun projectSdks(project: Project): List<Sdk> =
     ModuleManager.getInstance(project).modules.mapNotNull { it.pythonSdk }.distinct().sortedBy { it.name }
 
-  private fun Sdk.toDto(): PyToolSdkDto = PyToolSdkDto(name, pyInterpreterPresentation().shortName)
+  private suspend fun Sdk.toDto(): PyToolSdkDto = PyToolSdkDto(name, pythonInterpreterAsync().asItem().shortName)
 
   private fun requireSdk(project: Project, dto: PyToolSdkDto): Sdk =
     projectSdks(project).firstOrNull { it.name == dto.token } ?: error("Unknown Python SDK: " + dto.token)
