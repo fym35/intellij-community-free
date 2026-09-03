@@ -14,6 +14,7 @@ import com.intellij.lang.Language
 import com.intellij.psi.PsiElement
 import com.intellij.ui.DeferredIconImpl
 import com.intellij.util.ProcessingContext
+import org.intellij.plugins.markdown.injection.MarkdownCodeFenceUtils
 import org.intellij.plugins.markdown.injection.aliases.CodeFenceLanguageGuesser
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes
 import org.intellij.plugins.markdown.lang.MarkdownTokenTypes
@@ -42,9 +43,16 @@ class CodeFenceLanguageListCompletionProvider: CompletionProvider<CompletionPara
 
   private class MyInsertHandler(private val parameters: CompletionParameters): InsertHandler<LookupElement> {
     override fun handleInsert(context: InsertionContext, item: LookupElement) {
-      if (isInMiddleOfUnCollapsedFence(parameters.originalPosition, context.startOffset)) {
-        context.document.insertString(context.tailOffset, "\n\n")
-        context.editor.caretModel.moveCaretRelatively(1, 0, false, false, false)
+      val originalPosition = parameters.originalPosition
+      if (isInMiddleOfUnCollapsedFence(originalPosition, context.startOffset)) {
+        // Whatever indent already precedes the fence's opening backticks on this line must carry over to the
+        // new body/closing lines. The PSI here is still a collapsed code span / lone fence-start token
+        // (pre-reparse), so there is no MarkdownCodeFence yet -- fenceStartOffset locates the same offset
+        // MarkdownCodeFenceUtils.getIndent(element) would have used, by offset instead.
+        val indent = fenceStartOffset(originalPosition)?.let { MarkdownCodeFenceUtils.getIndent(context.document, it) } ?: ""
+        val insertionOffset = context.tailOffset
+        context.document.insertString(insertionOffset, "\n$indent\n$indent")
+        context.editor.caretModel.moveToOffset(insertionOffset + 1 + indent.length)
       }
     }
   }
@@ -69,6 +77,20 @@ class CodeFenceLanguageListCompletionProvider: CompletionProvider<CompletionPara
           range.startOffset - parentRange.startOffset == parentRange.endOffset - range.endOffset
         }
         else -> false
+      }
+    }
+
+    /**
+     * Offset of the fence's opening backtick run, for the same two shapes [isInMiddleOfUnCollapsedFence]
+     * recognizes -- the offset [MarkdownCodeFenceUtils.getIndent] would use if this were already a real
+     * [org.intellij.plugins.markdown.lang.psi.impl.MarkdownCodeFence]. Null outside those two shapes.
+     */
+    private fun fenceStartOffset(element: PsiElement?): Int? {
+      return when {
+        element == null -> null
+        element.hasType(MarkdownTokenTypes.CODE_FENCE_START) -> element.textRange.startOffset
+        element.hasType(MarkdownTokenTypes.TEXT) && element.parent.hasType(MarkdownElementTypes.CODE_SPAN) -> element.parent.textRange.startOffset
+        else -> null
       }
     }
   }
