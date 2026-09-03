@@ -56,6 +56,7 @@ class BazelGeneratorIntegrationTests {
   @Test fun compileExcludes() = doTest("compile-excludes")
 
   @Test fun ijPluginTarget() = doTest("ij-plugin-target")
+  @Test fun ijPluginTargetWithNonClasspathData() = doTest("ij-plugin-target-with-non-classpath-data", allowBuildBazelFilesInTestDataProject = true)
 
   /**
    * The content modules of an `ij_plugin` plugin, with and without module libraries to pack.
@@ -71,14 +72,17 @@ class BazelGeneratorIntegrationTests {
     testName: String,
     runWithoutUltimateRoot: Boolean = true,
     defaultCustomModules: Boolean = false,
+    allowBuildBazelFilesInTestDataProject: Boolean = false,
   ) {
     val testDataPath = getTestDataPath(testName)
 
     val projectDataPath = testDataPath.resolve("project")
     assertTrue("$projectDataPath is not a directory", projectDataPath.isDirectory())
-    for (path in projectDataPath.walk()) {
-      check(!path.name.startsWith(TILDE_BUILD_PREFIX)) {
-        "Initial project dir is not expected to contain $TILDE_BUILD_PREFIX files, but $path is"
+    if (!allowBuildBazelFilesInTestDataProject) {
+      for (path in projectDataPath.walk()) {
+        check(!path.name.startsWith(TILDE_BUILD_PREFIX)) {
+          "Initial project dir is not expected to contain $TILDE_BUILD_PREFIX files, but $path is"
+        }
       }
     }
 
@@ -102,7 +106,15 @@ class BazelGeneratorIntegrationTests {
     )
 
     compareDirectoriesWithoutMutation(projectDataPath, tempDir, "targets-only must not modify the project tree")
-  
+
+    if (allowBuildBazelFilesInTestDataProject) {
+      for (path in tempDir.walk()) {
+        if (path.name.startsWith(TILDE_BUILD_PREFIX)) {
+          path.moveTo(path.resolveSibling(path.name.removePrefix(TILDE_BUILD_PREFIX)))
+        }
+      }
+    }
+
     JpsModuleToBazel.main(
       arrayOf(
         "--workspace_directory=$tempDir",
@@ -129,7 +141,7 @@ class BazelGeneratorIntegrationTests {
       )
     )
 
-    assertAndRemoveSameFiles(projectDataPath, tempDir)
+    assertAndRemoveSameFiles(projectDataPath, tempDir, allowBuildBazelFilesInTestDataProject)
     compareDirectories(expectedDataPath, tempDir)
 
     val bazelTargetsFromGenerator = tempDir.resolve("build").resolve("bazel-targets.json")
@@ -485,7 +497,7 @@ class BazelGeneratorIntegrationTests {
     else -> "'$this'"
   }
 
-  private fun assertAndRemoveSameFiles(initialProjectDir: Path, testOutputDir: Path) {
+  private fun assertAndRemoveSameFiles(initialProjectDir: Path, testOutputDir: Path, allowBuildBazelFilesInTestDataProject: Boolean) {
     for (initialProjectChildPath in initialProjectDir.listDirectoryEntries()) {
       val outputChildPath = testOutputDir.resolve(initialProjectChildPath.name)
       if (initialProjectChildPath.isDirectory()) {
@@ -493,12 +505,12 @@ class BazelGeneratorIntegrationTests {
            "$outputChildPath is not a directory, but $initialProjectChildPath is"
         }
 
-        assertAndRemoveSameFiles(initialProjectChildPath, outputChildPath)
+        assertAndRemoveSameFiles(initialProjectChildPath, outputChildPath, allowBuildBazelFilesInTestDataProject)
       }
       else if (outputChildPath.readText() == initialProjectChildPath.readText()) {
         outputChildPath.deleteExisting()
       }
-      else {
+      else if (!(allowBuildBazelFilesInTestDataProject && initialProjectChildPath.name.startsWith(TILDE_BUILD_PREFIX))) {
         assertFilesEqual(outputChildPath, initialProjectChildPath,
                          "Generator should not modify existing project model files")
       }

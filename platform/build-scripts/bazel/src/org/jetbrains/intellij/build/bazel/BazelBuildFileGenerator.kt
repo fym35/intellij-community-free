@@ -471,34 +471,41 @@ internal class BazelBuildFileGenerator(
     validateCustomModules(list)
 
     val targetsPerModule = mutableListOf<ModuleTargets>()
+    val manuallyWrittenAttributes = ManuallyWrittenAttributes()
     for (module in (if (isCommunity) list.community else list.ultimate)) {
       if (generated.putIfAbsent(module, true) == null) {
         val buildTargetsBazel = BuildFile()
-        targetsPerModule.add(buildTargetsBazel.generateBuildTargets(module, list))
+        targetsPerModule.add(buildTargetsBazel.generateBuildTargets(module, list, manuallyWrittenAttributes))
       }
     }
     return targetsPerModule
   }
 
-  fun generateModuleBuildFiles(list: ModuleList, isCommunity: Boolean): ModuleGenerationResult {
+  fun generateModuleBuildFiles(list: ModuleList, manuallyWrittenAttributes: ManuallyWrittenAttributes, isCommunity: Boolean): ModuleGenerationResult {
     validateCustomModules(list)
     val targetsPerModule = mutableListOf<ModuleTargets>()
     val fileToUpdater = LinkedHashMap<Path, BazelFileUpdater>()
     // bazel build file -> (bzlFile (for import) -> already imported symbols)
     val existingLoads = mutableMapOf<Path, MutableMap<String, MutableSet<String>>>()
+
+    fun getOrCreateFileUpdater(module: ModuleDescriptor): BazelFileUpdater {
+      val fileUpdater = fileToUpdater.computeIfAbsent(module.bazelBuildFileDir) {
+        val fileUpdater = BazelFileUpdater(module.bazelBuildFileDir.resolve("BUILD.bazel"))
+        fileUpdater.removeSections("build")
+        fileUpdater.removeSections("iml ")
+        fileUpdater.removeSections("test")
+        fileUpdater.removeSections("maven libs of ")
+        
+        fileUpdater
+      }
+      return fileUpdater
+    }
+
     for (module in (if (isCommunity) list.community else list.ultimate)) {
       if (generated.putIfAbsent(module, true) == null) {
-        val fileUpdater = fileToUpdater.computeIfAbsent(module.bazelBuildFileDir) {
-          val fileUpdater = BazelFileUpdater(module.bazelBuildFileDir.resolve("BUILD.bazel"))
-          fileUpdater.removeSections("build")
-          fileUpdater.removeSections("iml ")
-          fileUpdater.removeSections("test")
-          fileUpdater.removeSections("maven libs of ")
-          fileUpdater
-        }
-
+        val fileUpdater = getOrCreateFileUpdater(module)
         val buildTargetsBazel = BuildFile()
-        val moduleBuildTargets = buildTargetsBazel.generateBuildTargets(module, list)
+        val moduleBuildTargets = buildTargetsBazel.generateBuildTargets(module, list, manuallyWrittenAttributes)
         val buildSectionName = "build ${module.module.name}"
         val buildSectionSkipped = fileUpdater.isSectionSkipped(buildSectionName)
 
@@ -649,7 +656,7 @@ internal class BazelBuildFileGenerator(
     }
   }
 
-  private fun BuildFile.generateBuildTargets(moduleDescriptor: ModuleDescriptor, moduleList: ModuleList): ModuleTargets {
+  private fun BuildFile.generateBuildTargets(moduleDescriptor: ModuleDescriptor, moduleList: ModuleList, manuallyWrittenAttributes: ManuallyWrittenAttributes): ModuleTargets {
     val module = moduleDescriptor.module
     val customModule = customModules[moduleDescriptor.module.name]
     val jvmTarget = getLanguageLevel(module)
@@ -706,7 +713,9 @@ internal class BazelBuildFileGenerator(
       resourceJarTargets.add(BazelLabel(label = codegenTargetName, module = null))
     }
 
-    val useIjPluginModule = shouldUseIjPluginModuleFunction(moduleDescriptor, moduleList)
+    
+
+    val useIjPluginModule = shouldUseIjPluginModuleFunction(moduleDescriptor, moduleList, manuallyWrittenAttributes)
     val moduleTargetType: String
     if (useIjPluginModule) {
       load("@community//platform/build-scripts/bazel-rules:ij_plugin_module.bzl", "ij_plugin_module")
@@ -756,6 +765,8 @@ internal class BazelBuildFileGenerator(
       }
 
       option("module_name", module.name)
+
+      insertManuallyWrittenAttributes(manuallyWrittenAttributes.getManuallyWrittenAttributes(moduleDescriptor, NON_CLASSPATH_DATA_ATTRIBUTE))
 
       if (useIjPluginModule && deps != null && deps.packedDeps.isNotEmpty()) {
         option("packed_deps", deps.packedDeps.unsorted())
@@ -871,11 +882,12 @@ internal class BazelBuildFileGenerator(
       load("@community//platform/build-scripts/bazel-rules:ij_plugin.bzl", "ij_plugin")
       target("ij_plugin") {
         option("name", moduleDescriptor.targetName + "_plugin")
-        option("descriptor_module", ":${moduleDescriptor.targetName}${getPluginModuleTargetNameSuffix(moduleDescriptor, moduleList)}")
+        option("descriptor_module", ":${moduleDescriptor.targetName}${getPluginModuleTargetNameSuffix(moduleDescriptor, moduleList, manuallyWrittenAttributes)}")
         if (pluginDescriptorContentData.contentModuleNames.isNotEmpty()) {
           val contentModuleLabels = pluginDescriptorContentData.contentModuleNames.map {
             val contentModuleDescriptor = moduleList.getModuleDescriptor(it)
-            getBazelDependencyLabel(contentModuleDescriptor, moduleDescriptor, targetNameSuffix = getPluginModuleTargetNameSuffix(contentModuleDescriptor, moduleList))
+            val contentModuleTargetNameSuffix = getPluginModuleTargetNameSuffix(contentModuleDescriptor, moduleList, manuallyWrittenAttributes)
+            getBazelDependencyLabel(contentModuleDescriptor, moduleDescriptor, targetNameSuffix = contentModuleTargetNameSuffix)
           }
           option("content_modules", contentModuleLabels.unsorted())
         }
@@ -902,11 +914,16 @@ internal class BazelBuildFileGenerator(
 
   /**
    * Determines whether `ij_plugin_module` rule should be used for the given module or the default `jvm_library` rule is enough.
+   * Currently, `ij_plugin_module` is used if and only if `packed_deps` attribute (that is generated automatically) or `non_classpath_data` (that is written manually) is present.
    */
   private fun shouldUseIjPluginModuleFunction(
     moduleDescriptor: ModuleDescriptor,
     moduleList: ModuleList,
+    manuallyWrittenAttributes: ManuallyWrittenAttributes,
   ): Boolean {
+    if (manuallyWrittenAttributes.getManuallyWrittenAttributes(moduleDescriptor, NON_CLASSPATH_DATA_ATTRIBUTE).isNotEmpty()) {
+      return true
+    }
     val deps = moduleList.deps[moduleDescriptor]
     return moduleDescriptor.module.name in moduleList.modulesIncludedInIjPluginRule && deps != null && deps.packedDeps.isNotEmpty()
   }
@@ -1061,9 +1078,13 @@ internal class BazelBuildFileGenerator(
     }
   }
 
-  private fun getPluginModuleTargetNameSuffix(module: ModuleDescriptor, moduleList: ModuleList): String {
+  private fun getPluginModuleTargetNameSuffix(
+    module: ModuleDescriptor,
+    moduleList: ModuleList,
+    manuallyWrittenAttributes: ManuallyWrittenAttributes
+  ): String {
     //follows the logic in `ij_plugin_module` function in ij_plugin_module.bzl
-    return if (shouldUseIjPluginModuleFunction(module, moduleList)) "_plugin_module" else ""
+    return if (shouldUseIjPluginModuleFunction(module, moduleList, manuallyWrittenAttributes)) "_plugin_module" else ""
   }
 
   private fun jpsModuleNameToBazelBuildName(module: JpsModule, baseBuildDir: Path, communityRoot: Path, ultimateRoot: Path?): @NlsSafe String {
