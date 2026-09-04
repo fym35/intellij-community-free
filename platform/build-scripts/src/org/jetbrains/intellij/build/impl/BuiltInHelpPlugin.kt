@@ -2,8 +2,6 @@
 package org.jetbrains.intellij.build.impl
 
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.CompilationContext
 import org.jetbrains.intellij.build.io.ZipArchiver
@@ -14,6 +12,8 @@ import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.io.path.exists
 
 internal const val BUILT_IN_HELP_MODULE_NAME = "intellij.builtInHelp"
@@ -87,7 +87,7 @@ private fun pluginXml(version: String, context: BuildContext): String {
 /**
  * Required due to write lock in [org.apache.lucene.index.IndexWriter.IndexWriter]
  */
-private val helpIndexerMutex = Mutex()
+private val helpIndexerLock = ReentrantLock()
 
 
 /*  Offline help plugins include a separate set of help topics for each of the supported languages.
@@ -108,7 +108,7 @@ private val supportedLanguages = mapOf(
 
 private suspend fun buildResourcesForHelpPlugin(resourceRoot: Path, classPath: Collection<Path>, assetJar: Path, context: CompilationContext) {
   spanBuilder("index help topics").use {
-    helpIndexerMutex.withLock {
+    helpIndexerLock.withLock {
       supportedLanguages.forEach { (lang, descriptor) ->
         val topicPath = resourceRoot.resolve("${descriptor.resPath}topics")
         if (topicPath.exists())

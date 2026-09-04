@@ -54,7 +54,7 @@ internal fun copyNativeBinDir(
  * [OsSpecificDistributionBuilder.copyNativeBinFiles] implementations - the one part of that step which is the
  * same for every OS.
  */
-internal suspend fun copyRestarterToDir(binDir: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext): Path {
+internal fun copyRestarterToDir(binDir: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext): Path {
   return copyNativeBinFileToDir(NativeBinaryDownloader.getRestarter(context, os, arch), binDir)
 }
 
@@ -239,7 +239,7 @@ private class MatchedFile(val relativePath: String, val isValid: Boolean, val pa
   override fun toString() = relativePath
 }
 
-private suspend fun checkSnap(distribution: Path, root: String, patterns: Collection<PathMatcher>, context: BuildContext): List<MatchedFile> {
+private fun checkSnap(distribution: Path, root: String, patterns: Collection<PathMatcher>, context: BuildContext): List<MatchedFile> {
   val stdout = ArrayList<String>()
   val extractionRoot = "ROOT"
   runProcess(

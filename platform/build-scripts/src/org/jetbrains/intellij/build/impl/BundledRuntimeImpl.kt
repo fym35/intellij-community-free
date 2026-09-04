@@ -3,8 +3,6 @@ package org.jetbrains.intellij.build.impl
 
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.NioFiles
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -38,7 +36,9 @@ import java.nio.file.attribute.PosixFilePermission.OWNER_READ
 import java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
 import java.util.EnumSet
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.GZIPInputStream
+import kotlin.concurrent.withLock
 
 class BundledRuntimeImpl(
   private val options: BuildOptions,
@@ -66,13 +66,13 @@ class BundledRuntimeImpl(
   override val build: String
     get() = System.getenv("JBR_DEV_SERVER_VERSION") ?: dependenciesProperties.property("runtimeBuild")
 
-  private val homeForCurrentOsAndArchMutex = Mutex()
+  private val homeForCurrentOsAndArchLock = ReentrantLock()
   private val homeForCurrentOsAndArchValue = AtomicReference<Path>(null)
 
-  override suspend fun getHomeForCurrentOsAndArch(): Path {
+  override fun getHomeForCurrentOsAndArch(): Path {
     val result = homeForCurrentOsAndArchValue.get()
     if (result != null) return result
-    homeForCurrentOsAndArchMutex.withLock {
+    homeForCurrentOsAndArchLock.withLock {
       val result = homeForCurrentOsAndArchValue.get()
       if (result != null) return result
       val os = OsFamily.currentOs
@@ -89,7 +89,7 @@ class BundledRuntimeImpl(
     }
   }
 
-  override suspend fun extract(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, prefix: String): Path {
+  override fun extract(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, prefix: String): Path {
     val isMusl = os == OsFamily.LINUX && libc == LinuxLibcImpl.MUSL
     val effectivePrefix = if (libc == LinuxLibcImpl.MUSL) JetBrainsRuntimeDistribution.VANILLA.artifactPrefix else prefix
     val targetDir = BuildDependenciesDownloader.getDownloadCacheDirectory(paths.communityHomeDirRoot)
@@ -115,14 +115,14 @@ class BundledRuntimeImpl(
     return targetDir
   }
 
-  override suspend fun extractTo(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, destinationDir: Path) {
+  override fun extractTo(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, destinationDir: Path) {
     doExtract(resolveArchive(os, arch, libc, prefix).file, destinationDir, os)
   }
 
   override fun downloadUrlFor(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, prefix: String): String =
     "https://cache-redirector.jetbrains.com/intellij-jbr/${archiveName(os, arch, libc, prefix)}"
 
-  override suspend fun resolveArchive(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, prefix: String): ResolvedDownload =
+  override fun resolveArchive(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl, prefix: String): ResolvedDownload =
     resolveFileForReading(downloadUrlFor(os, arch, libc, prefix), paths.communityHomeDirRoot)
 
   /**

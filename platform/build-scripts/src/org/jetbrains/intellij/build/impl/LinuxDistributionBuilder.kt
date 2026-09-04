@@ -4,8 +4,6 @@ package org.jetbrains.intellij.build.impl
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.buildData.productInfo.ProductInfoLaunchData
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.JvmArchitecture
@@ -36,10 +34,12 @@ import org.jetbrains.intellij.build.isLanguageServer
 import org.jetbrains.intellij.build.isWindows
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
+import org.jetbrains.intellij.build.withPermit
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.concurrent.Semaphore
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.name
@@ -445,7 +445,7 @@ class LinuxDistributionBuilder(
     generateLauncherScript(distBinDir, arch, nonCustomizableJvmArgs = emptyList(), targetLibcImpl, context)
   }
 
-  private suspend fun addNativeLauncher(distBinDir: Path, targetPath: Path, arch: JvmArchitecture, context: BuildContext) {
+  private fun addNativeLauncher(distBinDir: Path, targetPath: Path, arch: JvmArchitecture, context: BuildContext) {
     val (execPath, licensePath) = NativeBinaryDownloader.getLauncher(context, OsFamily.LINUX, arch)
     copyFile(execPath, distBinDir.resolve(context.productProperties.baseFileName))
     copyFile(licensePath, targetPath.resolve("license/launcher-third-party-libraries.html"))

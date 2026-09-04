@@ -284,7 +284,7 @@ class MacDistributionBuilder(
 
   override fun writeVmOptions(distBinDir: Path): Path = writeMacOsVmOptions(distBinDir, context)
 
-  private suspend fun layoutMacCli(macDistDir: Path, arch: JvmArchitecture) {
+  private fun layoutMacCli(macDistDir: Path, arch: JvmArchitecture) {
     val executable = context.productProperties.baseFileName
     val (execPath, licensePath) = NativeBinaryDownloader.getLauncher(context, OsFamily.MACOS, arch)
     val copy = macDistDir.resolve("bin/${executable}")
@@ -295,7 +295,7 @@ class MacDistributionBuilder(
     macDistDir.resolve("Resources").createDirectories()
   }
 
-  private suspend fun layoutMacApp(docTypes: String?, macDistDir: Path, arch: JvmArchitecture) {
+  private fun layoutMacApp(docTypes: String?, macDistDir: Path, arch: JvmArchitecture) {
     copyDir(context.paths.communityHomeDir.resolve("platform/build-scripts/resources/mac/Contents"), macDistDir)
 
     val (execPath, licensePath) = NativeBinaryDownloader.getLauncher(context, OsFamily.MACOS, arch)

@@ -16,7 +16,7 @@ private const val MARKETPLACE_BROKEN_PLUGINS_URL = "https://plugins.jetbrains.co
 /**
  * Generate the 'brokenPlugins.txt' file using JetBrains Marketplace.
  */
-suspend fun buildBrokenPlugins(currentBuildString: String, isInDevelopmentMode: Boolean): ByteArray? {
+fun buildBrokenPlugins(currentBuildString: String, isInDevelopmentMode: Boolean): ByteArray? {
   val span = Span.current()
 
   val allBrokenPlugins = try {

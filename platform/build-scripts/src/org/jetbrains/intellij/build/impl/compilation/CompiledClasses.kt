@@ -19,6 +19,7 @@ import org.jetbrains.intellij.build.impl.isBazelTestRun
 import org.jetbrains.intellij.build.impl.isRunningFromBazelOut
 import org.jetbrains.intellij.build.productionClassesOutputDirectory
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
+import org.jetbrains.intellij.build.telemetry.blockingUse
 import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.api.CanceledStatus
 import org.jetbrains.jps.incremental.storage.ProjectStamps
@@ -255,8 +256,8 @@ internal suspend fun doCompile(
   }
 }
 
-private suspend fun unpackCompiledClasses(classOutput: Path, context: CompilationContext) {
-  spanBuilder("unpack compiled classes archive").use {
+private fun unpackCompiledClasses(classOutput: Path, context: CompilationContext) {
+  spanBuilder("unpack compiled classes archive").blockingUse {
     NioFiles.deleteRecursively(classOutput)
     Decompressor.Zip(context.options.pathToCompiledClassesArchive ?: error("intellij.build.compiled.classes.archive is not set"))
       .extract(classOutput)
@@ -306,7 +307,7 @@ private suspend fun retryCompilation(
   context.messages.reportStatisticValue("Incremental compilation failures", "1")
 }
 
-private suspend fun compile(
+private fun compile(
   jpsCompilationRunner: JpsCompilationRunner,
   moduleNames: Collection<String>?,
   includingTestsInModules: List<String>?,

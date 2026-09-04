@@ -54,7 +54,7 @@ object KotlinCompilerDependencyDownloader {
     return extractFileToCacheLocation(communityRoot, kotlinDistJar)
   }
 
-  suspend fun downloadKotlinJpsPlugin(communityRoot: BuildDependenciesCommunityRoot): Path {
+  fun downloadKotlinJpsPlugin(communityRoot: BuildDependenciesCommunityRoot): Path {
     val kotlinJpsPluginVersion = getKotlinJpsPluginVersion(communityRoot)
     val kotlinJpsPluginUrl = getUriForMavenArtifact(getMavenRepositoryUrl(), ARTIFACT_GROUP_ID, "kotlin-jps-plugin-classpath", kotlinJpsPluginVersion, "jar")
 

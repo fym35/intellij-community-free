@@ -1,16 +1,8 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ReplacePutWithAssignment", "ReplaceGetOrSet")
 
 package org.jetbrains.intellij.build.impl
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesConstants
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
@@ -26,6 +18,11 @@ import java.nio.file.attribute.FileTime
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.HexFormat
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 private val maven4Libs: List<String> = listOf(
   // let's not bundle archetype plugin version 3 with maven version 4
@@ -39,6 +36,7 @@ private val maven4Libs: List<String> = listOf(
 private const val MAVEN_3_LIBRARIES_PROPERTY = "bundledMaven3Libraries"
 private const val MAVEN_TELEMETRY_LIBRARIES_PROPERTY = "bundledMavenTelemetryLibraries"
 
+/** Downloads the bundled Maven distribution and libraries. Every function blocks the calling thread. */
 object BundledMavenDownloader {
   data class MavenLibraryFile(
     @JvmField val fileName: String,
@@ -51,78 +49,68 @@ object BundledMavenDownloader {
     @JvmField val sha256: String?,
   )
 
-  private val distributionMutex = Mutex()
+  private val distributionLock = ReentrantLock()
 
   @JvmStatic
   fun main(args: Array<String>) {
     val communityRoot = BuildDependenciesManualRunOnly.communityRootFromWorkingDirectory
-    runBlocking(Dispatchers.Default) {
-      val distRoot = downloadMavenDistribution(communityRoot)
-      val mavenTelemetryDependencies = downloadMavenTelemetryDependencies(communityRoot)
-      val maven3DownloadedLibs = downloadMaven3Libs(communityRoot)
-      val maven4DownloadedLibs = downloadMaven4Libs(communityRoot)
-      println("Maven distribution extracted at $distRoot")
-      println("Maven telemetry dependencies at $mavenTelemetryDependencies")
-      println("Maven 3 libs at $maven3DownloadedLibs")
-      println("Maven 4 libs at $maven4DownloadedLibs")
-    }
+    val distRoot = downloadMavenDistribution(communityRoot)
+    val mavenTelemetryDependencies = downloadMavenTelemetryDependencies(communityRoot)
+    val maven3DownloadedLibs = downloadMaven3Libs(communityRoot)
+    val maven4DownloadedLibs = downloadMaven4Libs(communityRoot)
+    println("Maven distribution extracted at $distRoot")
+    println("Maven telemetry dependencies at $mavenTelemetryDependencies")
+    println("Maven 3 libs at $maven3DownloadedLibs")
+    println("Maven 4 libs at $maven4DownloadedLibs")
   }
 
-  fun downloadMaven4LibsSync(communityRoot: BuildDependenciesCommunityRoot): Path {
-    return runBlocking(Dispatchers.Default) {
-      downloadMaven4Libs(communityRoot)
-    }
-  }
+  @Deprecated("downloadMaven4Libs blocks too", ReplaceWith("downloadMaven4Libs(communityRoot)"))
+  fun downloadMaven4LibsSync(communityRoot: BuildDependenciesCommunityRoot): Path = downloadMaven4Libs(communityRoot)
 
-  suspend fun downloadMaven4Libs(communityRoot: BuildDependenciesCommunityRoot): Path {
+  fun downloadMaven4Libs(communityRoot: BuildDependenciesCommunityRoot): Path {
     return downloadMavenLibs(communityRoot, "maven40-server-impl", maven4Libs)
   }
 
-  suspend fun resolveMaven4Libs(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
+  fun resolveMaven4Libs(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
     return resolveMavenLibs(communityRoot, maven4Libs)
   }
 
-  fun downloadMaven3LibsSync(communityRoot: BuildDependenciesCommunityRoot): Path {
-    return runBlocking(Dispatchers.Default) {
-      downloadMaven3Libs(communityRoot)
-    }
-  }
+  @Deprecated("downloadMaven3Libs blocks too", ReplaceWith("downloadMaven3Libs(communityRoot)"))
+  fun downloadMaven3LibsSync(communityRoot: BuildDependenciesCommunityRoot): Path = downloadMaven3Libs(communityRoot)
 
-  suspend fun downloadMaven3Libs(communityRoot: BuildDependenciesCommunityRoot): Path {
+  fun downloadMaven3Libs(communityRoot: BuildDependenciesCommunityRoot): Path {
     val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
     return downloadMavenLibs(communityRoot, "maven3-server-common", parseLibraries(properties.property(MAVEN_3_LIBRARIES_PROPERTY)))
   }
 
-  suspend fun resolveMaven3Libs(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
+  fun resolveMaven3Libs(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
     val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
     return resolveMavenLibs(communityRoot, parseLibraries(properties.property(MAVEN_3_LIBRARIES_PROPERTY)))
   }
 
-  private suspend fun downloadMavenLibs(communityRoot: BuildDependenciesCommunityRoot, path: String, libs: List<String>): Path {
+  private fun downloadMavenLibs(communityRoot: BuildDependenciesCommunityRoot, path: String, libs: List<String>): Path {
     val libraryFiles = resolveMavenLibs(communityRoot, libs)
     val root = BuildDependenciesDownloader.getDownloadCacheDirectory(communityRoot)
       .resolve("maven-libraries-$path-${inventoryId(libraryFiles)}")
-    withContext(Dispatchers.IO) {
-      Files.createDirectories(root)
-      for ((fileName, source, _) in libraryFiles) {
-        val targetFile = root.resolve(fileName)
-        // the directory name already states which content belongs here, so all a warm call has to
-        // establish is that every jar landed - one `stat` each, where comparing digests read them whole
-        if (fileSizeOrNull(targetFile) == Files.size(source)) {
-          continue
-        }
-        val tempFile = Files.createTempFile(root, fileName, ".tmp")
-        try {
-          Files.copy(source, tempFile, StandardCopyOption.REPLACE_EXISTING)
-          Files.move(tempFile, targetFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-        }
-        finally {
-          Files.deleteIfExists(tempFile)
-        }
+    Files.createDirectories(root)
+    for ((fileName, source, _) in libraryFiles) {
+      val targetFile = root.resolve(fileName)
+      // the directory name already states which content belongs here, so all a warm call has to
+      // establish is that every jar landed - one `stat` each, where comparing digests read them whole
+      if (fileSizeOrNull(targetFile) == Files.size(source)) {
+        continue
       }
-      // maintain the FIFO cache: `CacheDirCleanup` reclaims a top-level entry by its own modification time
-      Files.setLastModifiedTime(root, FileTime.from(Instant.now()))
+      val tempFile = Files.createTempFile(root, fileName, ".tmp")
+      try {
+        Files.copy(source, tempFile, StandardCopyOption.REPLACE_EXISTING)
+        Files.move(tempFile, targetFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+      }
+      finally {
+        Files.deleteIfExists(tempFile)
+      }
     }
+    // maintain the FIFO cache: `CacheDirCleanup` reclaims a top-level entry by its own modification time
+    Files.setLastModifiedTime(root, FileTime.from(Instant.now()))
     return root
   }
 
@@ -156,7 +144,8 @@ object BundledMavenDownloader {
     }
   }
 
-  private suspend fun resolveMavenLibs(communityRoot: BuildDependenciesCommunityRoot, libs: List<String>): List<MavenLibraryFile> {
+  /** Resolves every library on a virtual thread of its own, so a cold cache downloads them side by side. */
+  private fun resolveMavenLibs(communityRoot: BuildDependenciesCommunityRoot, libs: List<String>): List<MavenLibraryFile> {
     val fileNameToUri = libs.associate { coordinates ->
       val split = coordinates.split(':')
       check(split.size == 3) {
@@ -173,27 +162,35 @@ object BundledMavenDownloader {
       fileName to uri
     }
 
-    return coroutineScope {
-      fileNameToUri.map { (fileName, uri) ->
-        async {
+    Executors.newVirtualThreadPerTaskExecutor().use { executor ->
+      val futures = fileNameToUri.map { (fileName, uri) ->
+        executor.submit(Callable {
           val resolved = resolveFileForReading(uri.toString(), communityRoot)
           MavenLibraryFile(fileName = fileName, source = resolved.file, sha256 = resolved.sha256)
+        })
+      }
+      return futures.map { future ->
+        try {
+          future.get()
         }
-      }.awaitAll()
+        catch (e: ExecutionException) {
+          throw e.cause ?: e
+        }
+      }
     }
   }
 
+  @Deprecated("downloadMavenDistribution blocks too", ReplaceWith("downloadMavenDistribution(communityRoot)"))
   fun downloadMavenDistributionSync(communityRoot: BuildDependenciesCommunityRoot): Path {
-    return downloadMavenDistributionSync(communityRoot = communityRoot, useProjectLocalCache = false)
+    return downloadMavenDistribution(communityRoot = communityRoot, useProjectLocalCache = false)
   }
 
+  @Deprecated("downloadMavenDistribution blocks too", ReplaceWith("downloadMavenDistribution(communityRoot, useProjectLocalCache)"))
   fun downloadMavenDistributionSync(communityRoot: BuildDependenciesCommunityRoot, useProjectLocalCache: Boolean): Path {
-    return runBlocking(Dispatchers.Default) {
-      downloadMavenDistribution(communityRoot = communityRoot, useProjectLocalCache = useProjectLocalCache)
-    }
+    return downloadMavenDistribution(communityRoot = communityRoot, useProjectLocalCache = useProjectLocalCache)
   }
 
-  suspend fun downloadMavenDistribution(communityRoot: BuildDependenciesCommunityRoot): Path {
+  fun downloadMavenDistribution(communityRoot: BuildDependenciesCommunityRoot): Path {
     return downloadMavenDistribution(communityRoot = communityRoot, useProjectLocalCache = false)
   }
 
@@ -204,10 +201,10 @@ object BundledMavenDownloader {
    * embedded Maven home and VFS access is restricted to the IDE home. Build and dev-mode callers retain the shared,
    * content-addressed extraction cache.
    */
-  suspend fun downloadMavenDistribution(communityRoot: BuildDependenciesCommunityRoot, useProjectLocalCache: Boolean): Path {
+  fun downloadMavenDistribution(communityRoot: BuildDependenciesCommunityRoot, useProjectLocalCache: Boolean): Path {
     val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
     val bundledMavenVersion = properties.property("bundledMavenVersion")
-    return distributionMutex.withLock {
+    return distributionLock.withLock {
       val uri = BuildDependenciesDownloader.getUriForMavenArtifact(
         mavenRepository = BuildDependenciesConstants.MAVEN_CENTRAL_URL,
         groupId = "org.apache.maven",
@@ -233,7 +230,7 @@ object BundledMavenDownloader {
     }
   }
 
-  suspend fun downloadMavenTelemetryDependencies(communityRoot: BuildDependenciesCommunityRoot): Path {
+  fun downloadMavenTelemetryDependencies(communityRoot: BuildDependenciesCommunityRoot): Path {
     val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
     return downloadMavenLibs(
       communityRoot,
@@ -242,7 +239,7 @@ object BundledMavenDownloader {
     )
   }
 
-  suspend fun resolveMavenTelemetryDependencies(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
+  fun resolveMavenTelemetryDependencies(communityRoot: BuildDependenciesCommunityRoot): List<MavenLibraryFile> {
     val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
     return resolveMavenLibs(communityRoot, parseLibraries(properties.property(MAVEN_TELEMETRY_LIBRARIES_PROPERTY)))
   }

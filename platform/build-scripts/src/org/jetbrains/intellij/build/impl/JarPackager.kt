@@ -422,7 +422,7 @@ class JarPackager private constructor(
            )
   }
 
-  internal suspend fun computeSourcesForModule(item: ModuleItem, layout: BaseLayout?, searchableOptionSet: SearchableOptionSetDescriptor?) {
+  internal fun computeSourcesForModule(item: ModuleItem, layout: BaseLayout?, searchableOptionSet: SearchableOptionSetDescriptor?) {
     val moduleName = item.moduleName
     val patchedSources = moduleOutputPatcher.getPatchedSources(moduleName)
 

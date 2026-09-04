@@ -698,7 +698,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     }
   }
 
-  private suspend fun getRuntimeExecutablePath(): Path {
+  private fun getRuntimeExecutablePath(): Path {
     val runtimeDir: Path
     if (options.customRuntimePath != null) {
       runtimeDir = Path.of(checkNotNull(options.customRuntimePath))
@@ -1446,7 +1446,7 @@ private suspend inline fun <T> blockWithDefaultFlowId(
   }
 }
 
-private suspend fun publishTestDiscovery(messages: BuildMessages, file: String?) {
+private fun publishTestDiscovery(messages: BuildMessages, file: String?) {
   val serverUrl = System.getProperty("intellij.test.discovery.url")
   val token = System.getProperty("intellij.test.discovery.token")
   messages.info("Trying to upload $file into ${serverUrl}.")

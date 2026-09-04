@@ -92,7 +92,7 @@ internal data class DescriptorSearchScope(
  * @param xIncludeResolver The resolver for xi:include elements
  * @param context The build context
  */
-internal suspend fun embedContentModules(
+internal fun embedContentModules(
   rootElement: Element,
   pluginLayout: PluginLayout,
   pluginDescriptorContainer: ScopedCachedDescriptorContainer,
@@ -210,7 +210,7 @@ private fun loadXmlFromEmbeddedProductSpec(
   return JDOMUtil.load(buildResult.xml)
 }
 
-internal suspend fun resolveAndCacheDescriptorForEmbeddedProduct(
+internal fun resolveAndCacheDescriptorForEmbeddedProduct(
   xml: Element,
   clientModuleName: String,
   additionalSearchModules: Collection<String>,

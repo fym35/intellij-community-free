@@ -109,7 +109,7 @@ private fun appendProductCode(uri: String, context: BuildContext): String {
   return if (uri.endsWith('/')) "$uri$name" else "$uri/$name"
 }
 
-private suspend fun download(url: String): ByteArray {
+private fun download(url: String): ByteArray {
   Span.current().addEvent("download", Attributes.of(AttributeKey.stringKey("url"), url))
   return downloadAsBytes(url)
 }
@@ -129,14 +129,14 @@ private fun String.parseDate(): Long? {
   return null
 }
 
-private suspend fun lastModified(url: String): ByteArray {
+private fun lastModified(url: String): ByteArray {
   Span.current().addEvent("last-modified", Attributes.of(AttributeKey.stringKey("url"), url))
   val dateTimeString = lastModifiedFromHeadRequest(url)
   val epochTime = dateTimeString?.parseDate() ?: 0L
   return epochTime.toString().toByteArray()
 }
 
-private suspend fun serviceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext): ConfigurationClient {
+private fun serviceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext): ConfigurationClient {
   val providerUri = appendProductCode(featureUsageStatisticsProperties.metadataProviderUri, context)
   Span.current().addEvent("parsing", Attributes.of(AttributeKey.stringKey("url"), providerUri))
   val appInfo = context.applicationInfo
@@ -149,13 +149,13 @@ private suspend fun serviceUri(featureUsageStatisticsProperties: FeatureUsageSta
   return configurationClient
 }
 
-private suspend fun metadataServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext): String {
+private fun metadataServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext): String {
   val appInfo = context.applicationInfo
   val metadataVersion = (appInfo.majorVersion.substring(2,4) + appInfo.minorVersionMainPart).toInt()
   return serviceUri(featureUsageStatisticsProperties, context).provideMetadataProductUrl(metadataVersion)!!
 }
 
-private suspend fun dictionaryServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext, fileName: String): String
+private fun dictionaryServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext, fileName: String): String
   = "${serviceUri(featureUsageStatisticsProperties, context).provideDictionaryEndpoint()!!}${featureUsageStatisticsProperties.recorderId}/$fileName"
 
 class FusJacksonSerializer: FusJsonSerializer {

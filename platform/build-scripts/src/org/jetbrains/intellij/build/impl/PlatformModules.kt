@@ -506,7 +506,7 @@ private fun buildImplicitTraversalBlockedSet(
   return blockedOrSeen
 }
 
-private suspend fun validateImplicitPlatformModule(
+private fun validateImplicitPlatformModule(
   name: String,
   chain: PersistentList<String>,
   outputProvider: ModuleOutputProvider,

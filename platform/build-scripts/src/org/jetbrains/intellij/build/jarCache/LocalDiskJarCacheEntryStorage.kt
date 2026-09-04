@@ -4,7 +4,6 @@ package org.jetbrains.intellij.build.jarCache
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.delay
 import org.jetbrains.intellij.build.Source
 import org.jetbrains.intellij.build.SourceAndCacheStrategy
 import org.jetbrains.intellij.build.ZipSource
@@ -15,7 +14,6 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.FileTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
 
 private const val metadataTouchThrottleMaxEntries = 200_000
 private const val metadataPublishReconciliationAttempts = 3
@@ -158,7 +156,7 @@ internal suspend fun produceAndCache(
   return if (producer.useCacheAsTargetFile) paths.payloadFile else targetFile
 }
 
-private suspend fun reconcileMetadataPublishFailure(
+private fun reconcileMetadataPublishFailure(
   paths: CacheEntryPaths,
   items: List<SourceAndCacheStrategy>,
   decodeNativeFiles: Boolean,
@@ -178,7 +176,7 @@ private suspend fun reconcileMetadataPublishFailure(
     }
 
     if (attempt != metadataPublishReconciliationAttempts - 1) {
-      delay(metadataPublishReconciliationDelayMs.milliseconds)
+      Thread.sleep(metadataPublishReconciliationDelayMs)
     }
   }
 

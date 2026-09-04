@@ -60,7 +60,7 @@ fun runCommand(vararg args: String, env: Map<String, String> = emptyMap()) {
 
 private val isWindows = localEel.platform.osFamily.isWindows
 
-suspend fun setupPyEnv() {
+fun setupPyEnv() {
   if (pyEnvHome.exists()) return
   println("*** Setup pyenv ***")
   val pyEnv: Path

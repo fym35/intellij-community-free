@@ -16,6 +16,7 @@ import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.io.AddDirEntriesMode
@@ -205,7 +206,7 @@ internal suspend fun signMacBinaries(
 
 private fun isMacBinary(path: Path): Boolean = isMacBinary(Files.newByteChannel(path))
 
-internal suspend fun isSigned(path: Path): Boolean {
+internal fun isSigned(path: Path): Boolean {
   return Files.newByteChannel(path).use {
     isSigned(byteChannel = it, binaryId = path.toString())
   }
@@ -221,7 +222,7 @@ private fun detectFileType(byteChannel: SeekableByteChannel): Pair<FileType, Enu
 /**
  * Assumes [isMacBinary].
  */
-internal suspend fun isSigned(byteChannel: SeekableByteChannel, binaryId: String): Boolean {
+internal fun isSigned(byteChannel: SeekableByteChannel, binaryId: String): Boolean {
   val verificationParams = SignatureVerificationParams(signRootCertStore = null, timestampRootCertStore = null, buildChain = false, withRevocationCheck = false)
   val binaries = MachoArch(byteChannel).Extract()
   return binaries.all { binary ->
@@ -246,7 +247,10 @@ internal suspend fun isSigned(byteChannel: SeekableByteChannel, binaryId: String
 
     val result = try {
       val signedMessageVerifier = SignedMessageVerifier(SignatureVerificationLog(binaryId))
-      signedMessageVerifier.VerifySignatureAsync(signedMessage, verificationParams)
+      // the signature verifier is a coroutine API, so the check enters coroutines here and nowhere else
+      runBlocking {
+        signedMessageVerifier.VerifySignatureAsync(signedMessage, verificationParams)
+      }
     }
     catch (e: Exception) {
       throw Exception("Failed to verify $binaryId", e)

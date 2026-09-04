@@ -9,8 +9,6 @@ import com.intellij.platform.buildData.productInfo.ProductInfoLaunchData
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.jetbrains.intellij.build.BuildContext
@@ -47,12 +45,14 @@ import org.jetbrains.intellij.build.isLanguageServer
 import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
+import org.jetbrains.intellij.build.withPermit
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.time.LocalDate
 import java.util.Arrays
+import java.util.concurrent.Semaphore
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempFile

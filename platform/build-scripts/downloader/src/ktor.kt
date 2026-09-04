@@ -34,12 +34,10 @@ import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanBuilder
 import io.opentelemetry.api.trace.StatusCode
-import io.opentelemetry.extension.kotlin.asContextElement
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
@@ -62,6 +60,7 @@ import java.util.EnumSet
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
+import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.hours
 
 const val SPACE_REPO_HOST: String = "packages.jetbrains.team"
@@ -155,15 +154,23 @@ internal inline fun <T> Span.use(operation: (Span) -> T): T {
   }
 }
 
-// copy from util, do not make public
-internal suspend inline fun <T> SpanBuilder.useWithScope(crossinline operation: suspend (Span) -> T): T {
+/** Runs [operation] in a span that is current on the calling thread, so a span it starts gets this one as its parent. */
+internal inline fun <T> SpanBuilder.useWithScope(operation: (Span) -> T): T {
   val span = startSpan()
-  return withContext(span.asContextElement()) {
+  return span.makeCurrent().use {
     span.use {
       operation(span)
     }
   }
 }
+
+/**
+ * Runs one ktor call and blocks the calling thread until it ends.
+ *
+ * The ktor client is a coroutine API, so this is the one entry into coroutines of the downloader. The coroutine resumes
+ * on the calling thread, so the telemetry span stays current.
+ */
+private fun <T> runKtor(block: suspend CoroutineScope.() -> T): T = runBlocking(block = block)
 
 internal fun spanBuilder(spanName: String): SpanBuilder = BuildDependenciesDownloader.TRACER.spanBuilder(spanName)
 
@@ -171,39 +178,40 @@ fun closeKtorClient() {
   httpClient.drop()?.close()
 }
 
-private val fileLocks = StripedMutex()
+private val fileLocks = StripedLock()
 
-suspend fun downloadAsBytes(url: String): ByteArray = spanBuilder("download").setAttribute("url", url).useWithScope {
-  withContext(Dispatchers.IO) {
+fun downloadAsBytes(url: String): ByteArray = spanBuilder("download").setAttribute("url", url).useWithScope {
+  runKtor {
     httpClient.value.get(url).body()
   }
 }
 
-suspend fun lastModifiedFromHeadRequest(url: String): String? = spanBuilder("last-modified").setAttribute("url", url).useWithScope {
-  withContext(Dispatchers.IO) {
+fun lastModifiedFromHeadRequest(url: String): String? = spanBuilder("last-modified").setAttribute("url", url).useWithScope {
+  runKtor {
     httpClient.value.head(url).headers["Last-Modified"]
   }
 }
 
-suspend fun downloadAsText(url: String): String {
+fun downloadAsText(url: String): String {
   return spanBuilder("download").setAttribute("url", url).useWithScope {
-    withContext(Dispatchers.IO) {
+    runKtor {
       httpClient.value.get(url).bodyAsText()
     }
   }
 }
 
+@Deprecated("downloadFileToCacheLocation blocks too", ReplaceWith("downloadFileToCacheLocation(url, communityRoot)"))
 fun downloadFileToCacheLocationSync(url: String, communityRoot: BuildDependenciesCommunityRoot): Path {
-  return runBlocking {
-    downloadFileToCacheLocation(url, communityRoot)
-  }
+  return downloadFileToCacheLocation(url, communityRoot)
 }
 
-fun downloadFileToCacheLocationSync(url: String, communityRoot: BuildDependenciesCommunityRoot, credentialsProvider: () -> Credentials): Path = runBlocking {
-  downloadFileToCacheLocation(url, communityRoot, credentialsProvider)
+@Deprecated("downloadFileToCacheLocation blocks too", ReplaceWith("downloadFileToCacheLocation(url, communityRoot, credentialsProvider)"))
+fun downloadFileToCacheLocationSync(url: String, communityRoot: BuildDependenciesCommunityRoot, credentialsProvider: () -> Credentials): Path {
+  return downloadFileToCacheLocation(url, communityRoot, credentialsProvider)
 }
 
-suspend fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot): Path {
+/** Downloads [url] into the download cache, or returns the cached file. Blocks the calling thread. */
+fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot): Path {
   return downloadFileToCacheLocation(url = url, communityRoot = communityRoot, authConfigSettings = null)
 }
 
@@ -223,10 +231,8 @@ data class ResolvedDownload(@JvmField val file: Path, @JvmField val sha256: Stri
  * returned path or beside it - a caller that needs a writable neighbourhood wants
  * [downloadFileToCacheLocation] instead.
  */
-suspend fun resolveFileForReading(url: String, communityRoot: BuildDependenciesCommunityRoot): ResolvedDownload {
-  val preloaded = withContext(Dispatchers.IO) {
-    PreloadedDownloads.findByUrl(url)
-  }
+fun resolveFileForReading(url: String, communityRoot: BuildDependenciesCommunityRoot): ResolvedDownload {
+  val preloaded = PreloadedDownloads.findByUrl(url)
   if (preloaded != null) {
     return ResolvedDownload(file = preloaded.source, sha256 = preloaded.sha256)
   }
@@ -240,7 +246,7 @@ suspend fun resolveFileForReading(url: String, communityRoot: BuildDependenciesC
  * The extraction is keyed by content whenever the content is known, so it survives the archive turning
  * up at a different path - which a runfile does, per test target and per sandbox.
  */
-suspend fun resolveAndExtractToCacheLocation(
+fun resolveAndExtractToCacheLocation(
   url: String,
   communityRoot: BuildDependenciesCommunityRoot,
   vararg options: BuildDependenciesExtractOptions,
@@ -254,7 +260,7 @@ suspend fun resolveAndExtractToCacheLocation(
   )
 }
 
-suspend fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot, token: String): Path {
+fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot, token: String): Path {
   return downloadFileToCacheLocation(url = url, communityRoot = communityRoot, authConfigSettings = {
     bearer {
       loadTokens {
@@ -264,7 +270,7 @@ suspend fun downloadFileToCacheLocation(url: String, communityRoot: BuildDepende
   })
 }
 
-suspend fun downloadFileToCacheLocation(
+fun downloadFileToCacheLocation(
   url: String,
   communityRoot: BuildDependenciesCommunityRoot,
   credentialsProvider: () -> Credentials,
@@ -280,7 +286,7 @@ suspend fun downloadFileToCacheLocation(
   })
 }
 
-suspend fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot, authProvider: AuthProvider): Path {
+fun downloadFileToCacheLocation(url: String, communityRoot: BuildDependenciesCommunityRoot, authProvider: AuthProvider): Path {
   return downloadFileToCacheLocation(url = url, communityRoot = communityRoot, authConfigSettings = {
     providers.add(authProvider)
   })
@@ -296,17 +302,17 @@ private fun downloadFileIsRetryAllowed(e: Exception): Boolean {
   }
 }
 
-private suspend fun downloadFileToCacheLocation(
+private fun downloadFileToCacheLocation(
   url: String,
   communityRoot: BuildDependenciesCommunityRoot,
   authConfigSettings: (AuthConfig.() -> Unit)?,
-): Path = withContext(Dispatchers.IO) {
+): Path {
   BuildDependenciesDownloader.cleanUpIfRequired(communityRoot)
 
   val preloaded = PreloadedDownloads.findByUrl(url)
   val target = BuildDependenciesDownloader.getTargetFile(communityRoot, url, preloaded?.sha256)
   val targetPath = target.toString()
-  fileLocks.getLock(targetPath).withLock {
+  return fileLocks.getLock(targetPath).withLock {
     if (Files.exists(target)) {
       Span.current().addEvent(
         "use asset from cache", Attributes.of(
@@ -366,8 +372,10 @@ private suspend fun downloadFileToCacheLocation(
             }
           }
 
-          val response = httpClient.value.config(commonConfig).use { client ->
-            doDownloadFileWithoutCaching(client = client, url = url, file = tempFile)
+          val response = runKtor {
+            httpClient.value.config(commonConfig).use { client ->
+              doDownloadFileWithoutCaching(client = client, url = url, file = tempFile)
+            }
           }
 
           val statusCode = response.status.value
@@ -417,8 +425,10 @@ private suspend fun downloadFileToCacheLocation(
   }
 }
 
-suspend fun downloadFileWithoutCaching(url: String, tempFile: Path) {
-  doDownloadFileWithoutCaching(client = httpClient.get(), url = url, file = tempFile)
+fun downloadFileWithoutCaching(url: String, tempFile: Path) {
+  runKtor {
+    doDownloadFileWithoutCaching(client = httpClient.get(), url = url, file = tempFile)
+  }
 }
 
 // https://github.com/ktorio/ktor/issues/5127

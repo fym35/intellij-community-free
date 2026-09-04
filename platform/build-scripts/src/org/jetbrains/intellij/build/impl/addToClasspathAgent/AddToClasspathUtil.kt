@@ -31,7 +31,7 @@ object AddToClasspathUtil {
     attachAgent(agentPath, mainClass, additionalClassPath.joinToString(File.pathSeparator))
   }
 
-  private suspend fun attachAgent(agentPath: Path, mainClass: Class<*>, agentArguments: String) {
+  private fun attachAgent(agentPath: Path, mainClass: Class<*>, agentArguments: String) {
     // -Djdk.attach.allowAttachSelf required to attach to self,
     // we could not guarantee any additional system parameters upon start
     // since code will be run as any jvm main class e.g. from IDE gutter mark

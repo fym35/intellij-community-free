@@ -43,6 +43,7 @@ import org.jetbrains.intellij.build.impl.projectStructureMapping.getIncludedModu
 import org.jetbrains.intellij.build.impl.suspendingLazy
 import org.jetbrains.intellij.build.io.ZipEntryProcessorResult
 import org.jetbrains.intellij.build.io.readZipFile
+import org.jetbrains.intellij.build.io.runProcess
 import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.retryWithExponentialBackOff
 import org.jetbrains.intellij.build.taskScope
@@ -268,7 +269,7 @@ class SoftwareBillOfMaterialsImpl(
    * Used until external document reference for Runtime is supplied,
    * then should be replaced with [addRuntimeDocumentRef]
    */
-  private suspend fun SpdxDocument.runtimePackage(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl): SpdxPackage {
+  private fun SpdxDocument.runtimePackage(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl): SpdxPackage {
     val checksums = Checksums.compute(context.bundledRuntime.resolveArchive(os = os, arch = arch, libc = libc).file)
     val version = context.bundledRuntime.build
     val runtimeArchivePackage = spdxPackageForFile(
@@ -709,7 +710,7 @@ class SoftwareBillOfMaterialsImpl(
       }
     }
 
-    suspend fun checkCopyrightText() {
+    fun checkCopyrightText() {
       if (copyrightText != null) return
       var licenseUrl = library.licenseUrl ?: return
       if (licenseUrl.startsWith("https://github.com/") && !licenseUrl.contains("/raw/")) {
@@ -991,9 +992,12 @@ class SoftwareBillOfMaterialsImpl(
 
     val ntiaChecker = "ntia-checker"
     retryWithExponentialBackOff {
-      context.runProcess(
+      // the free runner, because the retry takes a plain action and the `BuildContext` member still suspends
+      runProcess(
         args = listOf("docker", "build", ".", "--tag", ntiaChecker),
         workingDir = context.paths.communityHomeDir.resolve("platform/build-scripts/resources/sbom/$ntiaChecker"),
+        stdOutConsumer = context.messages::info,
+        stdErrConsumer = context.messages::warning,
       )
     }
     taskScope(TaskScopePolicy.RUN_ALL) {

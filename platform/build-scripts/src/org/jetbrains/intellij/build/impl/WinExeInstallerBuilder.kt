@@ -142,7 +142,7 @@ internal suspend fun buildNsisInstaller(
   return installerFile
 }
 
-private suspend fun prepareNsis(context: BuildContext, tempDir: Path, useBig: Boolean): Pair<Path, Path> {
+private fun prepareNsis(context: BuildContext, tempDir: Path, useBig: Boolean): Pair<Path, Path> {
   val nsisDir = context.options.useLocalNSIS?.let { Path.of(it) } ?: run {
     // NSISBI ships the same layout as stock NSIS, so only the name and version differ.
     val artifact = if (useBig) "NSISBI" else "NSIS"

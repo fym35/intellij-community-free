@@ -1,7 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build
 
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader.Credentials
@@ -41,7 +40,7 @@ object BuildDependenciesJps {
   }
 
   @OptIn(ExperimentalStdlibApi::class)
-  private suspend fun getLibraryRoots(
+  private fun getLibraryRoots(
     library: Element,
     mavenRepositoryUrl: String,
     communityRoot: BuildDependenciesCommunityRoot,
@@ -104,7 +103,7 @@ object BuildDependenciesJps {
       }
   }
 
-  suspend fun getModuleLibraryRoots(
+  fun getModuleLibraryRoots(
     iml: Path,
     libraryName: String,
     mavenRepositoryUrl: String,
@@ -135,12 +134,10 @@ object BuildDependenciesJps {
     mavenRepositoryUrl: String,
     communityRoot: BuildDependenciesCommunityRoot,
   ): Path {
-    return runBlocking {
-      getModuleLibrarySingleRoot(iml = iml, libraryName = libraryName, mavenRepositoryUrl = mavenRepositoryUrl, communityRoot = communityRoot)
-    }
+    return getModuleLibrarySingleRoot(iml = iml, libraryName = libraryName, mavenRepositoryUrl = mavenRepositoryUrl, communityRoot = communityRoot)
   }
 
-  suspend fun getModuleLibrarySingleRoot(
+  fun getModuleLibrarySingleRoot(
     iml: Path,
     libraryName: String,
     mavenRepositoryUrl: String,
@@ -149,7 +146,7 @@ object BuildDependenciesJps {
     return getModuleLibrarySingleRoot(iml = iml, libraryName = libraryName, mavenRepositoryUrl = mavenRepositoryUrl, communityRoot = communityRoot, credentialsProvider = null)
   }
 
-  suspend fun getModuleLibrarySingleRoot(
+  fun getModuleLibrarySingleRoot(
     iml: Path,
     libraryName: String,
     mavenRepositoryUrl: String,
@@ -164,7 +161,7 @@ object BuildDependenciesJps {
     return roots.single()
   }
 
-  suspend fun getProjectLibraryRoots(
+  fun getProjectLibraryRoots(
     libraryXml: Path,
     libraryName: String,
     mavenRepositoryUrl: String,

@@ -160,7 +160,7 @@ class MPSProperties : JetBrainsProductProperties() {
         generateBuildTxt(context, Path.of("$targetDir/lib"))
     }
 
-    private suspend fun copyExecutables(context: BuildContext, targetDirectory: Path) {
+    private fun copyExecutables(context: BuildContext, targetDirectory: Path) {
         Files.createDirectories(Path.of("$targetDirectory/build/resources"))
         for (osFamily in OsFamily.entries) {
             for (arch in JvmArchitecture.entries) {

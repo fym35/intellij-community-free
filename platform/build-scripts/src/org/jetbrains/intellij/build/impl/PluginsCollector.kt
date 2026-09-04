@@ -238,7 +238,7 @@ private fun groupPluginLayoutsByMainModule(productLayout: ProductModulesLayout):
  * [applyPublishFilters] turns on the filters that find a module which the build must not publish as a plugin.
  * A walk over the bundled plugins sets it to false, because the list of the bundled plugins is the authority.
  */
-private suspend fun readPluginDescriptor(
+private fun readPluginDescriptor(
   moduleName: String,
   skipImplementationDetails: Boolean,
   applyPublishFilters: Boolean,

@@ -3,8 +3,6 @@ package org.jetbrains.intellij.build.impl.maven
 
 import com.intellij.util.io.Compressor
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -25,6 +23,7 @@ import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Path
 import java.util.Base64
+import java.util.concurrent.TimeoutException
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.PathWalkOption
 import kotlin.io.path.deleteIfExists
@@ -39,6 +38,7 @@ import kotlin.io.path.walk
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 /**
  * @param workDir is expected to contain:
@@ -317,26 +317,30 @@ class MavenCentralPublication(
    */
   private suspend fun wait(deploymentId: String) {
     spanBuilder("waiting").setAttribute("deploymentId", deploymentId).use { span ->
-      withTimeout(DEPLOYMENT_TIMEOUT) {
-        while (true) {
-          val deploymentState = callSonatype("$STATUS_URI_BASE?id=$deploymentId", builder = {
-            it.post("{}".toRequestBody("application/json".toMediaType()))
-          }, action = {
-            val response = it.body.string()
-            context.messages.info(response)
-            span.addEvent(response)
-            parseDeploymentState(response)
-          })
-          when (deploymentState) {
-            DeploymentState.FAILED -> context.messages.logErrorAndThrow("$deploymentId status is $deploymentState")
-            DeploymentState.VALIDATED if type == PublishingType.USER_MANAGED -> break
-            DeploymentState.PUBLISHED if type == PublishingType.AUTOMATIC -> {
-              artifacts.forEach {
-                context.messages.info("Expected to be available in https://repo1.maven.org/maven2/${it.coordinates.directoryPath} shortly")
-              }
-              break
+      val deadline = TimeSource.Monotonic.markNow() + DEPLOYMENT_TIMEOUT
+      while (true) {
+        val deploymentState = callSonatype("$STATUS_URI_BASE?id=$deploymentId", builder = {
+          it.post("{}".toRequestBody("application/json".toMediaType()))
+        }, action = {
+          val response = it.body.string()
+          context.messages.info(response)
+          span.addEvent(response)
+          parseDeploymentState(response)
+        })
+        when (deploymentState) {
+          DeploymentState.FAILED -> context.messages.logErrorAndThrow("$deploymentId status is $deploymentState")
+          DeploymentState.VALIDATED if type == PublishingType.USER_MANAGED -> break
+          DeploymentState.PUBLISHED if type == PublishingType.AUTOMATIC -> {
+            artifacts.forEach {
+              context.messages.info("Expected to be available in https://repo1.maven.org/maven2/${it.coordinates.directoryPath} shortly")
             }
-            else -> delay(DEPLOYMENT_STATUS_POLL_DELAY)
+            break
+          }
+          else -> {
+            if (deadline.hasPassedNow()) {
+              throw TimeoutException("$deploymentId is still $deploymentState after $DEPLOYMENT_TIMEOUT")
+            }
+            Thread.sleep(DEPLOYMENT_STATUS_POLL_DELAY.inWholeMilliseconds)
           }
         }
       }

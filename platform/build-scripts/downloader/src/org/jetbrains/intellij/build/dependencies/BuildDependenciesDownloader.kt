@@ -5,21 +5,17 @@ import com.dynatrace.hash4j.hashing.Hashing
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer
 import io.opentelemetry.api.trace.Tracer
 import io.opentelemetry.api.trace.TracerProvider
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.intellij.build.IExceptionWithRetryPolicy
-import org.jetbrains.intellij.build.StripedMutex
+import org.jetbrains.intellij.build.StripedLock
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader.cleanUpIfRequired
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesUtil.cleanDirectory
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesUtil.extractTarBz2
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesUtil.extractTarGz
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesUtil.extractZip
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesUtil.listDirectory
-import org.jetbrains.intellij.build.downloadFileToCacheLocationSync
+import org.jetbrains.intellij.build.downloadFileToCacheLocation
 import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -58,6 +54,7 @@ import kotlin.Suppress
 import kotlin.Throwable
 import kotlin.arrayOf
 import kotlin.check
+import kotlin.concurrent.withLock
 import kotlin.emptyArray
 import kotlin.error
 import kotlin.getValue
@@ -66,7 +63,7 @@ import kotlin.lazy
 import kotlin.let
 
 private val LOG = Logger.getLogger(BuildDependenciesDownloader::class.java.name)
-private val fileLocks = StripedMutex(1024)
+private val fileLocks = StripedLock(1024)
 private val cleanupFlag = AtomicBoolean(false)
 
 // increment on semantic changes in extract code to invalidate all current caches
@@ -114,12 +111,12 @@ object BuildDependenciesDownloader {
 
   @JvmStatic
   fun downloadFileToCacheLocation(communityRoot: BuildDependenciesCommunityRoot, uri: URI): Path {
-    return downloadFileToCacheLocationSync(uri.toString(), communityRoot)
+    return downloadFileToCacheLocation(uri.toString(), communityRoot)
   }
 
   @JvmStatic
   fun downloadFileToCacheLocation(communityRoot: BuildDependenciesCommunityRoot, uri: URI, credentialsProvider: () -> Credentials): Path {
-    return downloadFileToCacheLocationSync(uri.toString(), communityRoot, credentialsProvider)
+    return downloadFileToCacheLocation(uri.toString(), communityRoot, credentialsProvider)
   }
 
   fun getTargetFile(communityRoot: BuildDependenciesCommunityRoot, uriString: String): Path {
@@ -147,13 +144,10 @@ object BuildDependenciesDownloader {
   fun getDownloadCacheDirectory(communityRoot: BuildDependenciesCommunityRoot): Path = getProjectLocalDownloadCache(communityRoot)
 
   /**
-   * The blocking form of [extractToCacheLocation], for a Java caller or a build script that is not
-   * a coroutine - the same shape as [downloadFileToCacheLocation] above.
+   * The Java form of [extractToCacheLocation], with the community root first, as [downloadFileToCacheLocation] above.
    *
    * It delegates rather than repeating the extraction: sharing the striped `fileLocks` is what keeps
-   * a blocking and a suspending extraction of the same directory out of each other's way. The object
-   * monitor this used to hold did neither - it serialized every extraction in the process against
-   * every other, while excluding nothing at all on the suspending path.
+   * two extractions of the same directory out of each other's way.
    */
   @JvmStatic
   fun extractFileToCacheLocation(
@@ -161,25 +155,21 @@ object BuildDependenciesDownloader {
     archiveFile: Path,
     vararg options: BuildDependenciesExtractOptions,
   ): Path {
-    return runBlocking {
-      extractToCacheLocation(
-        archiveFile = archiveFile,
-        communityRoot = communityRoot,
-        cacheKey = archiveCacheKey(archiveFile = archiveFile, sha256 = null),
-        options = options,
-      )
-    }
+    return extractToCacheLocation(
+      archiveFile = archiveFile,
+      communityRoot = communityRoot,
+      cacheKey = archiveCacheKey(archiveFile = archiveFile, sha256 = null),
+      options = options,
+    )
   }
 
   @Suppress("DeprecatedCallableAddReplaceWith")
   @Deprecated("Use BuildDependenciesDownloader.extractFile(communityRoot, archiveFile, options)", level = DeprecationLevel.ERROR)
   fun extractFileSync(archiveFile: Path, target: Path, communityRoot: BuildDependenciesCommunityRoot) {
-    runBlocking {
-      extractFile(archiveFile, target, communityRoot)
-    }
+    extractFile(archiveFile, target, communityRoot)
   }
 
-  suspend fun extractFile(
+  fun extractFile(
     archiveFile: Path,
     target: Path,
     communityRoot: BuildDependenciesCommunityRoot,
@@ -190,9 +180,9 @@ object BuildDependenciesDownloader {
 
   /**
    * Extracts into a caller-chosen [target], reusing an existing extraction when [sha256] - or, without
-   * one, the archive path - still matches what the flag file records.
+   * one, the archive path - still matches what the flag file records. Blocks the calling thread.
    */
-  suspend fun extractFile(
+  fun extractFile(
     archiveFile: Path,
     target: Path,
     communityRoot: BuildDependenciesCommunityRoot,
@@ -247,7 +237,7 @@ object BuildDependenciesDownloader {
   }
 }
 
-suspend fun extractFileToCacheLocation(archiveFile: Path, communityRoot: BuildDependenciesCommunityRoot, stripRoot: Boolean = false): Path {
+fun extractFileToCacheLocation(archiveFile: Path, communityRoot: BuildDependenciesCommunityRoot, stripRoot: Boolean = false): Path {
   return extractToCacheLocation(
     archiveFile = archiveFile,
     communityRoot = communityRoot,
@@ -261,17 +251,18 @@ suspend fun extractFileToCacheLocation(archiveFile: Path, communityRoot: BuildDe
  *
  * Nothing is written beside [archiveFile], so the archive itself may live on a read-only filesystem -
  * a Bazel runfiles tree, or the read-only share the macOS UI-test VM mounts the host checkout through.
+ * Blocks the calling thread.
  */
 @ApiStatus.Internal
-suspend fun extractToCacheLocation(
+fun extractToCacheLocation(
   archiveFile: Path,
   communityRoot: BuildDependenciesCommunityRoot,
   cacheKey: String,
   options: Array<out BuildDependenciesExtractOptions>,
-): Path = withContext(Dispatchers.IO) {
+): Path {
   cleanUpIfRequired(communityRoot)
 
-  fileLocks.getLockByHash(Hashing.xxh3_64().hashBytesToLong(cacheKey.encodeToByteArray())).withLock {
+  return fileLocks.getLockByHash(Hashing.xxh3_64().hashBytesToLong(cacheKey.encodeToByteArray())).withLock {
     val location = extractCacheLocation(
       cachePath = getDownloadCachePath(communityRoot),
       archiveFile = archiveFile,

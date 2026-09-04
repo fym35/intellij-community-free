@@ -38,6 +38,8 @@ import java.nio.file.attribute.PosixFilePermission.OWNER_READ
 import java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
 import java.util.UUID
 import java.util.WeakHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -122,7 +124,8 @@ object RepairUtilityBuilder {
   }
 }
 
-private val buildLock = Mutex()
+/** One `build.sh` at a time, on the thread that runs it: the body blocks and never suspends. */
+private val buildLock = ReentrantLock()
 
 // AsyncCache is not a fit here: this process-level cache must not keep BuildContext instances alive
 // across repeated in-process builds, and the build must stay attached to the caller coroutine
