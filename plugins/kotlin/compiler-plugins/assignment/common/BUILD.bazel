@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.assignment.fixes` start
+content_module_jar(module = ":kotlin-compilerPlugins-assignment-fixes")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.assignment.fixes` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.assignment.fixes` start
 create_kotlinc_options(
     name = "custom_kotlin-compilerPlugins-assignment-fixes",
@@ -48,8 +52,6 @@ jvm_library(
         "//plugins/kotlin/base/project-structure",
     ],
 )
-
-content_module_jar(module = ":kotlin-compilerPlugins-assignment-fixes")
 
 jvm_library(
     name = "kotlin-compilerPlugins-assignment-fixes_test_lib",

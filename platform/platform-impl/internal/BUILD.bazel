@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.ide.internal` start
+content_module_jar(module = ":internal")
+### auto-generated section `dev intellij.platform.ide.internal` end
+
 ### auto-generated section `build intellij.platform.ide.internal` start
 jvm_library(
     name = "internal",
@@ -75,8 +79,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":internal")
-
 jvm_library(
     name = "internal_test_lib",
     testonly = True,
@@ -150,7 +152,6 @@ exports_files(
     [
         "intellij.platform.ide.internal.iml",
         "resources/intellij.platform.ide.internal.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

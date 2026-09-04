@@ -23,7 +23,6 @@ import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildTasks
 import org.jetbrains.intellij.build.BuiltinModulesFileData
 import org.jetbrains.intellij.build.CompilationContext
-import org.jetbrains.intellij.build.DistFile
 import org.jetbrains.intellij.build.DistFileContent
 import org.jetbrains.intellij.build.InMemoryDistFileContent
 import org.jetbrains.intellij.build.JvmArchitecture
@@ -54,7 +53,9 @@ import org.jetbrains.intellij.build.impl.productInfo.PRODUCT_INFO_FILE_NAME
 import org.jetbrains.intellij.build.impl.productInfo.generateProductInfoJson
 import org.jetbrains.intellij.build.impl.productInfo.validateProductJson
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
+import org.jetbrains.intellij.build.impl.projectStructureMapping.ProjectedContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.getIncludedModules
+import org.jetbrains.intellij.build.impl.projectStructureMapping.projectContentReport
 import org.jetbrains.intellij.build.impl.sbom.SoftwareBillOfMaterialsImpl
 import org.jetbrains.intellij.build.io.DEFAULT_TIMEOUT
 import org.jetbrains.intellij.build.io.copyDir
@@ -234,6 +235,7 @@ private fun layoutShared(context: BuildContext) {
       Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING)
     }
     context.productProperties.copyAdditionalFiles(context.paths.distAllDir, context)
+    context.productProperties.registerDistFiles(context)
   }
   checkClassFiles(root = context.paths.distAllDir, isDistAll = true, context)
 }
@@ -441,7 +443,13 @@ do this explicitly.
  **/
 internal fun additionalProperties(): VmProperties = VmProperties(mapOf("user.home" to System.getProperty("user.home")))
 
-fun buildDistributions(context: BuildContext): Unit = block("build distributions") {
+/**
+ * Builds the distributions and returns the packed content, in the shape the content checks read.
+ *
+ * The result is `null` when the build skips the product distributions, because `intellij.build.target.os` is
+ * [BuildOptions.OS_NONE]. Such a build packs the plugins to publish and nothing else.
+ */
+fun buildDistributions(context: BuildContext): ProjectedContentReport? = block("build distributions") {
   context.reportDistributionBuildNumber()
 
   taskScope {
@@ -481,7 +489,7 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
         context = context,
       )
       join()
-      return@taskScope
+      return@taskScope null
     }
 
     val contentReport = spanBuilder("build platform and plugin JARs").use {
@@ -493,6 +501,10 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
     }
 
     layoutShared(context)
+
+    val projectedContentReport = spanBuilder("project content report").use {
+      projectContentReport(contentReport = contentReport, context = context)
+    }
 
     val distDirs = buildOsSpecificDistributions(context)
 
@@ -517,6 +529,7 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
 
     join()
     logFreeDiskSpace("after building distributions", context)
+    projectedContentReport
   }
 }
 
@@ -1197,12 +1210,8 @@ internal fun copyDistFiles(
   arch: JvmArchitecture,
   libcImpl: LibcImpl,
   context: BuildContext,
-  include: (DistFile) -> Boolean = { true },
 ) {
   for (item in context.getDistFiles(os, arch, libcImpl)) {
-    if (!include(item)) {
-      continue
-    }
     val targetFile = newDir.resolve(item.relativePath)
     Files.createDirectories(targetFile.parent)
     if (item.content is LocalDistFileContent) {

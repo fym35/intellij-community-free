@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.lombok` start
+content_module_jar(module = ":lombok")
+### auto-generated section `dev intellij.kotlin.lombok` end
+
 ### auto-generated section `build intellij.kotlin.lombok` start
 jvm_provided_library(
     name = "libraries_kotlinc_libraries-kotlinc-kotlin-compiler-fir_provided",
@@ -52,8 +56,6 @@ jvm_library(
         ":libraries_kotlinc_libraries-kotlinc-kotlin-compiler-fir_provided",
     ],
 )
-
-content_module_jar(module = ":lombok")
 
 jvm_library(
     name = "lombok_test_lib",

@@ -32,6 +32,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.rhizomedb.transactor.rebase` start
+content_module_jar(module = ":rhizomedb.transactor.rebase")
+### auto-generated section `dev fleet.rhizomedb.transactor.rebase` end
+
 ### auto-generated section `build fleet.rhizomedb.transactor.rebase` start
 create_kotlinc_options(
     name = "custom_rhizomedb.transactor.rebase",
@@ -118,8 +122,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":rhizomedb.transactor.rebase")
-
 jvm_library(
     name = "rhizomedb.transactor.rebase_test_lib",
     testonly = True,
@@ -164,7 +166,6 @@ exports_files(
     [
         "fleet.rhizomedb.transactor.rebase.iml",
         "resources/fleet.rhizomedb.transactor.rebase.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

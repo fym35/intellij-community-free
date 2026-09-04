@@ -253,7 +253,7 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
 
       val moduleOutputPatcher = ModuleOutputPatcher()
 
-      val platformLayout = if (request.fragment.ownsPlatformJars || request.fragment.ownsPlugins || request.fragment.platformResources) {
+      val platformLayout = if (request.fragment.ownsPlatformJars || request.fragment.ownsPlugins) {
         fork("create platform layout") {
           spanBuilder("create platform layout").use {
             createPlatformLayout(context)
@@ -528,16 +528,16 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
             )
           }
 
-          // A platform layout registers IJent as DistFiles. Platform and plugin fragments need that layout for descriptor
-          // resolution, but the bytes have one owner: platform_resources, which creates the layout specifically to run
-          // platform specs and copy those files. Other DistFiles remain with the fragment that produced them.
+          if (request.fragment.isComplete) {
+            context.productProperties.registerDistFiles(context)
+          }
+
           copyDistFiles(
             newDir = runDir,
             os = request.os,
             arch = request.arch,
             libcImpl = LibcImpl.current(request.os),
             context = context,
-            include = { shouldCopyDevBuildDistFile(fragment = request.fragment, relativePath = it.relativePath) },
           )
           join()
         }
@@ -609,11 +609,6 @@ private fun writePrepackedPluginContentPlacement(file: Path, plugins: List<Plugi
         .append(finalPath).append('\n')
     }
   })
-}
-
-@VisibleForTesting
-internal fun shouldCopyDevBuildDistFile(fragment: DevBuildFragment, relativePath: String): Boolean {
-  return fragment.platformResources || !relativePath.startsWith("lib/ijent/")
 }
 
 @VisibleForTesting

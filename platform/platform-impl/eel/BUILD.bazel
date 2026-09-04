@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.ide.impl.wsl` start
+content_module_jar(module = ":ide-impl-wsl")
+### auto-generated section `dev intellij.platform.ide.impl.wsl` end
+
 ### auto-generated section `build intellij.platform.ide.impl.wsl` start
 create_kotlinc_options(
     name = "custom_ide-impl-wsl",
@@ -51,8 +55,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":ide-impl-wsl")
-
 jvm_library(
     name = "ide-impl-wsl_test_lib",
     testonly = True,
@@ -94,7 +96,6 @@ exports_files(
     [
         "intellij.platform.ide.impl.wsl.iml",
         "resources/intellij.platform.ide.impl.wsl.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

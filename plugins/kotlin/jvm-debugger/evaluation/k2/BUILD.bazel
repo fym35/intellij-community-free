@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.jvm.debugger.evaluation` start
+content_module_jar(module = ":kotlin-jvm-debugger-evaluation")
+### auto-generated section `dev intellij.kotlin.jvm.debugger.evaluation` end
+
 ### auto-generated section `build intellij.kotlin.jvm.debugger.evaluation` start
 jvm_library(
     name = "kotlin-jvm-debugger-evaluation",
@@ -44,8 +48,6 @@ jvm_library(
         "//plugins/kotlin/jvm-debugger/core",
     ],
 )
-
-content_module_jar(module = ":kotlin-jvm-debugger-evaluation")
 
 jvm_library(
     name = "kotlin-jvm-debugger-evaluation_test_lib",

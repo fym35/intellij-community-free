@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.highlighting.minimal` start
+content_module_jar(module = ":kotlin-highlighting-minimal")
+### auto-generated section `dev intellij.kotlin.highlighting.minimal` end
+
 ### auto-generated section `build intellij.kotlin.highlighting.minimal` start
 jvm_library(
     name = "kotlin-highlighting-minimal",
@@ -35,8 +39,6 @@ jvm_library(
         "//platform/ide-core",
     ],
 )
-
-content_module_jar(module = ":kotlin-highlighting-minimal")
 
 jvm_library(
     name = "kotlin-highlighting-minimal_test_lib",

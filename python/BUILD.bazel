@@ -1,7 +1,33 @@
 load("@community//build:tests-options.bzl", "jps_test")
+load("@community//platform/build-scripts/bazel-rules:dev_dist_plugin.bzl", "dev_dist_plugin")
+load("@jps_dynamic_deps_community//:targets.bzl", "MODULE_TARGETS")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+### auto-generated section `dev intellij.pycharm.community.customization` start
+dev_dist_plugin(
+    content_modules = ["intellij.pycharm.community.customization.shared"],
+    main_module = "intellij.pycharm.community.customization",
+    module_targets = MODULE_TARGETS,
+    prepacked_content_modules = ["intellij.pycharm.community.ide.impl.promotion"],
+)
+### auto-generated section `dev intellij.pycharm.community.customization` end
+
+### auto-generated section `dev intellij.python.community.impl` start
+content_module_jar(
+    libraries = [
+        # do not sort,
+        "@lib//:python-community-impl-ml-completion-prev-exprs-models",
+        "@lib//:python-community-impl-completion-ranking-python-with-full-line",
+    ],
+    module = ":python-community-impl",
+)
+### auto-generated section `dev intellij.python.community.impl` end
+
+### auto-generated section `dev intellij.python.pydev` start
+content_module_jar(module = ":python-pydev")
+### auto-generated section `dev intellij.python.pydev` end
 
 ### auto-generated section `build intellij.pycharm.community` start
 resourcegroup(
@@ -1616,8 +1642,6 @@ jvm_library(
         "//platform/ide-core",
     ],
 )
-
-content_module_jar(module = ":python-pydev")
 
 jvm_library(
     name = "python-pydev_test_lib",

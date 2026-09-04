@@ -1,6 +1,0 @@
-- name: dist.all/lib/intellij.libraries.jvm.native.trusted.roots.jar
-  modules:
-  - name: intellij.libraries.jvm.native.trusted.roots
-    libraries:
-      jvm-native-trusted-roots:
-      - name: $MAVEN_REPOSITORY$/org/jetbrains/nativecerts/jvm-native-trusted-roots/1/jvm-native-trusted-roots-1.jar

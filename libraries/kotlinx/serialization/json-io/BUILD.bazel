@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.kotlinx.serialization.json.io` start
+content_module_jar(
+    libraries = ["@lib//:libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io"],
+    module = ":libraries-kotlinx-serialization-json-io",
+)
+### auto-generated section `dev intellij.libraries.kotlinx.serialization.json.io` end
+
 ### auto-generated section `build intellij.libraries.kotlinx.serialization.json.io` start
 jvm_library(
     name = "libraries-kotlinx-serialization-json-io",
@@ -16,11 +23,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io"],
     runtime_deps = ["@lib//:libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlinx-serialization-json-io-kotlinx-serialization-json-io"],
-    module = ":libraries-kotlinx-serialization-json-io",
 )
 
 jvm_library(
@@ -43,7 +45,6 @@ exports_files(
     [
         "intellij.libraries.kotlinx.serialization.json.io.iml",
         "resources/intellij.libraries.kotlinx.serialization.json.io.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

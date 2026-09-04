@@ -15,18 +15,11 @@ import java.nio.file.Path
  * A trace file is a pure side output: nothing reads it while the build runs, so a producer that is not given one must
  * behave exactly as it did before it could be.
  *
- * **The rule for work done only to fill a span attribute**, since the two halves of this change look like they
- * disagree about it and do not: take it where it is dominated by adjacent work on the same bytes, gate it where it is
- * not. Every `Files.size` added here for a `byteCount` sits immediately before a whole-file copy of that same file
- * (`DevDistPackedJarsMain.collectPlatformJars`, `PrepackedPluginContentCollector`,
- * `DevBuildComponentComposer.composeDevBuildComponents`), so one `stat` cannot be measurable against it and a branch
- * would only add a way to get it wrong. The packer's equivalent *is* gated
- * (`content-module-packer/main.go`, "only when tracing") because there it is an extra syscall beside about a
- * millisecond of packing, repeated across ~2 500 actions, with no copy of those bytes to hide behind. Same rule, two
- * answers, because the surrounding work differs - not two rules.
+ * Reuse metadata needed by adjacent file operations for span attributes. Gate extra work that serves only tracing.
+ * The Go sourced collector counts source bytes during collection and inventory. The composer counts bytes beside
+ * file copies. The jar packer collects extra file statistics only when tracing is enabled.
  *
- * `DevBuildComponentManifest`'s `Files.size` is not in that category at all: it feeds the entry's content hash, so it
- * is load-bearing and would be taken with or without a span.
+ * The Kotlin manifest inventory needs file sizes for hashing, with or without tracing.
  */
 internal const val TRACE_FILE_OPTION: String = "--trace-file"
 
@@ -48,10 +41,9 @@ internal const val TRACE_FILE_OPTION: String = "--trace-file"
  * [consoleSpansWhenNotMeasuring]. Either way no root span is opened, because a root span exists only to structure a
  * trace file and there is none to structure.
  *
- * @param consoleSpansWhenNotMeasuring `true` for a producer that already had a tracer, and so already printed a
- * console span dump, before this option existed - which is only `DevDistMain`. It then keeps `TraceManager`'s default
- * initializer. `false` installs no tracer at all: the spans are non-recording, so nothing is exported, nothing is
- * printed, and no exporter coroutine is started - which is what the three producers that never had a tracer did.
+ * @param consoleSpansWhenNotMeasuring `true` preserves `DevDistMain` console tracing through the default
+ * `TraceManager` initializer when no trace file is requested. `false` disables tracing, console spans, and exporter
+ * coroutines in that case.
  *
  * What that branch preserves is *same outputs, same stdout, same exit code* - not "byte for byte what the main did
  * before". Wrapping the whole body widened the traced region of `DevDistMain` from `buildProductInProcess` to

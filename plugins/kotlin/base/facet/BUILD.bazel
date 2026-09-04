@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.facet` start
+content_module_jar(module = ":facet")
+### auto-generated section `dev intellij.kotlin.base.facet` end
+
 ### auto-generated section `build intellij.kotlin.base.facet` start
 jvm_library(
     name = "facet",
@@ -54,8 +58,6 @@ jvm_library(
         "//libraries/gson",
     ],
 )
-
-content_module_jar(module = ":facet")
 
 jvm_library(
     name = "facet_test_lib",

@@ -2,6 +2,10 @@ load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.scripting` start
+content_module_jar(module = ":kotlin-base-scripting")
+### auto-generated section `dev intellij.kotlin.base.scripting` end
+
 ### auto-generated section `build intellij.kotlin.base.scripting` start
 jvm_library(
     name = "kotlin-base-scripting",
@@ -92,8 +96,6 @@ jvm_library(
         "//plugins/kotlin/base/code-insight",
     ],
 )
-
-content_module_jar(module = ":kotlin-base-scripting")
 
 jvm_library(
     name = "kotlin-base-scripting_test_lib",

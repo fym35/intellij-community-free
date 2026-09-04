@@ -44,6 +44,7 @@ import org.jetbrains.intellij.build.mapConcurrent
  *
  * **Input:** PluginGraph nodes with a main target (real plugins; placeholder plugin-id nodes are skipped).
  * DSL-defined plugins are generated from Kotlin specs and are skipped here.
+ * Discovered plugins retain manual descriptors unless they already contain a generated dependency region.
  * **Output:** Updated plugin.xml files with `<dependencies>` sections
  *
  * **Publishes:** [Slots.PLUGIN_DEPENDENCY_PLAN] for downstream writing and validation
@@ -248,6 +249,10 @@ private fun buildPluginDependencyPlan(
   val pluginContentModuleName = graphDeps.pluginContentModuleName
   val pluginTargetName = TargetName(pluginContentModuleName.value)
   val info = pluginContentCache.getOrExtract(pluginTargetName) ?: return null
+  val mainDependencyEntries = extractDependenciesEntries(info.pluginXmlContent)
+  if (info.source == PluginSource.DISCOVERED && mainDependencyEntries?.hasManagedRegion != true) {
+    return null
+  }
 
   if (info.pluginId == null && info.source != PluginSource.DISCOVERED) {
     emitError(
@@ -262,7 +267,6 @@ private fun buildPluginDependencyPlan(
 
   val existingXmlModuleDeps = info.moduleDependencies
   val existingXmlPluginDeps: Set<PluginId> = info.depsByFile.firstOrNull()?.pluginDependencies ?: emptySet()
-  val mainDependencyEntries = extractDependenciesEntries(info.pluginXmlContent)
   val managedXmlModuleDeps = mainDependencyEntries?.managedModuleNames?.mapTo(HashSet(), ::ContentModuleName) ?: existingXmlModuleDeps
   val managedXmlPluginDeps = mainDependencyEntries?.managedPluginIds?.mapTo(HashSet(), ::PluginId) ?: existingXmlPluginDeps
   val actionGroupModuleDeps = computeActionGroupModuleDependencies(

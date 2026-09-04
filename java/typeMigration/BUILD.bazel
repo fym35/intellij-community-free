@@ -10,6 +10,10 @@ jps_test(
 )
 ### skip generation section `test intellij.java.typeMigration.tests`
 
+### auto-generated section `dev intellij.java.typeMigration` start
+content_module_jar(module = ":typeMigration")
+### auto-generated section `dev intellij.java.typeMigration` end
+
 ### auto-generated section `build intellij.java.typeMigration` start
 jvm_library(
     name = "typeMigration",
@@ -51,8 +55,6 @@ jvm_library(
         "//platform/core-impl",
     ],
 )
-
-content_module_jar(module = ":typeMigration")
 
 jvm_library(
     name = "typeMigration_test_lib",

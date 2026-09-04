@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.externalSystem` start
+content_module_jar(module = ":kotlin-base-externalSystem")
+### auto-generated section `dev intellij.kotlin.base.externalSystem` end
+
 ### auto-generated section `build intellij.kotlin.base.externalSystem` start
 jvm_library(
     name = "kotlin-base-externalSystem",
@@ -32,8 +36,6 @@ jvm_library(
         "//libraries/kotlin/tooling-core:libraries-kotlin-tooling-core",
     ],
 )
-
-content_module_jar(module = ":kotlin-base-externalSystem")
 
 jvm_library(
     name = "kotlin-base-externalSystem_test_lib",

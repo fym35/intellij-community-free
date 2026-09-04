@@ -10,6 +10,10 @@ jps_test(
 )
 ### skip generation section `test intellij.yaml.backend.tests`
 
+### auto-generated section `dev intellij.yaml.backend` start
+content_module_jar(module = ":backend")
+### auto-generated section `dev intellij.yaml.backend` end
+
 ### auto-generated section `build intellij.yaml.backend` start
 jvm_library(
     name = "backend",
@@ -63,8 +67,6 @@ jvm_library(
         "//platform/util:util-ui",
     ],
 )
-
-content_module_jar(module = ":backend")
 
 jvm_library(
     name = "backend_test_lib",

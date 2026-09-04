@@ -1,6 +1,14 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library", "kt_javac_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.ide` start
+content_module_jar(
+    module = ":ide",
+    modules_after = ["//platform/observable"],
+    modules_before = ["//platform/icons"],
+)
+### auto-generated section `dev intellij.platform.ide` end
+
 ### auto-generated section `build intellij.platform.ide` start
 kt_javac_options(
     name = "custom-javac-options",
@@ -70,12 +78,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(
-    module = ":ide",
-    modules_after = ["//platform/observable"],
-    modules_before = ["//platform/icons"],
-)
-
 jvm_library(
     name = "ide_test_lib",
     testonly = True,
@@ -138,7 +140,6 @@ exports_files(
         "resources/PlatformProductivityFeatures.xml",
         "resources/intellij.platform.ide.actions.xml",
         "resources/intellij.platform.ide.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

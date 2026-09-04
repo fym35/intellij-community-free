@@ -24,6 +24,10 @@ jps_test(
 )
 ### skip generation section `test intellij.vcs.gitlab.tests`
 
+### auto-generated section `dev intellij.vcs.gitlab.backend` start
+content_module_jar(module = ":vcs-gitlab-backend")
+### auto-generated section `dev intellij.vcs.gitlab.backend` end
+
 ### auto-generated section `build intellij.vcs.gitlab.backend` start
 resourcegroup(
     name = "vcs-gitlab-backend_resources",
@@ -115,8 +119,6 @@ jvm_library(
         ":libraries_kotlinc_libraries-kotlinc-kotlinx-serialization-compiler-plugin_provided",
     ],
 )
-
-content_module_jar(module = ":vcs-gitlab-backend")
 
 jvm_library(
     name = "vcs-gitlab-backend_test_lib",

@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.jps` start
+content_module_jar(module = ":jps")
+### auto-generated section `dev intellij.kotlin.base.jps` end
+
 ### auto-generated section `build intellij.kotlin.base.jps` start
 jvm_library(
     name = "jps",
@@ -37,8 +41,6 @@ jvm_library(
         "//java/compiler/impl",
     ],
 )
-
-content_module_jar(module = ":jps")
 
 jvm_library(
     name = "jps_test_lib",

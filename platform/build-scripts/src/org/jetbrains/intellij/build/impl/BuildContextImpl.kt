@@ -4,7 +4,6 @@
 package org.jetbrains.intellij.build.impl
 
 import com.intellij.platform.ijent.community.buildConstants.isMultiRoutingFileSystemEnabledForProduct
-import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.platform.runtime.product.serialization.ProductModulesSerialization
 import com.intellij.platform.runtime.product.serialization.RawProductModules
 import com.intellij.platform.runtime.product.serialization.ResourceFileResolver
@@ -33,6 +32,7 @@ import org.jetbrains.intellij.build.LibcImpl
 import org.jetbrains.intellij.build.LinuxDistributionCustomizer
 import org.jetbrains.intellij.build.LinuxLibcImpl
 import org.jetbrains.intellij.build.MacDistributionCustomizer
+import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.PLATFORM_LOADER_JAR
 import org.jetbrains.intellij.build.ProductProperties
@@ -40,6 +40,7 @@ import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.computeAppInfoXml
+import org.jetbrains.intellij.build.findFileInModuleSources
 import org.jetbrains.intellij.build.findProductModulesFile
 import org.jetbrains.intellij.build.impl.PlatformJarNames.PLATFORM_CORE_NIO_FS
 import org.jetbrains.intellij.build.impl.moduleRepository.MODULE_DESCRIPTORS_COMPACT_PATH
@@ -303,10 +304,8 @@ class BuildContextImpl internal constructor(
   }
 
   private val bundledPluginModulesForModularLoader by lazy {
-    productProperties.rootModuleForModularLoader?.let { rootModule ->
-      loadRawProductModules(rootModule, productProperties.productMode, this@BuildContextImpl).bundledPluginMainModules.map {
-        it.name
-      }
+    productProperties.rootModuleForModularLoader?.let {
+      getBundledPluginModules(productProperties, outputProvider)
     }
   }
 
@@ -577,21 +576,18 @@ private fun isNightly(buildNumber: String): Boolean {
   return buildNumber.count { it == '.' } <= 1
 }
 
-/**
- * Loads raw data from product-modules.xml file located in module [rootModuleName], for a product running in [productMode].
- * It doesn't use files from module output directories, so it works even if the modules aren't compiled yet.
- */
+/** Reads product-modules.xml and its includes from module sources. */
 @Internal
-fun loadRawProductModules(rootModuleName: String, productMode: ProductMode, context: CompilationContext): RawProductModules {
-  val productModulesFile = findProductModulesFile(clientMainModuleName = rootModuleName, provider = context.outputProvider)
+fun loadRawProductModules(rootModuleName: String, outputProvider: ModuleOutputProvider): RawProductModules {
+  val productModulesFile = findProductModulesFile(clientMainModuleName = rootModuleName, provider = outputProvider)
                            ?: error("Cannot find product-modules.xml file in $rootModuleName")
   val resolver = object : ResourceFileResolver {
     override fun readResourceFile(moduleId: RuntimeModuleId, relativePath: String): InputStream? {
-      return context.findFileInModuleSources(context.outputProvider.findRequiredModule(moduleId.name), relativePath)?.inputStream()
+      return findFileInModuleSources(outputProvider.findRequiredModule(moduleId.name), relativePath)?.inputStream()
     }
 
     override fun toString(): String {
-      return "source file based resolver for '${context.paths.projectHome}' project"
+      return "source file based resolver for '$rootModuleName' product"
     }
   }
   return ProductModulesSerialization.readProductModulesAndMergeIncluded(productModulesFile.inputStream(), productModulesFile.pathString, resolver)

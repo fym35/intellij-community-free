@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.kotlinx.io` start
+content_module_jar(
+    libraries = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
+    module = ":io",
+)
+### auto-generated section `dev intellij.libraries.kotlinx.io` end
+
 ### auto-generated section `build intellij.libraries.kotlinx.io` start
 jvm_library(
     name = "io",
@@ -16,11 +23,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
     runtime_deps = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlinx-io-kotlinx-io-core"],
-    module = ":io",
 )
 
 jvm_library(
@@ -43,7 +45,6 @@ exports_files(
     [
         "intellij.libraries.kotlinx.io.iml",
         "resources/intellij.libraries.kotlinx.io.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

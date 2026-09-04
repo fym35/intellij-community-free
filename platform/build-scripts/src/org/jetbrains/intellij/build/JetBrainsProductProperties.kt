@@ -70,7 +70,7 @@ abstract class JetBrainsProductProperties : ProductProperties() {
     sbomOptions.creator = "Organization: ${Suppliers.JETBRAINS}"
     sbomOptions.license = SoftwareBillOfMaterials.Options.DistributionLicense.JETBRAINS
 
-    productLayout.addPlatformSpec { layout, _ -> layout.withModule(IJENT_BOOT_CLASSPATH_MODULE, PLATFORM_CORE_NIO_FS) }
+    productLayout.addPlatformSpec { layout -> layout.withModule(IJENT_BOOT_CLASSPATH_MODULE, PLATFORM_CORE_NIO_FS) }
   }
 
   final override fun validatePlugin(pluginId: String?, result: PluginCreationResult<IdePlugin>): List<PluginProblem> {

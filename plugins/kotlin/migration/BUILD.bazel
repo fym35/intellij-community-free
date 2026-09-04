@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.migration` start
+content_module_jar(module = ":migration")
+### auto-generated section `dev intellij.kotlin.migration` end
+
 ### auto-generated section `build intellij.kotlin.migration` start
 jvm_library(
     name = "migration",
@@ -44,8 +48,6 @@ jvm_library(
         "//platform/statistics",
     ],
 )
-
-content_module_jar(module = ":migration")
 
 jvm_library(
     name = "migration_test_lib",

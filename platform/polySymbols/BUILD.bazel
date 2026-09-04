@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.platform.polySymbols.tests`
 
+### auto-generated section `dev intellij.platform.polySymbols` start
+content_module_jar(module = ":polySymbols")
+### auto-generated section `dev intellij.platform.polySymbols` end
+
 ### auto-generated section `build intellij.platform.polySymbols` start
 jvm_library(
     name = "polySymbols",
@@ -61,8 +65,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":polySymbols")
-
 jvm_library(
     name = "polySymbols_test_lib",
     testonly = True,
@@ -109,7 +111,6 @@ exports_files(
     [
         "intellij.platform.polySymbols.iml",
         "resources/intellij.platform.polySymbols.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

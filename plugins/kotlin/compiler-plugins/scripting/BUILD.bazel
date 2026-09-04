@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.scripting` start
+content_module_jar(module = ":scripting")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.scripting` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.scripting` start
 jvm_library(
     name = "scripting",
@@ -32,8 +36,6 @@ jvm_library(
         "//plugins/gradle:gradle-common",
     ],
 )
-
-content_module_jar(module = ":scripting")
 
 jvm_library(
     name = "scripting_test_lib",

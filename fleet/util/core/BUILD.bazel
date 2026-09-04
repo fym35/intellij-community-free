@@ -30,6 +30,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.util.core` start
+content_module_jar(module = ":core")
+### auto-generated section `dev fleet.util.core` end
+
 ### auto-generated section `build fleet.util.core` start
 create_kotlinc_options(
     name = "custom_core",
@@ -88,8 +92,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":core")
-
 jvm_library(
     name = "core_test_lib",
     testonly = True,
@@ -134,7 +136,6 @@ exports_files(
     [
         "fleet.util.core.iml",
         "resources/fleet.util.core.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.searchEverywhere` start
+content_module_jar(module = ":searchEverywhere")
+### auto-generated section `dev intellij.platform.searchEverywhere` end
+
 ### auto-generated section `build intellij.platform.searchEverywhere` start
 jvm_library(
     name = "searchEverywhere",
@@ -51,8 +55,6 @@ jvm_library(
         "//platform/welcome-screen",
     ],
 )
-
-content_module_jar(module = ":searchEverywhere")
 
 jvm_library(
     name = "searchEverywhere_test_lib",
@@ -107,7 +109,6 @@ exports_files(
     [
         "intellij.platform.searchEverywhere.iml",
         "resources/intellij.platform.searchEverywhere.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

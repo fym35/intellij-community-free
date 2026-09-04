@@ -25,6 +25,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.andel` start
+content_module_jar(module = ":andel")
+### auto-generated section `dev fleet.andel` end
+
 ### auto-generated section `build fleet.andel` start
 create_kotlinc_options(
     name = "custom_andel",
@@ -72,8 +76,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":andel")
-
 jvm_library(
     name = "andel_test_lib",
     testonly = True,
@@ -112,7 +114,6 @@ exports_files(
     [
         "fleet.andel.iml",
         "resources/fleet.andel.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

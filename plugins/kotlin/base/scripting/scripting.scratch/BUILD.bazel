@@ -3,6 +3,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.scripting.scratch` start
+content_module_jar(module = ":scripting.scratch")
+### auto-generated section `dev intellij.kotlin.base.scripting.scratch` end
+
 ### auto-generated section `build intellij.kotlin.base.scripting.scratch` start
 create_kotlinc_options(
     name = "custom_scripting.scratch",
@@ -86,8 +90,6 @@ jvm_library(
         "//java/openapi:java",
     ],
 )
-
-content_module_jar(module = ":scripting.scratch")
 
 jvm_library(
     name = "scripting.scratch_test_lib",

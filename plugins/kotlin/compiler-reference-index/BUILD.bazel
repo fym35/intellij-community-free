@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerReferenceIndex` start
+content_module_jar(module = ":compiler-reference-index")
+### auto-generated section `dev intellij.kotlin.compilerReferenceIndex` end
+
 ### auto-generated section `build intellij.kotlin.compilerReferenceIndex` start
 jvm_library(
     name = "compiler-reference-index",
@@ -58,8 +62,6 @@ jvm_library(
         "//plugins/maven",
     ],
 )
-
-content_module_jar(module = ":compiler-reference-index")
 
 jvm_library(
     name = "compiler-reference-index_test_lib",

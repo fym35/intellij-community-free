@@ -1,6 +1,0 @@
-- name: dist.all/lib/intellij.libraries.okhttp.jar
-  modules:
-  - name: intellij.libraries.okhttp
-    libraries:
-      okhttp:
-      - name: $MAVEN_REPOSITORY$/com/squareup/okhttp3/okhttp/5/okhttp-5.jar

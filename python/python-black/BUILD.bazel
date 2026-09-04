@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.python.black` start
+content_module_jar(module = ":black")
+### auto-generated section `dev intellij.python.black` end
+
 ### auto-generated section `build intellij.python.black` start
 jvm_library(
     name = "black",
@@ -53,8 +57,6 @@ jvm_library(
         "//platform/eel",
     ],
 )
-
-content_module_jar(module = ":black")
 
 jvm_library(
     name = "black_test_lib",

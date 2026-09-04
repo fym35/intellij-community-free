@@ -104,10 +104,10 @@ class ProductModulesLayout {
   /**
    * Additional customizations of platform JARs. **This is a temporary property added to keep layout of some products.**
    */
-  internal var platformLayoutSpec = persistentListOf<(PlatformLayout, BuildContext) -> Unit>()
+  internal var platformLayoutSpec = persistentListOf<(PlatformLayout) -> Unit>()
     private set
 
-  fun addPlatformSpec(customizer: (PlatformLayout, BuildContext) -> Unit) {
+  fun addPlatformSpec(customizer: (PlatformLayout) -> Unit) {
     platformLayoutSpec += customizer
   }
 

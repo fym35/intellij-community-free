@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.runConfigurations.junit` start
+content_module_jar(module = ":junit")
+### auto-generated section `dev intellij.kotlin.runConfigurations.junit` end
+
 ### auto-generated section `build intellij.kotlin.runConfigurations.junit` start
 jvm_library(
     name = "junit",
@@ -51,8 +55,6 @@ jvm_library(
         "//plugins/kotlin/base/plugin",
     ],
 )
-
-content_module_jar(module = ":junit")
 
 jvm_library(
     name = "junit_test_lib",

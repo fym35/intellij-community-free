@@ -1,5 +1,4 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
-load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.libraries.kotlinc.low.level.api.fir` start
 jvm_library(
@@ -28,11 +27,6 @@ jvm_library(
         "//libraries/kotlinc/kotlin-scripting-compiler-impl:libraries-kotlinc-kotlin-scripting-compiler-impl",
         "//libraries/kotlinc/scripting-compiler-plugin:libraries-kotlinc-scripting-compiler-plugin",
     ],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlinc-low-level-api-fir-kotlinc-low-level-api-fir"],
-    module = ":libraries-kotlinc-low-level-api-fir",
 )
 
 jvm_library(
@@ -67,7 +61,6 @@ exports_files(
     [
         "intellij.libraries.kotlinc.low.level.api.fir.iml",
         "resources/intellij.libraries.kotlinc.low.level.api.fir.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

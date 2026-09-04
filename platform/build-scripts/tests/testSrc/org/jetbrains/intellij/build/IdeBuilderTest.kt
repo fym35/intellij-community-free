@@ -25,9 +25,13 @@ import org.jetbrains.intellij.build.dev.createDevBuildPaths
 import org.jetbrains.intellij.build.dev.formatCoreClasspath
 import org.jetbrains.intellij.build.dev.prepareOverriddenRunDir
 import org.jetbrains.intellij.build.dev.prepareScratchDir
+import org.jetbrains.intellij.build.impl.ModuleOutputPatcher
+import org.jetbrains.intellij.build.impl.PlatformLayout
 import org.jetbrains.intellij.build.impl.projectStructureMapping.CustomAssetEntry
+import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.mockito.Mockito.mock
 import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Path
@@ -36,6 +40,34 @@ import kotlin.io.path.invariantSeparatorsPathString
 class IdeBuilderTest {
   @TempDir
   lateinit var tempDir: Path
+
+  @Test
+  fun platformSpecsDeclareModulesWithoutRunningPatches(): Unit = runBlocking {
+    val productLayout = ProductModulesLayout()
+    val calls = ArrayList<String>()
+    productLayout.addPlatformSpec { layout ->
+      calls.add("first declaration")
+      layout.withModule("intellij.test.first")
+      layout.withPatch { _, _ -> calls.add("runtime patch") }
+    }
+    productLayout.addPlatformSpec { layout ->
+      calls.add("second declaration")
+      layout.withModule("intellij.test.second")
+    }
+
+    val layout = PlatformLayout()
+    for (spec in productLayout.platformLayoutSpec) {
+      spec(layout)
+    }
+
+    assertThat(calls).containsExactly("first declaration", "second declaration")
+    assertThat(layout.includedModules.map { it.moduleName }).containsExactly("intellij.test.first", "intellij.test.second")
+    assertThat(layout.patchers).hasSize(1)
+
+    layout.patchers.single()(ModuleOutputPatcher(), layout, mock(BuildContext::class.java))
+
+    assertThat(calls).containsExactly("first declaration", "second declaration", "runtime patch")
+  }
 
   @Test
   fun completeFragmentOwnsEverythingAndNeedsNoManifest() {

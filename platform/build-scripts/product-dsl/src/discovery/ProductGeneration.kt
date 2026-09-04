@@ -39,8 +39,9 @@ data class ModuleSetGenerationConfig(
   @JvmField val outputProvider: ModuleOutputProvider,
   /**
    * Map of product name to set of plugins that are compatible with (installable) but not bundled in that product.
-   * Loaded from packaging test YAMLs (nonBundled field).
+   * Derived from product declarations and source descriptors.
    * Used to track plugin compatibility for error message formatting.
+   * This map does not assign descriptor ownership. Existing generated regions remain managed.
    */
   @JvmField val nonBundledPlugins: Map<String, Set<TargetName>> = emptyMap(),
   /**
@@ -56,10 +57,16 @@ data class ModuleSetGenerationConfig(
   @JvmField val testPluginsByProduct: Map<String, Set<TargetName>> = emptyMap(),
 
   /**
-   * When true, scan module sources for test plugin descriptors, and read the dev-distribution content population,
-   * to enrich the PluginGraph in analysis-only flows.
+   * When true, scan module sources for test plugin descriptors, and seed [contentPluginPopulation], to enrich the
+   * PluginGraph in analysis-only flows.
    */
   @JvmField val includeTestPluginDescriptorsFromSources: Boolean = false,
+  /**
+   * The plugin main modules the dev distribution states content for. `derivePluginPopulation` of the build scripts
+   * derives the set from the product model and the platform table. The caller passes the result, because this module
+   * cannot read the build scripts. A name this project does not hold is a name nothing matches.
+   */
+  @JvmField val contentPluginPopulation: Set<String> = emptySet(),
 
   /** Xi:include paths to skip during plugin content extraction (e.g., paths from external libraries like Kotlin compiler) */
   @JvmField val skipXIncludePaths: Set<String> = emptySet(),

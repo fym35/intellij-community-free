@@ -1,5 +1,4 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
-load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.libraries.mcp.kotlin.sdk` start
 jvm_library(
@@ -16,11 +15,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-mcp-kotlin-sdk-io-modelcontextprotocol-kotlin-sdk"],
     runtime_deps = ["@lib//:libraries-mcp-kotlin-sdk-io-modelcontextprotocol-kotlin-sdk"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-mcp-kotlin-sdk-io-modelcontextprotocol-kotlin-sdk"],
-    module = ":mcp-kotlin-sdk",
 )
 
 jvm_library(
@@ -42,7 +36,6 @@ exports_files(
     [
         "intellij.libraries.mcp.kotlin.sdk.iml",
         "resources/intellij.libraries.mcp.kotlin.sdk.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

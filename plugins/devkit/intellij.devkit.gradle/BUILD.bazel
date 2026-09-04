@@ -12,6 +12,10 @@ jps_test(
 )
 ### skip generation section `test intellij.devkit.gradle.tests`
 
+### auto-generated section `dev intellij.devkit.gradle` start
+content_module_jar(module = ":gradle")
+### auto-generated section `dev intellij.devkit.gradle` end
+
 ### auto-generated section `build intellij.devkit.gradle` start
 jvm_library(
     name = "gradle",
@@ -67,8 +71,6 @@ jvm_library(
         "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
     ],
 )
-
-content_module_jar(module = ":gradle")
 
 jvm_library(
     name = "gradle_test_lib",

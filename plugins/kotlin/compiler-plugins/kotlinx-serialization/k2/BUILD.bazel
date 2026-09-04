@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.serialization` start
+content_module_jar(module = ":kotlin-compilerPlugins-serialization")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.serialization` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.serialization` start
 create_kotlinc_options(
     name = "custom_kotlin-compilerPlugins-serialization",
@@ -58,8 +62,6 @@ jvm_library(
         ":libraries_kotlinc_libraries-kotlinc-kotlin-compiler-fir_provided",
     ],
 )
-
-content_module_jar(module = ":kotlin-compilerPlugins-serialization")
 
 jvm_library(
     name = "kotlin-compilerPlugins-serialization_test_lib",

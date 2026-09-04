@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.ide` start
+content_module_jar(module = ":kotlin.ide")
+### auto-generated section `dev intellij.kotlin.ide` end
+
 ### auto-generated section `build intellij.kotlin.ide` start
 jvm_library(
     name = "kotlin.ide",
@@ -62,8 +66,6 @@ jvm_library(
         "//platform/statistics",
     ],
 )
-
-content_module_jar(module = ":kotlin.ide")
 
 jvm_library(
     name = "kotlin.ide_test_lib",

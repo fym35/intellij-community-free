@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.kapt` start
+content_module_jar(module = ":kapt")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.kapt` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.kapt` start
 jvm_library(
     name = "kapt",
@@ -32,8 +36,6 @@ jvm_library(
         "//plugins/gradle:gradle-common",
     ],
 )
-
-content_module_jar(module = ":kapt")
 
 jvm_library(
     name = "kapt_test_lib",

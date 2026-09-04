@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.okhttp` start
+content_module_jar(
+    libraries = ["@lib//:libraries-okhttp-okhttp"],
+    module = ":okhttp",
+)
+### auto-generated section `dev intellij.libraries.okhttp` end
+
 ### auto-generated section `build intellij.libraries.okhttp` start
 jvm_library(
     name = "okhttp",
@@ -24,11 +31,6 @@ jvm_library(
         "@lib//:libraries-okhttp-okhttp",
         "//libraries/okio:squareup-okio-jvm",
     ],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-okhttp-okhttp"],
-    module = ":okhttp",
 )
 
 jvm_library(
@@ -59,7 +61,6 @@ exports_files(
     [
         "intellij.libraries.okhttp.iml",
         "resources/intellij.libraries.okhttp.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

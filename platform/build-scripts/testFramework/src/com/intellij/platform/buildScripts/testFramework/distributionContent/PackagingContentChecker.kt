@@ -207,11 +207,11 @@ data class PackagingTargetValidationSpec(
 @Internal
 data class PackagingTargetSpec(
   @JvmField val id: String,
+  /** The project-relative path of the compact report used as the test expectation. */
+  @JvmField val contentYamlPath: String,
   @JvmField val createProductProperties: (projectHome: Path) -> ProductProperties,
-  @JvmField val contentYamlPath: String?,
   @JvmField val buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
   @JvmField val checkPlugins: Boolean = true,
-  @JvmField val suggestedReviewer: String? = null,
 ) {
   override fun toString(): String = id
 }
@@ -444,40 +444,6 @@ class PackagingSuiteFixture private constructor(
     return tests
   }
 
-  fun createPlatformTests(): List<DynamicTest> {
-    val tasksWithContentChecks = packagingTasks.filter { it.spec.contentYamlPath != null }
-    if (!isOptimizedFullSuiteScheduling()) {
-      startBlockingValidationTasks()
-      tasksWithContentChecks.startAllPackagingTasks()
-    }
-
-    val tests = ArrayList<DynamicTest>(tasksWithContentChecks.size)
-    for (task in tasksWithContentChecks) {
-      val expectedContentYamlPath = requireNotNull(task.spec.contentYamlPath)
-      tests.add(DynamicTest.dynamicTest(task.spec.id) {
-        awaitTask("platform content check of '${task.spec.id}'") {
-          withTelemetrySpan(
-            telemetry = telemetry,
-            name = "platform content check: ${task.spec.id}",
-            configure = { span ->
-              span.setAttribute("packaging.target.id", task.spec.id)
-            },
-          ) {
-            val packageResult = task.resultDeferred.await().getOrAbort("Platform content check for ${task.spec.id} skipped because packaging failed")
-            checkThatContentIsNotChanged(
-              actualFileEntries = packageResult.content.platform,
-              expectedFile = spec.homePath.resolve(expectedContentYamlPath),
-              projectHome = packageResult.projectHome,
-              isBundled = true,
-              suggestedReviewer = task.spec.suggestedReviewer,
-            )
-          }
-        }
-      })
-    }
-    return tests
-  }
-
   fun createPluginTests(): List<DynamicTest> {
     if (!isOptimizedFullSuiteScheduling()) {
       startBlockingValidationTasks()
@@ -640,9 +606,6 @@ abstract class PackagingSuiteTestBase {
   fun build(): List<DynamicTest> = packagingFixture.createBuildTests()
 
   @TestFactory
-  fun platform(): List<DynamicTest> = packagingFixture.createPlatformTests()
-
-  @TestFactory
   fun plugins(): List<DynamicTest> = packagingFixture.createPluginTests()
 
   @TestFactory
@@ -764,15 +727,10 @@ private fun createPluginCheckTasks(
             },
           ) {
             val packageResult = task.resultDeferred.await().getOrAbort("Plugin content check for ${task.spec.id} skipped because packaging failed")
-            run {
-              collectPluginContentFailures(
-                content = packageResult.content,
-                project = packageResult.jpsProject,
-                projectHome = packageResult.projectHome,
-                suggestedReviewer = task.spec.suggestedReviewer,
-                testName = { category, key -> "${task.spec.id} $category: $key" },
-              )
-            }
+            collectPluginContentFailures(
+              content = packageResult.content,
+              testName = { category, key -> "${task.spec.id} $category: $key" },
+            )
           }
         }
       },
@@ -1031,11 +989,16 @@ private fun computePackageResult(context: BuildContext, layoutDeferred: TaskSign
     build = { buildContext ->
       val distributionState = spanBuilder("compute distribution state").use { buildContext.distributionState() }
       layoutDeferred.complete(PackagedLayout(buildContext = buildContext, distributionState = distributionState))
-      buildDistributions(buildContext)
+      val projectedContentReport = requireNotNull(buildDistributions(buildContext)) {
+        "The build of ${buildContext.productProperties.baseFileName} skipped the product distributions, so there is no content to check"
+      }
       PackageResult(
-        content = spanBuilder("read content report").use {
-          readContentReportZip(buildContext.paths.artifactDir.resolve("content-report.zip"))
-        },
+        content = ParsedContentReport(
+          platform = projectedContentReport.platform,
+          productModules = projectedContentReport.productModules,
+          bundled = projectedContentReport.bundled,
+          nonBundled = projectedContentReport.nonBundled,
+        ),
         runtimeModuleRepository = spanBuilder("read runtime module repository").use {
           readGeneratedRuntimeModuleRepository(buildContext)
         },

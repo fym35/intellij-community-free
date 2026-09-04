@@ -2,6 +2,10 @@ load("@community//build:tests-options.bzl", "jps_test")
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.onboarding.gradle` start
+content_module_jar(module = ":onboarding-gradle")
+### auto-generated section `dev intellij.kotlin.onboarding.gradle` end
+
 ### auto-generated section `build intellij.kotlin.onboarding.gradle` start
 jvm_library(
     name = "onboarding-gradle",
@@ -46,8 +50,6 @@ jvm_library(
         "//plugins/kotlin/gradle/gradle-tooling/impl",
     ],
 )
-
-content_module_jar(module = ":onboarding-gradle")
 
 jvm_library(
     name = "onboarding-gradle_test_lib",

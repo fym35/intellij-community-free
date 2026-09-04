@@ -10,6 +10,10 @@ jps_test(
 )
 ### skip generation section `test intellij.xml.xmlbeans.tests`
 
+### auto-generated section `dev intellij.xml.xmlbeans` start
+content_module_jar(module = ":xmlbeans")
+### auto-generated section `dev intellij.xml.xmlbeans` end
+
 ### auto-generated section `build intellij.xml.xmlbeans` start
 jvm_library(
     name = "xmlbeans",
@@ -50,8 +54,6 @@ jvm_library(
         "//platform/util/concurrency",
     ],
 )
-
-content_module_jar(module = ":xmlbeans")
 
 jvm_library(
     name = "xmlbeans_test_lib",
@@ -99,7 +101,6 @@ exports_files(
     [
         "intellij.xml.xmlbeans.iml",
         "resources/intellij.xml.xmlbeans.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

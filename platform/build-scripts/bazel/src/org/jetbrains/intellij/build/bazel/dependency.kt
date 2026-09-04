@@ -631,3 +631,6 @@ internal val bazelLabelBadCharsPattern = Regex("[:.+]")
 internal fun escapeBazelLabel(name: String): String = bazelLabelBadCharsPattern.replace(name, "-")
 
 private val LOG = Logger.getLogger("dependency")
+
+/** The name prefix of a library wrapper module. Such a module may export the library it wraps. */
+private const val LIB_MODULE_PREFIX = "intellij.libraries."

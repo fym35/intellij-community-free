@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.kotlin.metadata` start
+content_module_jar(
+    libraries = ["@lib//:libraries-kotlin-metadata-kotlin-metadata"],
+    module = ":metadata",
+)
+### auto-generated section `dev intellij.libraries.kotlin.metadata` end
+
 ### auto-generated section `build intellij.libraries.kotlin.metadata` start
 jvm_library(
     name = "metadata",
@@ -16,11 +23,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-kotlin-metadata-kotlin-metadata"],
     runtime_deps = ["@lib//:libraries-kotlin-metadata-kotlin-metadata"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlin-metadata-kotlin-metadata"],
-    module = ":metadata",
 )
 
 jvm_library(
@@ -43,7 +45,6 @@ exports_files(
     [
         "intellij.libraries.kotlin.metadata.iml",
         "resources/intellij.libraries.kotlin.metadata.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.completion.ml` start
+content_module_jar(module = ":completion-ml")
+### auto-generated section `dev intellij.kotlin.completion.ml` end
+
 ### auto-generated section `build intellij.kotlin.completion.ml` start
 jvm_library(
     name = "completion-ml",
@@ -35,8 +39,6 @@ jvm_library(
         "//plugins/kotlin/base/code-insight",
     ],
 )
-
-content_module_jar(module = ":completion-ml")
 
 jvm_library(
     name = "completion-ml_test_lib",

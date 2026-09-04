@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.codeInsight.base` start
+content_module_jar(module = ":kotlin-codeInsight-base")
+### auto-generated section `dev intellij.kotlin.codeInsight.base` end
+
 ### auto-generated section `build intellij.kotlin.codeInsight.base` start
 create_kotlinc_options(
     name = "custom_kotlin-codeInsight-base",
@@ -56,8 +60,6 @@ jvm_library(
         "//plugins/kotlin/base/facet",
     ],
 )
-
-content_module_jar(module = ":kotlin-codeInsight-base")
 
 jvm_library(
     name = "kotlin-codeInsight-base_test_lib",

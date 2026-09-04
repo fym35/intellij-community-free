@@ -193,6 +193,15 @@ class PluginLayout(val mainModule: String, @Internal @JvmField val auto: Boolean
   @Internal
   fun getModulesWithExcludedModuleLibraries(): Set<String> = modulesWithExcludedModuleLibraries
 
+  /**
+   * The module libraries `excludeModuleLibrary` takes out of a member's jar, by member module name.
+   *
+   * A declared-input question, like [getModulesWithExcludedModuleLibraries]: the dev-distribution layout tables state
+   * it, so that the JPS-to-Bazel converter derives the library set a member's jar really merges.
+   */
+  @Internal
+  fun getExcludedModuleLibraries(): Map<String, List<String>> = excludedModuleLibraries
+
   internal var resourceGenerators: PersistentList<ResourceGenerator> = persistentListOf()
     private set
 

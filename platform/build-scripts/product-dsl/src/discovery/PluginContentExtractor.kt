@@ -46,7 +46,7 @@ internal enum class PluginSource {
   /** DSL-defined test plugin, content computed from TestPluginSpec */
   DSL_TEST,
 
-  /** Discovered on-demand during dependency resolution */
+  /** Discovered for compatibility or dependency resolution, without a declaration that assigns descriptor ownership. */
   DISCOVERED,
 }
 

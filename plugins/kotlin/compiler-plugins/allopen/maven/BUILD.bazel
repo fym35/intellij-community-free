@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.allopen.maven` start
+content_module_jar(module = ":maven")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.allopen.maven` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.allopen.maven` start
 jvm_library(
     name = "maven",
@@ -32,8 +36,6 @@ jvm_library(
         "//platform/core-api:core",
     ],
 )
-
-content_module_jar(module = ":maven")
 
 jvm_library(
     name = "maven_test_lib",

@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.externalSystem` start
+content_module_jar(module = ":externalSystem")
+### auto-generated section `dev intellij.platform.externalSystem` end
+
 ### auto-generated section `build intellij.platform.externalSystem` start
 jvm_library(
     name = "externalSystem",
@@ -51,8 +55,6 @@ jvm_library(
         "//libraries/fastutil",
     ],
 )
-
-content_module_jar(module = ":externalSystem")
 
 jvm_library(
     name = "externalSystem_test_lib",
@@ -105,7 +107,6 @@ exports_files(
     [
         "intellij.platform.externalSystem.iml",
         "resources/intellij.platform.externalSystem.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

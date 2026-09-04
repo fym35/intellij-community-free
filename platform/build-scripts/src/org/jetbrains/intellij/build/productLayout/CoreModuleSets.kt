@@ -206,9 +206,8 @@ object CoreModuleSets {
    * `intellij.libraries.opentelemetry.exporter.sender.jdk` are here because the OTLP exporter needs them at
    * runtime, not because any platform module compiles against them.
    *
-   * `intellij.platform.diagnostic.telemetry.exporters` is not listed: it is merged into
-   * `intellij.platform.diagnostic.telemetry.impl.jar` by the module's `module-content.yaml`, so it follows
-   * `intellij.platform.diagnostic.telemetry.impl` automatically.
+   * `intellij.platform.diagnostic.telemetry.exporters` is not listed: the platform layout merges it into
+   * `intellij.platform.diagnostic.telemetry.impl.jar`, so it follows `intellij.platform.diagnostic.telemetry.impl` automatically.
    *
    * @see telemetry for the API and the OpenTelemetry API/SDK wrappers
    */

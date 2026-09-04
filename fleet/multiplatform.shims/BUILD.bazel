@@ -16,6 +16,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.multiplatform.shims` start
+content_module_jar(module = ":multiplatform.shims")
+### auto-generated section `dev fleet.multiplatform.shims` end
+
 ### auto-generated section `build fleet.multiplatform.shims` start
 create_kotlinc_options(
     name = "custom_multiplatform.shims",
@@ -59,8 +63,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":multiplatform.shims")
-
 jvm_library(
     name = "multiplatform.shims_test_lib",
     testonly = True,
@@ -86,7 +88,6 @@ exports_files(
     [
         "fleet.multiplatform.shims.iml",
         "resources/fleet.multiplatform.shims.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

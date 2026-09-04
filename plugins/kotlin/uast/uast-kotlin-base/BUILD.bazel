@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.uast.base` start
+content_module_jar(module = ":kotlin-uast-base")
+### auto-generated section `dev intellij.kotlin.uast.base` end
+
 ### auto-generated section `build intellij.kotlin.uast.base` start
 jvm_library(
     name = "kotlin-uast-base",
@@ -38,8 +42,6 @@ jvm_library(
         "//java/java-frontback-psi-api:frontback-psi",
     ],
 )
-
-content_module_jar(module = ":kotlin-uast-base")
 
 jvm_library(
     name = "kotlin-uast-base_test_lib",

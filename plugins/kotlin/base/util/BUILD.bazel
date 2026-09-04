@@ -3,6 +3,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.util` start
+content_module_jar(module = ":util")
+### auto-generated section `dev intellij.kotlin.base.util` end
+
 ### auto-generated section `build intellij.kotlin.base.util` start
 create_kotlinc_options(
     name = "custom_util",
@@ -64,8 +68,6 @@ jvm_library(
         "//platform/util:util-ui",
     ],
 )
-
-content_module_jar(module = ":util")
 
 jvm_library(
     name = "util_test_lib",

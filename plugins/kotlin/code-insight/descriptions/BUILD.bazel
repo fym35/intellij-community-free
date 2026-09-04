@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.codeInsight.descriptions` start
+content_module_jar(module = ":descriptions")
+### auto-generated section `dev intellij.kotlin.codeInsight.descriptions` end
+
 ### auto-generated section `build intellij.kotlin.codeInsight.descriptions` start
 jvm_library(
     name = "descriptions",
@@ -16,8 +20,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     runtime_deps = ["//platform/platform-impl:ide-impl"],
 )
-
-content_module_jar(module = ":descriptions")
 
 jvm_library(
     name = "descriptions_test_lib",

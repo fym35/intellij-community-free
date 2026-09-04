@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.platform.searchEverywhere.backend.tests`
 
+### auto-generated section `dev intellij.platform.searchEverywhere.backend` start
+content_module_jar(module = ":backend")
+### auto-generated section `dev intellij.platform.searchEverywhere.backend` end
+
 ### auto-generated section `build intellij.platform.searchEverywhere.backend` start
 jvm_library(
     name = "backend",
@@ -60,8 +64,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":backend")
-
 jvm_library(
     name = "backend_test_lib",
     testonly = True,
@@ -109,7 +111,6 @@ exports_files(
     [
         "intellij.platform.searchEverywhere.backend.iml",
         "resources/intellij.platform.searchEverywhere.backend.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

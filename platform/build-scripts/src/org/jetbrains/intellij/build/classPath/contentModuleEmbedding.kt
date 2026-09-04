@@ -359,19 +359,30 @@ internal fun resolveAndEmbedContentModuleDescriptor(
 internal interface DescriptorResolveContext {
   val outputProvider: ModuleOutputProvider
 
+  /** Controls module lookup. Library descriptors remain available after the source lookup. */
+  val searchPasses: List<DescriptorSearchPass>
+    get() = DescriptorSearchPass.entries
+
   /** The simple name of the product-properties class. */
   val productPropertiesName: String
 }
 
 /** Reads the two facts of [DescriptorResolveContext] out of a build context. */
-internal fun descriptorResolveContext(context: BuildContext): DescriptorResolveContext = BuildContextDescriptorResolveContext(context)
+internal fun descriptorResolveContext(context: BuildContext): DescriptorResolveContext {
+  return descriptorResolveContext(context.outputProvider, context.productProperties::class.java.simpleName)
+}
 
-private class BuildContextDescriptorResolveContext(private val context: BuildContext) : DescriptorResolveContext {
-  override val outputProvider: ModuleOutputProvider
-    get() = context.outputProvider
-
-  override val productPropertiesName: String
-    get() = context.productProperties::class.java.simpleName
+internal fun descriptorResolveContext(
+  outputProvider: ModuleOutputProvider,
+  productPropertiesName: String,
+  sourceOnly: Boolean = false,
+): DescriptorResolveContext {
+  return object : DescriptorResolveContext {
+    override val outputProvider: ModuleOutputProvider = outputProvider
+    override val productPropertiesName: String = productPropertiesName
+    override val searchPasses: List<DescriptorSearchPass> =
+      if (sourceOnly) listOf(DescriptorSearchPass.PRODUCTION_SOURCES) else DescriptorSearchPass.entries
+  }
 }
 
 internal class XIncludeElementResolverImpl(
@@ -412,7 +423,7 @@ internal class XIncludeElementResolverImpl(
     // The whole search runs in the checkout first and only then in module output. A scope here can name every module
     // of the platform layout, and in `MODULE_OUTPUT` a *miss* still resolves that module's Bazel output - which is
     // what declares it as an input of a dev-distribution fragment. See `DescriptorSearchPass`.
-    for (pass in DescriptorSearchPass.entries) {
+    for (pass in context.searchPasses) {
       for (searchPath in searchPath) {
         val descriptorCache = searchPath.descriptorCache
         descriptorCache.getCachedFileData(loadPath)?.let {
@@ -490,6 +501,19 @@ internal class XIncludeElementResolverImpl(
             searchPath.first().descriptorCache.putIfAbsent(loadPath, data)
             return JDOMUtil.load(data)
           }
+        }
+      }
+    }
+
+    if (DescriptorSearchPass.MODULE_OUTPUT !in context.searchPasses) {
+      for ((modules, descriptorCache, searchInDependencies) in searchPath) {
+        if (searchInDependencies == DescriptorSearchScope.SearchMode.WITHOUT_DEPENDENCIES) {
+          continue
+        }
+        for (module in modules) {
+          val data = findFileInModuleLibraryDependencies(context.outputProvider.findRequiredModule(module), loadPath, context.outputProvider) ?: continue
+          descriptorCache.putIfAbsent(loadPath, data)
+          return JDOMUtil.load(data)
         }
       }
     }

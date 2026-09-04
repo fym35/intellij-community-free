@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.runConfigurations.jvm` start
+content_module_jar(module = ":jvm")
+### auto-generated section `dev intellij.kotlin.runConfigurations.jvm` end
+
 ### auto-generated section `build intellij.kotlin.runConfigurations.jvm` start
 jvm_library(
     name = "jvm",
@@ -61,8 +65,6 @@ jvm_library(
         "//platform/statistics",
     ],
 )
-
-content_module_jar(module = ":jvm")
 
 jvm_library(
     name = "jvm_test_lib",

@@ -11,6 +11,13 @@ jps_test(
 
 ### skip generation section `test intellij.platform.execution.tests`
 
+### auto-generated section `dev intellij.platform.execution.impl` start
+content_module_jar(
+    module = ":execution-impl",
+    modules_after = ["//platform/wsl-impl"],
+)
+### auto-generated section `dev intellij.platform.execution.impl` end
+
 ### auto-generated section `build intellij.platform.execution.impl` start
 jvm_library(
     name = "execution-impl",
@@ -93,11 +100,6 @@ jvm_library(
         "//platform/remote-topics/shared:rpc-topics",
         "//fleet/rhizomedb",
     ],
-)
-
-content_module_jar(
-    module = ":execution-impl",
-    modules_after = ["//platform/wsl-impl"],
 )
 
 jvm_library(
@@ -185,7 +187,6 @@ exports_files(
         "intellij.platform.execution.impl.iml",
         "resources/intellij.platform.execution.impl.actions.xml",
         "resources/intellij.platform.execution.impl.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

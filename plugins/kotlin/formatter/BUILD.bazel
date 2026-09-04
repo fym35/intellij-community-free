@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.formatter` start
+content_module_jar(module = ":formatter")
+### auto-generated section `dev intellij.kotlin.formatter` end
+
 ### auto-generated section `build intellij.kotlin.formatter` start
 resourcegroup(
     name = "formatter_resources",
@@ -51,8 +55,6 @@ jvm_library(
         "//plugins/kotlin/formatter/minimal",
     ],
 )
-
-content_module_jar(module = ":formatter")
 
 jvm_library(
     name = "formatter_test_lib",

@@ -15,6 +15,10 @@ jps_test(
 )
 ### skip generation section `test intellij.platform.util.tests`
 
+### auto-generated section `dev intellij.platform.util.ui` start
+content_module_jar(module = ":util-ui")
+### auto-generated section `dev intellij.platform.util.ui` end
+
 ### auto-generated section `build intellij.platform.util` start
 jvm_provided_library(
     name = "platform_util_troveCompileOnly_provided",
@@ -367,8 +371,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":util-ui")
-
 jvm_library(
     name = "util-ui_test_lib",
     testonly = True,
@@ -415,7 +417,6 @@ exports_files(
     [
         "intellij.platform.util.ui.iml",
         "ui/resources/intellij.platform.util.ui.xml",
-        "ui/module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

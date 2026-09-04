@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.python.pyrefly` start
+content_module_jar(module = ":pyrefly")
+### auto-generated section `dev intellij.python.pyrefly` end
+
 ### auto-generated section `build intellij.python.pyrefly` start
 jvm_library(
     name = "pyrefly",
@@ -53,8 +57,6 @@ jvm_library(
         "//python/python-pytools-ui:pytools-ui",
     ],
 )
-
-content_module_jar(module = ":pyrefly")
 
 jvm_library(
     name = "pyrefly_test_lib",

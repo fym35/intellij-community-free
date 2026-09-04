@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.compilerPlugins.parcelize` start
+content_module_jar(module = ":kotlin-compilerPlugins-parcelize")
+### auto-generated section `dev intellij.kotlin.compilerPlugins.parcelize` end
+
 ### auto-generated section `build intellij.kotlin.compilerPlugins.parcelize` start
 create_kotlinc_options(
     name = "custom_kotlin-compilerPlugins-parcelize",
@@ -54,8 +58,6 @@ jvm_library(
         "//plugins/kotlin/base/psi",
     ],
 )
-
-content_module_jar(module = ":kotlin-compilerPlugins-parcelize")
 
 jvm_library(
     name = "kotlin-compilerPlugins-parcelize_test_lib",

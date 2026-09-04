@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.codeInsight.shared` start
+content_module_jar(module = ":kotlin-codeInsight-shared")
+### auto-generated section `dev intellij.kotlin.codeInsight.shared` end
+
 ### auto-generated section `build intellij.kotlin.codeInsight.shared` start
 create_kotlinc_options(
     name = "custom_kotlin-codeInsight-shared",
@@ -90,8 +94,6 @@ jvm_library(
         "//platform/lang-api:lang",
     ],
 )
-
-content_module_jar(module = ":kotlin-codeInsight-shared")
 
 jvm_library(
     name = "kotlin-codeInsight-shared_test_lib",

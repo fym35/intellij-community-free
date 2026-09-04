@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.platform.structuralSearch.tests`
 
+### auto-generated section `dev intellij.platform.structuralSearch` start
+content_module_jar(module = ":structuralSearch")
+### auto-generated section `dev intellij.platform.structuralSearch` end
+
 ### auto-generated section `build intellij.platform.structuralSearch` start
 jvm_library(
     name = "structuralSearch",
@@ -60,8 +64,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":structuralSearch")
-
 jvm_library(
     name = "structuralSearch_test_lib",
     testonly = True,
@@ -110,7 +112,6 @@ exports_files(
     [
         "intellij.platform.structuralSearch.iml",
         "resources/intellij.platform.structuralSearch.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

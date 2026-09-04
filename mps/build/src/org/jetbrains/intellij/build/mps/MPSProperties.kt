@@ -29,7 +29,7 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.extension
 
-private val javaCompiler: (PlatformLayout, BuildContext) -> Unit = { layout, _ ->
+private val javaCompiler: (PlatformLayout) -> Unit = { layout ->
     for (name in listOf(
         "intellij.java.compiler.antTasks",
         "intellij.java.guiForms.compiler",
@@ -103,7 +103,7 @@ class MPSProperties : JetBrainsProductProperties() {
         val pluginLayouts = productLayout.pluginLayouts + JavaPluginLayout.javaPlugin(patchPluginXml())
         productLayout.pluginLayouts = pluginLayouts.toPersistentList()
 
-        productLayout.addPlatformSpec { layout, _ ->
+        productLayout.addPlatformSpec { layout ->
             for (moduleName in listOf("intellij.platform.testFramework", "intellij.platform.testFramework.common", "intellij.java.testFramework", "intellij.platform.testFramework.core", "intellij.platform.testFramework.teamCity")) {
               layout.withModule(moduleName, "testFramework.jar")
             }

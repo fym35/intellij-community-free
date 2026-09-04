@@ -18,6 +18,10 @@ jps_test(
 )
 ### skip generation section `test intellij.maven.groovy.tests`
 
+### auto-generated section `dev intellij.maven.groovy` start
+content_module_jar(module = ":groovy")
+### auto-generated section `dev intellij.maven.groovy` end
+
 ### auto-generated section `build intellij.maven.groovy` start
 jvm_library(
     name = "groovy",
@@ -64,8 +68,6 @@ jvm_library(
         "//java/java-psi-api:psi",
     ],
 )
-
-content_module_jar(module = ":groovy")
 
 jvm_library(
     name = "groovy_test_lib",

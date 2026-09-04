@@ -22,6 +22,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.rhizomedb` start
+content_module_jar(module = ":rhizomedb")
+### auto-generated section `dev fleet.rhizomedb` end
+
 ### auto-generated section `build fleet.rhizomedb` start
 create_kotlinc_options(
     name = "custom_rhizomedb",
@@ -69,8 +73,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":rhizomedb")
-
 jvm_library(
     name = "rhizomedb_test_lib",
     testonly = True,
@@ -102,7 +104,6 @@ exports_files(
     [
         "fleet.rhizomedb.iml",
         "resources/fleet.rhizomedb.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

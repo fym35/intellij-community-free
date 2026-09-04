@@ -39,6 +39,8 @@ jvm_library(
         "//platform/build-scripts/bazel-rules/searchable-options-injector:searchable-options-injector_test_lib",
         "//platform/devIdeConfig",
         "//platform/devIdeConfig:devIdeConfig_test_lib",
+        "//platform/distribution-content",
+        "//platform/distribution-content:distribution-content_test_lib",
         "//platform/runtime/product",
         "//platform/runtime/product:product_test_lib",
         "//libraries/junit4",

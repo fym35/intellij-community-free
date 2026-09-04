@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.kotlin.onboarding.tests`
 
+### auto-generated section `dev intellij.kotlin.onboarding` start
+content_module_jar(module = ":onboarding")
+### auto-generated section `dev intellij.kotlin.onboarding` end
+
 ### auto-generated section `build intellij.kotlin.onboarding` start
 jvm_library(
     name = "onboarding",
@@ -56,8 +60,6 @@ jvm_library(
         "//plugins/kotlin/base/resources:kotlin-base-resources",
     ],
 )
-
-content_module_jar(module = ":onboarding")
 
 jvm_library(
     name = "onboarding_test_lib",

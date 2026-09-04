@@ -40,7 +40,6 @@
     <orderEntry type="module" module-name="intellij.platform.util.jdom" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.serialization.json" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.serialization.core" />
-    <orderEntry type="module" module-name="intellij.libraries.kaml" />
     <orderEntry type="module" module-name="intellij.libraries.hash4j" />
     <orderEntry type="module" module-name="intellij.idea.community.build.zip" />
     <orderEntry type="module" module-name="intellij.libraries.okhttp" scope="RUNTIME" />

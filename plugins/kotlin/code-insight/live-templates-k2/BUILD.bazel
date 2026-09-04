@@ -3,6 +3,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.codeInsight.liveTemplates` start
+content_module_jar(module = ":kotlin-codeInsight-liveTemplates")
+### auto-generated section `dev intellij.kotlin.codeInsight.liveTemplates` end
+
 ### auto-generated section `build intellij.kotlin.codeInsight.liveTemplates` start
 create_kotlinc_options(
     name = "custom_kotlin-codeInsight-liveTemplates",
@@ -55,8 +59,6 @@ jvm_library(
         "//plugins/kotlin/highlighting/highlighting-minimal:kotlin-highlighting-minimal",
     ],
 )
-
-content_module_jar(module = ":kotlin-codeInsight-liveTemplates")
 
 jvm_library(
     name = "kotlin-codeInsight-liveTemplates_test_lib",

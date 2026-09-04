@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.navigation` start
+content_module_jar(module = ":navigation")
+### auto-generated section `dev intellij.kotlin.navigation` end
+
 ### auto-generated section `build intellij.kotlin.navigation` start
 create_kotlinc_options(
     name = "custom_navigation",
@@ -44,8 +48,6 @@ jvm_library(
         "//plugins/kotlin/base/project-structure",
     ],
 )
-
-content_module_jar(module = ":navigation")
 
 jvm_library(
     name = "navigation_test_lib",

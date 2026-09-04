@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.codeInsight.inspections` start
+content_module_jar(module = ":kotlin-codeInsight-inspections")
+### auto-generated section `dev intellij.kotlin.codeInsight.inspections` end
+
 ### auto-generated section `build intellij.kotlin.codeInsight.inspections` start
 create_kotlinc_options(
     name = "custom_kotlin-codeInsight-inspections",
@@ -95,8 +99,6 @@ jvm_library(
         "//plugins/kotlin/base/indices",
     ],
 )
-
-content_module_jar(module = ":kotlin-codeInsight-inspections")
 
 jvm_library(
     name = "kotlin-codeInsight-inspections_test_lib",

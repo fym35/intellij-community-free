@@ -44,12 +44,10 @@ import org.jetbrains.intellij.build.impl.plugins.scrambleAlreadyLaidOutPlugins
 import org.jetbrains.intellij.build.impl.plugins.writeBundledPluginInfoAfterScramble
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
-import org.jetbrains.intellij.build.impl.projectStructureMapping.buildJarContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.getIncludedModules
 import org.jetbrains.intellij.build.injectAppInfo
 import org.jetbrains.intellij.build.io.copyDir
 import org.jetbrains.intellij.build.io.copyFileToDir
-import org.jetbrains.intellij.build.io.writeNewZipWithoutIndex
 import org.jetbrains.intellij.build.io.zip
 import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
 import org.jetbrains.intellij.build.productLayout.createPluginLayoutSet
@@ -247,16 +245,6 @@ internal fun buildDistribution(
   }
 
   taskScope {
-    fork("generate content report") {
-      spanBuilder("generate content report").use {
-        Files.createDirectories(context.paths.artifactDir)
-        val contentReportFile = context.paths.artifactDir.resolve("content-report.zip")
-        writeNewZipWithoutIndex(contentReportFile) { zipFileWriter ->
-          buildJarContentReport(contentReport, zipFileWriter, context.paths, context)
-        }
-        context.notifyArtifactBuilt(contentReportFile)
-      }
-    }
     createBuildThirdPartyLibraryListJob(contentReport.bundled(), context)
     if (context.useModularLoader || context.generateRuntimeModuleRepository) {
       fork("generate runtime module repository") {

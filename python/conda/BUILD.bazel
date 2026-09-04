@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.python.community.impl.conda` start
+content_module_jar(module = ":conda")
+### auto-generated section `dev intellij.python.community.impl.conda` end
+
 ### auto-generated section `build intellij.python.community.impl.conda` start
 create_kotlinc_options(
     name = "custom_conda",
@@ -57,8 +61,6 @@ jvm_library(
         "//json/backend",
     ],
 )
-
-content_module_jar(module = ":conda")
 
 jvm_library(
     name = "conda_test_lib",

@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.indices` start
+content_module_jar(module = ":indices")
+### auto-generated section `dev intellij.kotlin.base.indices` end
+
 ### auto-generated section `build intellij.kotlin.base.indices` start
 jvm_library(
     name = "indices",
@@ -37,8 +41,6 @@ jvm_library(
         "//plugins/kotlin/base/plugin",
     ],
 )
-
-content_module_jar(module = ":indices")
 
 jvm_library(
     name = "indices_test_lib",

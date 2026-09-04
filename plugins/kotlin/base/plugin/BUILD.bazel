@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.plugin` start
+content_module_jar(module = ":plugin")
+### auto-generated section `dev intellij.kotlin.base.plugin` end
+
 ### auto-generated section `build intellij.kotlin.base.plugin` start
 jvm_library(
     name = "plugin",
@@ -54,8 +58,6 @@ jvm_library(
         "//platform/eel-provider",
     ],
 )
-
-content_module_jar(module = ":plugin")
 
 jvm_library(
     name = "plugin_test_lib",

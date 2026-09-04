@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.platform.ide.nonModalWelcomeScreen.tests`
 
+### auto-generated section `dev intellij.platform.ide.nonModalWelcomeScreen` start
+content_module_jar(module = ":non-modal-welcome-screen")
+### auto-generated section `dev intellij.platform.ide.nonModalWelcomeScreen` end
+
 ### auto-generated section `build intellij.platform.ide.nonModalWelcomeScreen` start
 jvm_library(
     name = "non-modal-welcome-screen",
@@ -57,8 +61,6 @@ jvm_library(
         "//fleet/rhizomedb",
     ],
 )
-
-content_module_jar(module = ":non-modal-welcome-screen")
 
 jvm_library(
     name = "non-modal-welcome-screen_test_lib",
@@ -110,7 +112,6 @@ exports_files(
     [
         "intellij.platform.ide.nonModalWelcomeScreen.iml",
         "resources/intellij.platform.ide.nonModalWelcomeScreen.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

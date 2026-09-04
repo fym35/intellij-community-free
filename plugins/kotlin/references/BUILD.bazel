@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.references` start
+content_module_jar(module = ":references")
+### auto-generated section `dev intellij.kotlin.references` end
+
 ### auto-generated section `build intellij.kotlin.references` start
 jvm_library(
     name = "references",
@@ -31,8 +35,6 @@ jvm_library(
         "//java/java-psi-api:psi",
     ],
 )
-
-content_module_jar(module = ":references")
 
 jvm_library(
     name = "references_test_lib",

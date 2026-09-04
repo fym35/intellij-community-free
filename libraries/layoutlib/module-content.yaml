@@ -1,6 +1,0 @@
-- name: dist.all/lib/intellij.libraries.layoutlib.jar
-  modules:
-  - name: intellij.libraries.layoutlib
-    libraries:
-      layoutlib:
-      - name: $MAVEN_REPOSITORY$/com/android/tools/layoutlib/layoutlib/16/layoutlib-16.jar

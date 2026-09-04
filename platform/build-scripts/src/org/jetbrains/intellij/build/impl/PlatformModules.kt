@@ -8,15 +8,20 @@ import io.opentelemetry.api.trace.Span
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.DescriptorSearchPass
+import org.jetbrains.intellij.build.JarPackagerDependencyHelper
 import org.jetbrains.intellij.build.ModuleOutputProvider
+import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.PLATFORM_LOADER_JAR
 import org.jetbrains.intellij.build.UTIL_8_JAR
 import org.jetbrains.intellij.build.UTIL_JAR
 import org.jetbrains.intellij.build.UTIL_RT_JAR
+import org.jetbrains.intellij.build.classPath.descriptorResolveContext
 import org.jetbrains.intellij.build.classPath.getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader
 import org.jetbrains.intellij.build.forEachConcurrent
 import org.jetbrains.intellij.build.impl.PlatformJarNames.TEST_FRAMEWORK_JAR
 import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
+import org.jetbrains.intellij.build.readDescriptor
 import org.jetbrains.jps.model.module.JpsModuleDependency
 
 private fun addModule(relativeJarPath: String, moduleNames: Sequence<String>, productLayout: ProductModulesLayout, layout: PlatformLayout) {
@@ -28,12 +33,69 @@ private fun addModule(relativeJarPath: String, moduleNames: Sequence<String>, pr
 }
 
 fun createPlatformLayout(context: BuildContext): PlatformLayout {
-  val productLayout = context.productProperties.productLayout
-  val descriptorCacheContainer = DescriptorCacheContainer()
-  val layout = PlatformLayout(descriptorCacheContainer)
+  return createPlatformLayout(
+    productProperties = context.productProperties,
+    outputProvider = context.outputProvider,
+    validateImplicitPlatformModule = context.options.validateImplicitPlatformModule,
+    useModularLoader = context.useModularLoader,
+    isEmbeddedFrontendEnabled = context.isEmbeddedFrontendEnabled,
+    runtimeDependencyResolver = RuntimeDependencyIndex((context as BuildContextImpl).jarPackagerDependencyHelper),
+    bundledPluginModules = context.getBundledPluginModules(),
+    sourceOnly = false,
+    embedContentModuleDescriptors = context.options.embedProductContentModuleDescriptors,
+    markModuleForScrambling = { moduleName, isEmbedded ->
+      markContentModuleToScrambleIfNeeded(moduleName, context, isEmbedded)
+    },
+  )
+}
+
+/**
+ * Derives the platform layout from product declarations and source descriptors. This does not execute patches or read compiled output.
+ */
+fun createPlatformLayout(
+  productProperties: ProductProperties,
+  outputProvider: ModuleOutputProvider,
+  validateImplicitPlatformModule: Boolean = false,
+  useModularLoader: Boolean = false,
+  isEmbeddedFrontendEnabled: Boolean = productProperties.embeddedFrontendRootModule != null,
+): PlatformLayout {
+  return createPlatformLayout(
+    productProperties = productProperties,
+    outputProvider = outputProvider,
+    validateImplicitPlatformModule = validateImplicitPlatformModule,
+    useModularLoader = useModularLoader,
+    isEmbeddedFrontendEnabled = isEmbeddedFrontendEnabled,
+    runtimeDependencyResolver = RuntimeDependencyIndex(JarPackagerDependencyHelper(outputProvider)),
+    bundledPluginModules = getBundledPluginModules(productProperties, outputProvider),
+    sourceOnly = true,
+    embedContentModuleDescriptors = false,
+    markModuleForScrambling = { _, _ -> false },
+  )
+}
+
+private fun createPlatformLayout(
+  productProperties: ProductProperties,
+  outputProvider: ModuleOutputProvider,
+  validateImplicitPlatformModule: Boolean,
+  useModularLoader: Boolean,
+  isEmbeddedFrontendEnabled: Boolean,
+  runtimeDependencyResolver: RuntimeDependencyResolver,
+  bundledPluginModules: List<String>,
+  sourceOnly: Boolean,
+  embedContentModuleDescriptors: Boolean,
+  markModuleForScrambling: (String, Boolean) -> Boolean,
+): PlatformLayout {
+  val productLayout = productProperties.productLayout
+  val layout = PlatformLayout()
   for (customizer in productLayout.platformLayoutSpec) {
-    customizer(layout, context)
+    customizer(layout)
   }
+  val contentModuleFilter = createContentModuleFilter(
+    project = outputProvider.findRequiredModule(productProperties.applicationInfoModule).project,
+    productProperties = productProperties,
+    outputProvider = outputProvider,
+    bundledPluginModules = { bundledPluginModules },
+  )
   for ((module, patterns) in productLayout.moduleExcludes) {
     layout.excludeFromModule(module, patterns)
   }
@@ -128,26 +190,37 @@ fun createPlatformLayout(context: BuildContext): PlatformLayout {
     }
 
     explicit.add(ModuleItem(moduleName = moduleName, relativeOutputFile = "$moduleName.jar", reason = "productImplementationModules"))
-    markContentModuleToScrambleIfNeeded(moduleName = moduleName, context = context, isEmbedded = true)
+    markModuleForScrambling(moduleName, true)
   }
   val explicitModuleNames = explicit.map { it.moduleName }
-  val outputProvider = context.outputProvider
-  val runtimeDependencyIndex = RuntimeDependencyIndex((context as BuildContextImpl).jarPackagerDependencyHelper)
 
   // we should filter out modules which are included in plugins with `use-idea-classloader`
-  val pluginsContents = computeContentModulesPluginsWhichUseIdeaClassloader(context)
+  val pluginsContents = getPluginLayoutsByJpsModuleNames(bundledPluginModules, productLayout).flatMapTo(LinkedHashSet()) {
+    getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(
+      pluginMainModule = it.mainModule,
+      cacheContainer = null,
+      outputProvider = outputProvider,
+      contentModuleFilter = contentModuleFilter,
+      sourceOnly = sourceOnly,
+    )
+  }
 
   val productPluginContentModules = processAndGetProductPluginContentModules(
     layout = layout,
-    descriptorCache = descriptorCacheContainer.forPlatform(layout),
+    descriptorCache = layout.descriptorCacheContainer.forPlatform(layout),
     includedPlatformModulesPartialList = computePartialListToResolveIncludesAndCollectProductModules(
       layout = layout,
       explicitModuleNames = explicitModuleNames,
       productLayout = productLayout,
       pluginsContents = pluginsContents,
-      runtimeDependencyResolver = runtimeDependencyIndex,
+      runtimeDependencyResolver = runtimeDependencyResolver,
     ),
-    context = context,
+    productProperties = productProperties,
+    outputProvider = outputProvider,
+    contentModuleFilter = contentModuleFilter,
+    descriptorContext = descriptorResolveContext(outputProvider, productProperties.javaClass.simpleName, sourceOnly),
+    embedContentModuleDescriptors = embedContentModuleDescriptors,
+    markModuleForScrambling = markModuleForScrambling,
   ).toCollection(LinkedHashSet())
 
   // compute and add dependencies for embedded modules with includeDependencies=true
@@ -165,7 +238,7 @@ fun createPlatformLayout(context: BuildContext): PlatformLayout {
       embeddedModules = embeddedModulesWithDeps,
       productLayout = productLayout,
       outputProvider = outputProvider,
-      runtimeDependencyResolver = runtimeDependencyIndex,
+      runtimeDependencyResolver = runtimeDependencyResolver,
     )
     productPluginContentModules.addAll(embeddedDependencies)
   }
@@ -176,18 +249,19 @@ fun createPlatformLayout(context: BuildContext): PlatformLayout {
     productPluginContentModules = productPluginContentModules.mapTo(HashSet()) { it.moduleName },
     productLayout = productLayout,
     pluginsContents = pluginsContents,
-    runtimeDependencyResolver = runtimeDependencyIndex,
+    runtimeDependencyResolver = runtimeDependencyResolver,
   )
 
-  if (context.options.validateImplicitPlatformModule) {
-    val implicitContentModuleAllowlist = context.productProperties.getProductContentDescriptor()?.allowedMissingDependencies?.mapTo(HashSet()) { it.value } ?: emptySet()
+  if (validateImplicitPlatformModule) {
+    val implicitContentModuleAllowlist = productProperties.getProductContentDescriptor()?.allowedMissingDependencies?.mapTo(HashSet()) { it.value } ?: emptySet()
     implicit.forEachConcurrent { (name, chain) ->
       validateImplicitPlatformModule(
         name = name,
         chain = chain,
         outputProvider = outputProvider,
         allowedMissingDependencies = implicitContentModuleAllowlist,
-        isClientBuild = context.useModularLoader,
+        isClientBuild = useModularLoader,
+        sourceOnly = sourceOnly,
       )
     }
   }
@@ -218,7 +292,7 @@ fun createPlatformLayout(context: BuildContext): PlatformLayout {
   )
 
   val platformMainModule = "intellij.platform.starter"
-  if (context.isEmbeddedFrontendEnabled && layout.includedModules.none { it.moduleName == platformMainModule }) {
+  if (isEmbeddedFrontendEnabled && layout.includedModules.none { it.moduleName == platformMainModule }) {
     /* this module is used by JetBrains Client, but it isn't packed in commercial IDEs, so let's put it in a separate JAR which won't be
        loaded when the IDE is started in the regular mode */
     layout.withModule(platformMainModule, "ext/platform-main.jar")
@@ -391,14 +465,24 @@ private fun validateImplicitPlatformModule(
   outputProvider: ModuleOutputProvider,
   allowedMissingDependencies: Set<String>,
   isClientBuild: Boolean,
+  sourceOnly: Boolean,
 ) {
   val jpsModule = outputProvider.findRequiredModule(name)
-  val pluginXml = outputProvider.readFileContentFromModuleOutput(jpsModule, "META-INF/plugin.xml")
+  fun readModuleDescriptor(path: String): ByteArray? {
+    return if (sourceOnly) {
+      readDescriptor(module = jpsModule, path = path, outputProvider = outputProvider, pass = DescriptorSearchPass.PRODUCTION_SOURCES)
+    }
+    else {
+      outputProvider.readFileContentFromModuleOutput(jpsModule, path)
+    }
+  }
+
+  val pluginXml = readModuleDescriptor("META-INF/plugin.xml")
   check(pluginXml == null) {
     "Module $name contains ${pluginXml.contentToString()}, so it is a plugin, but plugin must be not included in a platform (chain: $chain)"
   }
 
-  if (outputProvider.readFileContentFromModuleOutput(jpsModule, contentModuleNameToDescriptorFileName(name)) == null) {
+  if (readModuleDescriptor(contentModuleNameToDescriptorFileName(name)) == null) {
     return
   }
   else if (allowedMissingDependencies.contains(name) || chain.firstOrNull() == "intellij.tools.testsBootstrap") {
@@ -413,14 +497,6 @@ private fun validateImplicitPlatformModule(
     error("Module $name is a content module. Implicit platform auto-inclusion is prohibited; plugin model must be the only truth for packaging (chain: $chain)")
   }
 }
-
-private fun computeContentModulesPluginsWhichUseIdeaClassloader(context: BuildContext): Set<String> {
-  val bundledPlugins = getPluginLayoutsByJpsModuleNames(modules = context.getBundledPluginModules(), productLayout = context.productProperties.productLayout)
-  return bundledPlugins.flatMapTo(LinkedHashSet()) {
-    getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(pluginMainModule = it.mainModule, cacheContainer = null, context = context)
-  }
-}
-
 
 internal object ModuleIncludeReasons {
   const val PRODUCT_MODULES: String = "productModule"

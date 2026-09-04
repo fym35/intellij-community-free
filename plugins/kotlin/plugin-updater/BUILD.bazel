@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.plugin.updater` start
+content_module_jar(module = ":plugin-updater")
+### auto-generated section `dev intellij.kotlin.plugin.updater` end
+
 ### auto-generated section `build intellij.kotlin.plugin.updater` start
 jvm_library(
     name = "plugin-updater",
@@ -43,8 +47,6 @@ jvm_library(
         "//platform/statistics",
     ],
 )
-
-content_module_jar(module = ":plugin-updater")
 
 jvm_library(
     name = "plugin-updater_test_lib",

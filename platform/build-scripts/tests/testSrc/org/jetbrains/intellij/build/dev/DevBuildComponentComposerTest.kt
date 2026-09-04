@@ -202,26 +202,6 @@ internal class DevBuildComponentComposerTest {
   }
 
   @Test
-  fun `platform resources solely own IJent DistFiles`() {
-    val platformLib = DevBuildFragment(
-      name = "platform_lib",
-      platform = PlatformJarSelector(jars = setOf("intellij.charts.jar"), mode = PlatformJarSelector.Mode.EXCLUDE),
-      platformResources = false,
-      plugins = null,
-    )
-    val platformResources = DevBuildFragment(
-      name = "platform_resources",
-      platform = null,
-      platformResources = true,
-      plugins = null,
-    )
-
-    assertThat(shouldCopyDevBuildDistFile(platformLib, "lib/ijent/ijent-x86_64-unknown-linux-musl-release")).isFalse()
-    assertThat(shouldCopyDevBuildDistFile(platformResources, "lib/ijent/ijent-x86_64-unknown-linux-musl-release")).isTrue()
-    assertThat(shouldCopyDevBuildDistFile(platformLib, "bin/another-dist-file")).isTrue()
-  }
-
-  @Test
   fun `component merge follows an undeclared sandbox staging symlink`(@TempDir tempDir: Path) {
     if (!supportsSymbolicLinks(tempDir)) return
     val stagedBytes = tempDir.resolve("bazel-out/fragment/file.jar")

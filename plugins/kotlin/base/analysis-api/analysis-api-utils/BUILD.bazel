@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.base.analysis.utils` start
+content_module_jar(module = ":kotlin-base-analysis-utils")
+### auto-generated section `dev intellij.kotlin.base.analysis.utils` end
+
 ### auto-generated section `build intellij.kotlin.base.analysis.utils` start
 create_kotlinc_options(
     name = "custom_kotlin-base-analysis-utils",
@@ -54,8 +58,6 @@ jvm_library(
         "//plugins/kotlin/base/code-insight",
     ],
 )
-
-content_module_jar(module = ":kotlin-base-analysis-utils")
 
 jvm_library(
     name = "kotlin-base-analysis-utils_test_lib",

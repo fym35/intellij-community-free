@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.grazie` start
+content_module_jar(module = ":grazie")
+### auto-generated section `dev intellij.kotlin.grazie` end
+
 ### auto-generated section `build intellij.kotlin.grazie` start
 jvm_library(
     name = "grazie",
@@ -30,8 +34,6 @@ jvm_library(
         "//plugins/grazie/src:core",
     ],
 )
-
-content_module_jar(module = ":grazie")
 
 jvm_library(
     name = "grazie_test_lib",

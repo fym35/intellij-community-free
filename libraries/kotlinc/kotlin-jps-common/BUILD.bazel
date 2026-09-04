@@ -1,5 +1,4 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
-load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
 ### auto-generated section `build intellij.libraries.kotlinc.kotlin.jps.common` start
 jvm_library(
@@ -16,11 +15,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-kotlinc-kotlin-jps-common-kotlinc-kotlin-jps-common"],
     runtime_deps = ["@lib//:libraries-kotlinc-kotlin-jps-common-kotlinc-kotlin-jps-common"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlinc-kotlin-jps-common-kotlinc-kotlin-jps-common"],
-    module = ":libraries-kotlinc-kotlin-jps-common",
 )
 
 jvm_library(
@@ -43,7 +37,6 @@ exports_files(
     [
         "intellij.libraries.kotlinc.kotlin.jps.common.iml",
         "resources/intellij.libraries.kotlinc.kotlin.jps.common.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

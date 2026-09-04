@@ -1,6 +1,0 @@
-- name: dist.all/lib/intellij.platform.jps.build.jar
-  modules:
-  - name: intellij.platform.jps.build
-    libraries:
-      qdox-java-parser:
-      - name: $MAVEN_REPOSITORY$/com/thoughtworks/qdox/qdox/2/qdox-2.jar

@@ -1,6 +1,0 @@
-- name: dist.all/lib/intellij.libraries.kotlin.metadata.jar
-  modules:
-  - name: intellij.libraries.kotlin.metadata
-    libraries:
-      kotlin-metadata:
-      - name: $MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-metadata-jvm/2/kotlin-metadata-jvm-2.jar

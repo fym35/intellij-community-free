@@ -11,6 +11,10 @@ jps_test(
 
 ### skip generation section `test intellij.kotlin.gradle.tooling.impl.tests`
 
+### auto-generated section `dev intellij.kotlin.gradle.tooling.impl` start
+content_module_jar(module = ":impl")
+### auto-generated section `dev intellij.kotlin.gradle.tooling.impl` end
+
 ### auto-generated section `build intellij.kotlin.gradle.tooling.impl` start
 jvm_provided_library(
     name = "platform_extensions_provided",
@@ -57,8 +61,6 @@ jvm_library(
         ":libraries_jspecify_provided",
     ],
 )
-
-content_module_jar(module = ":impl")
 
 jvm_library(
     name = "impl_test_lib",

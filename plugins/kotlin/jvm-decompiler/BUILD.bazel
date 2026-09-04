@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.jvm.decompiler` start
+content_module_jar(module = ":jvm-decompiler")
+### auto-generated section `dev intellij.kotlin.jvm.decompiler` end
+
 ### auto-generated section `build intellij.kotlin.jvm.decompiler` start
 jvm_library(
     name = "jvm-decompiler",
@@ -44,8 +48,6 @@ jvm_library(
         "//platform/workspace/jps",
     ],
 )
-
-content_module_jar(module = ":jvm-decompiler")
 
 jvm_library(
     name = "jvm-decompiler_test_lib",

@@ -2,6 +2,13 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.platform.eel.impl` start
+content_module_jar(
+    module = ":eel-impl",
+    modules_after = ["//platform/eel-impl-base"],
+)
+### auto-generated section `dev intellij.platform.eel.impl` end
+
 ### auto-generated section `build intellij.platform.eel.impl` start
 create_kotlinc_options(
     name = "custom_eel-impl",
@@ -50,11 +57,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(
-    module = ":eel-impl",
-    modules_after = ["//platform/eel-impl-base"],
-)
-
 jvm_library(
     name = "eel-impl_test_lib",
     testonly = True,
@@ -95,7 +97,6 @@ exports_files(
     [
         "intellij.platform.eel.impl.iml",
         "resources/intellij.platform.eel.impl.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

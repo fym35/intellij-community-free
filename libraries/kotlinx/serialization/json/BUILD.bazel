@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.kotlinx.serialization.json` start
+content_module_jar(
+    libraries = ["@lib//:libraries-kotlinx-serialization-json-kotlinx-serialization-json"],
+    module = ":json",
+)
+### auto-generated section `dev intellij.libraries.kotlinx.serialization.json` end
+
 ### auto-generated section `build intellij.libraries.kotlinx.serialization.json` start
 jvm_library(
     name = "json",
@@ -20,11 +27,6 @@ jvm_library(
         "//libraries/kotlinx/serialization/core",
         "@lib//:libraries-kotlinx-serialization-json-kotlinx-serialization-json",
     ],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-kotlinx-serialization-json-kotlinx-serialization-json"],
-    module = ":json",
 )
 
 jvm_library(
@@ -51,7 +53,6 @@ exports_files(
     [
         "intellij.libraries.kotlinx.serialization.json.iml",
         "resources/intellij.libraries.kotlinx.serialization.json.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

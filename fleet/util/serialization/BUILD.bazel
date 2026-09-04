@@ -18,6 +18,10 @@ fleet_wasmjs_module(
     ],
 )
 
+### auto-generated section `dev fleet.util.serialization` start
+content_module_jar(module = ":serialization")
+### auto-generated section `dev fleet.util.serialization` end
+
 ### auto-generated section `build fleet.util.serialization` start
 create_kotlinc_options(
     name = "custom_serialization",
@@ -55,8 +59,6 @@ jvm_library(
     ],
 )
 
-content_module_jar(module = ":serialization")
-
 jvm_library(
     name = "serialization_test_lib",
     testonly = True,
@@ -83,7 +85,6 @@ exports_files(
     [
         "fleet.util.serialization.iml",
         "resources/fleet.util.serialization.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

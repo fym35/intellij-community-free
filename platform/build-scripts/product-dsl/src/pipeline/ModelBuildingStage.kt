@@ -205,14 +205,13 @@ internal object ModelBuildingStage {
       val dslOwnedPluginXmlPaths = dslTestPluginsByProduct.values.asSequence()
         .flatten()
         .mapTo(HashSet()) { config.projectRoot.resolve(it.pluginXmlPath).normalize() }
-      // The span covers `readDevDistContentPluginPopulation` too, because the call reads a file.
       // `config.includeTestPluginDescriptorsFromSources` guards the step, so no span means the flag was off.
       recordGenerationTiming("discoverPluginDescriptorsFromSources", phaseTimings) {
         discoverPluginDescriptorsFromSources(
           outputProvider = outputProvider,
           testFrameworkContentModules = config.testFrameworkContentModules,
           dslOwnedPluginXmlPaths = dslOwnedPluginXmlPaths,
-          contentPluginPopulation = readDevDistContentPluginPopulation(projectRoot),
+          contentPluginPopulation = config.contentPluginPopulation,
         )
       }
     }
@@ -221,7 +220,7 @@ internal object ModelBuildingStage {
     }
     val testPluginModuleNames = config.testPluginsByProduct.values.flatten().toHashSet()
     testPluginModuleNames.addAll(extraPluginDescriptors.testPluginModules)
-    recordGenerationTiming("seedPluginsForExtraction", phaseTimings) {
+    val declaredPluginModules = recordGenerationTiming("seedPluginsForExtraction", phaseTimings) {
       seedPluginsForExtraction(
         discovery = discovery,
         config = config,
@@ -244,6 +243,7 @@ internal object ModelBuildingStage {
         pluginContentCache = pluginContentCache,
         builder = builder,
         pluginInfos = pluginInfos,
+        declaredPluginModules = declaredPluginModules,
         testPluginModuleNames = testPluginModuleNames,
         testFrameworkContentModules = config.testFrameworkContentModules,
       )
@@ -342,6 +342,7 @@ internal object ModelBuildingStage {
     pluginContentCache: PluginContentCache,
     builder: PluginGraphBuilder,
     pluginInfos: MutableMap<TargetName, PluginContentInfo>,
+    declaredPluginModules: Set<TargetName>,
     testPluginModuleNames: Set<TargetName>,
     testFrameworkContentModules: Set<ContentModuleName>,
   ) {
@@ -364,7 +365,12 @@ internal object ModelBuildingStage {
     // `mapConcurrent` bounds the fan-out. One coroutine per plugin target oversubscribes the dispatcher,
     // and every extraction can sweep the output archive of each module of the project.
     val extractedPlugins = pluginTargets.mapConcurrent { plugin ->
-      val info = pluginContentCache.extract(plugin = plugin, isTest = plugin in testPluginModuleNames)
+      val info = if (plugin in declaredPluginModules) {
+        pluginContentCache.extract(plugin = plugin, isTest = plugin in testPluginModuleNames)
+      }
+      else {
+        pluginContentCache.getOrExtract(plugin)
+      }
       info?.let { plugin to it }
     }.filterNotNull()
     for ((pluginModule, info) in extractedPlugins) {
@@ -1119,12 +1125,16 @@ internal object ModelBuildingStage {
     dslTestPluginAdditionalBundles: Set<TargetName>,
     testPluginModuleNames: Set<TargetName>,
     extraPluginModules: Set<TargetName>,
-  ) {
+  ): Set<TargetName> {
+    val declaredPluginModules = LinkedHashSet<TargetName>()
     // Compare by string value since TargetName (JPS module) and PluginId are different semantic types.
     val dslTestPluginIdStrings = dslTestPluginIds.mapTo(HashSet()) { it.value }
-    fun addPlugin(target: TargetName, pluginId: PluginId? = null) {
+    fun addPlugin(target: TargetName, declared: Boolean = true) {
       if (target.value in dslTestPluginIdStrings) return
-      builder.addPlugin(name = target, isTest = false, pluginId = pluginId)
+      builder.addPlugin(name = target, isTest = false)
+      if (declared) {
+        declaredPluginModules.add(target)
+      }
     }
 
     for (product in discovery.products) {
@@ -1132,12 +1142,13 @@ internal object ModelBuildingStage {
       product.spec?.bundledPlugins?.forEach(::addPlugin)
     }
     for (nonBundled in config.nonBundledPlugins.values) {
-      nonBundled.forEach(::addPlugin)
+      nonBundled.forEach { addPlugin(it, declared = false) }
     }
-    config.knownPlugins.forEach(::addPlugin)
+    config.knownPlugins.forEach { addPlugin(it, declared = false) }
     testPluginModuleNames.forEach(::addPlugin)
     dslTestPluginAdditionalBundles.forEach(::addPlugin)
-    extraPluginModules.forEach(::addPlugin)
+    extraPluginModules.forEach { addPlugin(it, declared = false) }
+    return declaredPluginModules
   }
 
   private fun collectSeededPluginTargets(graph: PluginGraph): List<TargetName> {
@@ -1156,8 +1167,8 @@ internal object ModelBuildingStage {
   /**
    * The plugin main modules to seed into the graph, read off the module sources.
    *
-   * @param contentPluginPopulation the plugin main modules the dev distribution states content for.
-   * [readDevDistContentPluginPopulation] reads it. A name this project does not hold is a name nothing matches.
+   * @param contentPluginPopulation the plugin main modules the dev distribution states content for; see
+   * [org.jetbrains.intellij.build.productLayout.discovery.ModuleSetGenerationConfig.contentPluginPopulation].
    */
   internal fun discoverPluginDescriptorsFromSources(
     outputProvider: ModuleOutputProvider,
@@ -1386,44 +1397,4 @@ internal object ModelBuildingStage {
 
     return allAliases
   }
-}
-
-/**
- * The population file, relative to the project root.
- *
- * Under `community/build/`, so a community-only checkout reads the same file. A line naming a plugin that checkout does
- * not have is a line it never matches.
- */
-const val DEV_DIST_CONTENT_PLUGIN_POPULATION_PATH: String = "community/build/dev_dist_plugin_content_population.txt"
-
-/**
- * The plugin main modules the dev distribution states content for, one name per line.
- *
- * This answers "is this module a shipped plugin's main module", which the graph needs to seed a plugin the product specs
- * do not name. The earlier signal was a `plugin-content.yaml` beside the module, and that file goes away: it enumerated
- * what a distribution build really packed, and the dev distribution now derives that from the project model. The
- * population is the one part of it the derivation cannot answer, so it stays as a plain checked-in list. Read
- * `build/decisions/0007-the-descriptor-leaf-follows-the-content-leaf.md` for why the hand-off is a text file.
- *
- * A `#` line is a comment. An empty result on an absent file, the same fail-open the converter's reader takes: a
- * throwaway project holds no such file, and this enrichment runs in the analysis-only flow alone.
- *
- * Public, because the dev-distribution plan generator reads the same file to decide whether a plugin has a content
- * target to point at. That generator is in the main repository and it depends on this module, so the two share one
- * spelling of the path and one parse. The JPS-to-Bazel converter is the third reader and it cannot share: it is a
- * standalone Bazel module that takes the platform as published artifacts.
- */
-fun readDevDistContentPluginPopulation(projectRoot: Path): Set<String> {
-  val file = projectRoot.resolve(DEV_DIST_CONTENT_PLUGIN_POPULATION_PATH)
-  if (Files.notExists(file)) {
-    return emptySet()
-  }
-  val result = LinkedHashSet<String>()
-  for (raw in Files.readAllLines(file)) {
-    val line = raw.trim()
-    if (line.isNotEmpty() && !line.startsWith('#')) {
-      result.add(line)
-    }
-  }
-  return result
 }

@@ -2,6 +2,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev kotlin.fir` start
+content_module_jar(module = ":fir")
+### auto-generated section `dev kotlin.fir` end
+
 ### auto-generated section `build kotlin.fir` start
 create_kotlinc_options(
     name = "custom_fir",
@@ -102,8 +106,6 @@ jvm_library(
         "//platform/eel-provider",
     ],
 )
-
-content_module_jar(module = ":fir")
 
 jvm_library(
     name = "fir_test_lib",

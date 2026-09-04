@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.uast.idea.base` start
+content_module_jar(module = ":kotlin-uast-idea-base")
+### auto-generated section `dev intellij.kotlin.uast.idea.base` end
+
 ### auto-generated section `build intellij.kotlin.uast.idea.base` start
 jvm_library(
     name = "kotlin-uast-idea-base",
@@ -40,8 +44,6 @@ jvm_library(
         "//plugins/kotlin/base/psi",
     ],
 )
-
-content_module_jar(module = ":kotlin-uast-idea-base")
 
 jvm_library(
     name = "kotlin-uast-idea-base_test_lib",

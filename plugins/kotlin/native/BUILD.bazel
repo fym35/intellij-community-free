@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.native` start
+content_module_jar(module = ":native")
+### auto-generated section `dev intellij.kotlin.native` end
+
 ### auto-generated section `build intellij.kotlin.native` start
 jvm_library(
     name = "native",
@@ -46,8 +50,6 @@ jvm_library(
         "//java/idea-ui:ui",
     ],
 )
-
-content_module_jar(module = ":native")
 
 jvm_library(
     name = "native_test_lib",

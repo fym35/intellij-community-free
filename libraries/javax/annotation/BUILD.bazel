@@ -1,6 +1,13 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.libraries.javax.annotation` start
+content_module_jar(
+    libraries = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
+    module = ":annotation",
+)
+### auto-generated section `dev intellij.libraries.javax.annotation` end
+
 ### auto-generated section `build intellij.libraries.javax.annotation` start
 jvm_library(
     name = "annotation",
@@ -16,11 +23,6 @@ jvm_library(
     visibility = ["//visibility:public"],
     exports = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
     runtime_deps = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
-)
-
-content_module_jar(
-    libraries = ["@lib//:libraries-javax-annotation-javax-annotation-api"],
-    module = ":annotation",
 )
 
 jvm_library(
@@ -43,7 +45,6 @@ exports_files(
     [
         "intellij.libraries.javax.annotation.iml",
         "resources/intellij.libraries.javax.annotation.xml",
-        "module-content.yaml",
     ],
     visibility = ["//visibility:public"],
 )

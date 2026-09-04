@@ -3,6 +3,10 @@ load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.gradle.scripting` start
+content_module_jar(module = ":kotlin-gradle-scripting")
+### auto-generated section `dev intellij.kotlin.gradle.scripting` end
+
 ### auto-generated section `build intellij.kotlin.gradle.scripting` start
 create_kotlinc_options(
     name = "custom_kotlin-gradle-scripting",
@@ -96,8 +100,6 @@ jvm_library(
         "//plugins/kotlin/scripting",
     ],
 )
-
-content_module_jar(module = ":kotlin-gradle-scripting")
 
 jvm_library(
     name = "kotlin-gradle-scripting_test_lib",

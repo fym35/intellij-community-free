@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev intellij.kotlin.performanceExtendedPlugin` start
+content_module_jar(module = ":kotlin.performanceExtendedPlugin")
+### auto-generated section `dev intellij.kotlin.performanceExtendedPlugin` end
+
 ### auto-generated section `build intellij.kotlin.performanceExtendedPlugin` start
 jvm_library(
     name = "kotlin.performanceExtendedPlugin",
@@ -58,8 +62,6 @@ jvm_library(
         "//plugins/kotlin/j2k/k2:kotlin-j2k",
     ],
 )
-
-content_module_jar(module = ":kotlin.performanceExtendedPlugin")
 
 jvm_library(
     name = "kotlin.performanceExtendedPlugin_test_lib",

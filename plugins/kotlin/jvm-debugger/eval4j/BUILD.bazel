@@ -14,6 +14,10 @@ jps_test(
 )
 ### skip generation section `test intellij.kotlin.jvm.debugger.eval4j.tests`
 
+### auto-generated section `dev intellij.kotlin.jvm.debugger.eval4j` start
+content_module_jar(module = ":eval4j")
+### auto-generated section `dev intellij.kotlin.jvm.debugger.eval4j` end
+
 ### auto-generated section `build intellij.kotlin.jvm.debugger.eval4j` start
 jvm_library(
     name = "eval4j",
@@ -42,8 +46,6 @@ jvm_library(
         "//java/debugger/impl",
     ],
 )
-
-content_module_jar(module = ":eval4j")
 
 jvm_library(
     name = "eval4j_test_lib",

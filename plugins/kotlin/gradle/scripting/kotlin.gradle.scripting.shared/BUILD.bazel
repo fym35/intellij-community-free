@@ -1,6 +1,10 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
+### auto-generated section `dev kotlin.gradle.scripting.shared` start
+content_module_jar(module = ":kotlin-gradle-scripting-shared")
+### auto-generated section `dev kotlin.gradle.scripting.shared` end
+
 ### auto-generated section `build kotlin.gradle.scripting.shared` start
 jvm_library(
     name = "kotlin-gradle-scripting-shared",
@@ -63,8 +67,6 @@ jvm_library(
         "//platform/indexing-api:indexing",
     ],
 )
-
-content_module_jar(module = ":kotlin-gradle-scripting-shared")
 
 jvm_library(
     name = "kotlin-gradle-scripting-shared_test_lib",
