@@ -22,7 +22,7 @@ import org.jetbrains.annotations.TestOnly
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, CustomWrapModel.Mutator, PrioritizedDocumentListener,
                                                                      Dumpable, Disposable {
   private val document = editor.elfDocument
-  private val tree: CustomWrapTree = CustomWrapTree(document)
+  private val tree: CustomWrapTree? = if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) null else CustomWrapTree(document)
   @Volatile
   private var snapshotStorage: SnapshotCustomWrapStorage? = null
   private val eventDispatcher = EventDispatcher.create(CustomWrapModel.Listener::class.java)
@@ -63,12 +63,13 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     if (!isValidCustomWrapOffset(offset, document)) {
       return null
     }
-    val wrap = if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+    val legacyTree = tree
+    val wrap = if (legacyTree == null) {
       getOrCreateSnapshotStorage().create(offset, indentInColumns, priority)
     }
     else {
       CustomWrapImpl(offset, document, this, indentInColumns, priority).also {
-        tree.addInterval(it, offset, offset, greedyToLeft = false, greedyToRight = false, stickingToRight = false, layer = 0)
+        legacyTree.addInterval(it, offset, offset, greedyToLeft = false, greedyToRight = false, stickingToRight = false, layer = 0)
       }
     }
     notifyAdded(wrap)
@@ -77,22 +78,32 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
 
   override fun getWraps(): List<CustomWrap> {
     val result = ArrayList<CustomWrap>()
-    tree.processAll {
-      result.add(it)
-      true
+    val legacyTree = tree
+    if (legacyTree != null) {
+      legacyTree.processAll {
+        result.add(it)
+        true
+      }
     }
-    snapshotStorage?.collectAll()?.let(result::addAll)
+    else {
+      snapshotStorage?.collectAll()?.let(result::addAll)
+    }
     result.sortWith(CUSTOM_WRAP_COMPARATOR)
     return result
   }
 
   override fun getWrapsInRange(startOffset: Int, endOffset: Int): List<CustomWrap> {
     val result = ArrayList<CustomWrap>()
-    tree.processOverlappingWith(startOffset, endOffset) {
-      result.add(it)
-      true
+    val legacyTree = tree
+    if (legacyTree != null) {
+      legacyTree.processOverlappingWith(startOffset, endOffset) {
+        result.add(it)
+        true
+      }
     }
-    snapshotStorage?.collectInRange(startOffset, endOffset)?.let(result::addAll)
+    else {
+      snapshotStorage?.collectInRange(startOffset, endOffset)?.let(result::addAll)
+    }
     result.sortWith(CUSTOM_WRAP_COMPARATOR)
     return result
   }
@@ -106,10 +117,13 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     if (wrap is SnapshotCustomWrap) {
       return snapshotStorage?.remove(wrap) == true
     }
-    return tree.removeInterval(wrap as CustomWrapImpl)
+    return tree?.removeInterval(wrap as CustomWrapImpl) == true
   }
 
-  override fun hasWraps(): Boolean = tree.size() > 0 || snapshotStorage?.hasWraps() == true
+  override fun hasWraps(): Boolean {
+    val legacyTree = tree
+    return if (legacyTree != null) legacyTree.size() > 0 else snapshotStorage?.hasWraps() == true
+  }
 
   override fun <T> runBatchMutation(mutation: CustomWrapModel.Mutator.() -> T): T {
     if (isInsideBatchMutation) {
@@ -197,8 +211,13 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   }
 
   override fun dispose() {
-    tree.dispose(document)
-    snapshotStorage?.dispose()
+    val legacyTree = tree
+    if (legacyTree != null) {
+      legacyTree.dispose(document)
+    }
+    else {
+      snapshotStorage?.dispose()
+    }
   }
 
   @Synchronized
