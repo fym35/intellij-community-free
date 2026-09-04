@@ -16,6 +16,7 @@ import com.intellij.openapi.actionSystem.PlatformCoreDataKeys;
 import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.DumbUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.playback.commands.ActionCommand;
 import com.intellij.openapi.util.text.StringUtil;
@@ -58,7 +59,8 @@ public final class GotoClassAction extends SearchEverywhereBaseAction implements
   static void invokeGoToFile(@NotNull Project project, @NotNull AnActionEvent e, @NotNull AnAction failedAction) {
     String actionTitle = StringUtil.trimEnd(ObjectUtils.notNull(
       e.getPresentation().getText(), GotoClassPresentationUpdater.getActionTitle()), "...");
-    String message = IdeBundle.dumbModeMessage("go.to.class.dumb.mode.message", "go.to.class.light.mode.message", actionTitle);
+    String message = DumbUtil.dumbModeMessage(IdeBundle.message("go.to.class.dumb.mode.message", actionTitle),
+                                              IdeBundle.message("go.to.class.light.mode.message", actionTitle));
     DumbService.getInstance(project).showDumbModeNotificationForAction(message, ActionManager.getInstance().getId(failedAction));
     AnAction action = ActionManager.getInstance().getAction(GotoFileAction.ID);
     InputEvent event = ActionCommand.getInputEvent(GotoFileAction.ID);

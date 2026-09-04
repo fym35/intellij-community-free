@@ -103,6 +103,7 @@ import com.intellij.openapi.progress.util.ProgressIndicatorBase;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.DumbModeBlockedFunctionality;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.DumbUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.util.Comparing;
@@ -2615,8 +2616,8 @@ final class EditorGutterComponentImpl extends EditorGutterComponentEx
     Project project = myEditor.getProject();
     if (project != null) {
       DumbService.getInstance(project).showDumbModeNotificationForFunctionality(
-        IdeBundle.dumbModeMessage("message.this.functionality.is.not.available.during.indexing",
-                                  "message.this.functionality.is.not.available.in.light.mode"),
+        DumbUtil.dumbModeMessage(IdeBundle.message("message.this.functionality.is.not.available.during.indexing"),
+                                 IdeBundle.message("message.this.functionality.is.not.available.in.light.mode")),
         DumbModeBlockedFunctionality.EditorGutterComponent);
     }
   }
