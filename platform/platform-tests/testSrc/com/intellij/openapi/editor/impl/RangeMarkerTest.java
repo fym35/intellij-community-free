@@ -1992,6 +1992,18 @@ public class RangeMarkerTest extends LightPlatformTestCase {
     assertThrows(IllegalArgumentException.class, () -> createMarker("xxxx", 1, 5));
   }
 
+  public void testRangeMarkerImplThrowsWhenSnapshotEngineIsEnabled() {
+    DocumentEx document = (DocumentEx)EditorFactory.getInstance().createDocument("");
+    if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+      assertThrows(AssertionError.class, () -> new RangeMarkerImpl(document, 0, 0, true, false));
+    }
+    else {
+      RangeMarkerImpl marker = new RangeMarkerImpl(document, 0, 0, true, false);
+      assertTrue(marker.isValid());
+      marker.dispose();
+    }
+  }
+
   public void testUnderlyingTextDeletionMustLeadToInvalidation() {
     RangeMarkerEx marker = createMarker("12345", 1, 3);
     deleteString(document, 0, 4);

@@ -70,6 +70,9 @@ public class RangeMarkerImpl extends UserDataHolderBase implements RangeMarkerEx
                           boolean register,
                           boolean greedyToLeft,
                           boolean greedyToRight) {
+    if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+      throw new AssertionError(getClass().getName() + " cannot be created while the snapshot marker engine is enabled");
+    }
     if (end > documentTextLength) {
       throw new IllegalArgumentException("Invalid offsets: start=" +start+ "; end=" + end + "; document length=" + documentTextLength);
     }
