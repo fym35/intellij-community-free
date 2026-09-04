@@ -58,6 +58,7 @@ import com.intellij.openapi.editor.markup.UIController
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.DumbService.Companion.isDumb
+import com.intellij.openapi.project.DumbUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.registry.Registry
@@ -391,8 +392,10 @@ open class TrafficLightRenderer private constructor(
     if (status.errorAnalyzingFinished) {
       if (isDumb) {
         title = DaemonBundle.message("shallow.analysis.completed")
-        details = DaemonBundle.dumbModeMessage("shallow.analysis.completed.details",
-                                               "shallow.analysis.completed.in.light.mode.details")
+        details = DumbUtil.dumbModeMessage(
+          DaemonBundle.message("shallow.analysis.completed.details"),
+          DaemonBundle.message("shallow.analysis.completed.in.light.mode.details")
+        )
         state = InspectionsState.SHALLOW_ANALYSIS_COMPLETE
       }
       else if (fileHighlightingSettings.containsValue(FileHighlightingSetting.ESSENTIAL)) {
