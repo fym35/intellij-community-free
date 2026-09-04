@@ -40,10 +40,6 @@
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.core.impl"/>
     <module name="intellij.platform.core.ui"/>
-    <module name="intellij.platform.debugger"/>
-    <module name="intellij.platform.debugger.impl"/>
-    <module name="intellij.platform.debugger.impl.shared"/>
-    <module name="intellij.platform.debugger.impl.ui"/>
     <module name="intellij.platform.diagnostic.telemetry"/>
     <module name="intellij.platform.editor.ex"/>
     <module name="intellij.platform.editor.ui"/>
@@ -77,6 +73,7 @@
     <module name="intellij.performanceTesting.remoteDriver.jcef"/>
     <module name="intellij.performanceTesting.remoteDriver.compose"/>
     <module name="intellij.performanceTesting.vcs"/>
+    <module name="intellij.performanceTesting.debugger"/>
     <module name="intellij.performanceTesting.frontend"/>
     <module name="intellij.performanceTesting.frontend.base"/>
     <module name="intellij.performanceTesting.problemsView"/>

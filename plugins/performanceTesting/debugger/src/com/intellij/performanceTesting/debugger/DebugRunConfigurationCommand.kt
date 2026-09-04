@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.jetbrains.performancePlugin.commands
+package com.intellij.performanceTesting.debugger
 
 import com.intellij.execution.DefaultExecutionTarget
 import com.intellij.execution.ExecutionManager
@@ -17,6 +17,8 @@ import com.intellij.xdebugger.XDebugSessionListener
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebuggerManagerListener
 import com.jetbrains.performancePlugin.PerformanceTestSpan
+import com.jetbrains.performancePlugin.commands.RunConfigurationCommand
+import com.jetbrains.performancePlugin.commands.Waiter
 import com.jetbrains.performancePlugin.utils.AbstractCallbackBasedCommand
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.context.Context

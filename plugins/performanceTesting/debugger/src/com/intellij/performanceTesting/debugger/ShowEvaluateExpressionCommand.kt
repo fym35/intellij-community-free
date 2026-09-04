@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.jetbrains.performancePlugin.commands
+package com.intellij.performanceTesting.debugger
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.ui.playback.PlaybackContext
@@ -12,6 +12,7 @@ import com.intellij.xdebugger.frame.XValue
 import com.intellij.xdebugger.impl.breakpoints.XExpressionImpl
 import com.intellij.xdebugger.impl.evaluate.XDebuggerEvaluationDialog
 import com.jetbrains.performancePlugin.PerformanceTestSpan
+import com.jetbrains.performancePlugin.commands.EvaluateExpressionArguments
 import com.jetbrains.performancePlugin.utils.parse
 import io.opentelemetry.api.trace.Tracer
 import kotlinx.coroutines.Dispatchers

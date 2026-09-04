@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.jetbrains.performancePlugin.commands
+package com.intellij.performanceTesting.debugger
 
 import com.intellij.execution.impl.ExecutionManagerImpl
 import com.intellij.openapi.ui.playback.PlaybackContext

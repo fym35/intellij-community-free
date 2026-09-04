@@ -1641,6 +1641,7 @@ plugins/ml-local-models/java
 plugins/performanceTesting/backend
 plugins/performanceTesting/commands-model
 plugins/performanceTesting/core
+plugins/performanceTesting/debugger
 plugins/performanceTesting/event-bus
 plugins/performanceTesting/freezes
 plugins/performanceTesting/frontend

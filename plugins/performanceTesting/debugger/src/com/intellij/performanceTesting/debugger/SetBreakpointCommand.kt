@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.jetbrains.performancePlugin.commands
+package com.intellij.performanceTesting.debugger
 
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -14,6 +14,7 @@ import com.intellij.xdebugger.impl.XDebuggerUtilImpl
 import com.intellij.xdebugger.impl.XSourcePositionImpl
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointUtil
 import com.jetbrains.performancePlugin.PerformanceTestingBundle
+import com.jetbrains.performancePlugin.commands.OpenFileCommand
 import com.jetbrains.performancePlugin.utils.AbstractCallbackBasedCommand
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.concurrency.asCompletableFuture
