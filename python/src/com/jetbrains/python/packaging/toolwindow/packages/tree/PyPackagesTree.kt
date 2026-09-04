@@ -58,6 +58,7 @@ import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 import javax.swing.event.TreeSelectionListener
 import javax.swing.plaf.basic.BasicTreeUI
+import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeCellRenderer
@@ -267,26 +268,8 @@ internal class PyPackagesTree(
 
   private fun updateTreeModel() {
     rootNode.removeAllChildren()
-    items.forEach { pkg -> rootNode.add(createNodeRecursively(pkg, mutableSetOf())) }
+    items.forEach { pkg -> rootNode.add(pkg.toTreeNode()) }
     myTreeModel.reload()
-  }
-
-  /**
-   * [path] holds the packages between this row and the top of the tree. A package that repeats on
-   * its own path becomes a leaf, which ends the walk where the dependency graph has a cycle. A
-   * package that merely appears again elsewhere keeps its dependencies, or a row would lose the
-   * dependencies the tool listed for it.
-   *
-   * The set holds packages by identity, since [DisplayablePackage] does not define equality.
-   */
-  private fun createNodeRecursively(pkg: DisplayablePackage, path: MutableSet<DisplayablePackage>): DefaultMutableTreeNode {
-    val node = DefaultMutableTreeNode(pkg)
-    if (!path.add(pkg)) return node
-    pkg.getRequirements().forEach { requirement ->
-      node.add(createNodeRecursively(requirement, path))
-    }
-    path.remove(pkg)
-    return node
   }
 
   private fun setupTreeInteractions() {
@@ -552,13 +535,7 @@ internal class PyPackagesTree(
    * fixed bound taken before the first expansion stops at the rows that were already visible, which
    * leaves everything below the first few matches closed.
    */
-  fun expandAll() {
-    var row = 0
-    while (row < rowCount) {
-      expandRow(row)
-      row++
-    }
-  }
+  fun expandAll() = expandAllRows()
 
   fun selectedItems(): List<DisplayablePackage> =
     selectionRows?.toList()?.mapNotNull { row -> packageAtRow(row) } ?: emptyList()
@@ -589,4 +566,41 @@ internal fun interface PyPackagesTreeListener {
   /** Called on EDT when the visible tree row layout changes (items set, expanded, collapsed). */
   @RequiresEdt
   fun onTreeStructureChanged()
+}
+
+/**
+ * Builds the rows for a package and its dependencies.
+ *
+ * [path] holds the packages between this row and the top of the tree. A package that repeats on its
+ * own path becomes a leaf, which ends the walk where the dependency graph has a cycle. A package
+ * that merely appears again elsewhere keeps its dependencies, or a row would lose the dependencies
+ * the tool listed for it (PY-90174).
+ *
+ * The set holds packages by identity, since [DisplayablePackage] does not define equality.
+ */
+internal fun DisplayablePackage.toTreeNode(
+  path: MutableSet<DisplayablePackage> = mutableSetOf(),
+): DefaultMutableTreeNode {
+  val node = DefaultMutableTreeNode(this)
+  if (!path.add(this)) return node
+  getRequirements().forEach { requirement ->
+    node.add(requirement.toTreeNode(path))
+  }
+  path.remove(this)
+  return node
+}
+
+/**
+ * Expands every row, including the ones expanding adds.
+ *
+ * The count has to be read again on every step. A bound taken before the first expansion stops at
+ * the rows that were already visible, which leaves everything below the first few matches closed
+ * (PY-90174).
+ */
+internal fun JTree.expandAllRows() {
+  var row = 0
+  while (row < rowCount) {
+    expandRow(row)
+    row++
+  }
 }
