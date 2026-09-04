@@ -60,7 +60,7 @@ internal object PluginContentDependencyValidator : PipelineNode {
   // Validation queries deps from the graph (EDGE_CONTENT_MODULE_DEPENDS_ON / EDGE_CONTENT_MODULE_DEPENDS_ON_TEST).
   override val requires: Set<DataSlot<*>> get() = setOf(Slots.CONTENT_MODULE)
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
 
     val contentModuleResults = ctx.get(Slots.CONTENT_MODULE).files

@@ -701,7 +701,7 @@ private fun descriptorPluginDependencies(module: String, vararg pluginIds: Strin
  * [suppressionConfig] reaches the node through the model, because the node reads
  * `contentModuleCopyConflicts` itself.
  */
-private suspend fun runCopyConflictRule(
+private fun runCopyConflictRule(
   graph: PluginGraph,
   plans: List<ContentModuleDependencyPlan> = emptyList(),
   suppressionConfig: SuppressionConfig = SuppressionConfig(),

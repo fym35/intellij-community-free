@@ -7,8 +7,6 @@ import com.intellij.openapi.util.io.FileUtilRt
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.JvmArchitecture
@@ -41,21 +39,21 @@ import java.nio.file.Path
 
 private class ScrambleTask(@JvmField val descriptor: PluginBuildDescriptor)
 
-internal suspend fun buildPlugins(
+internal fun buildPlugins(
   plugins: Collection<PluginLayout>,
   os: OsFamily?,
   arch: JvmArchitecture?,
   targetDir: Path,
   state: DistributionBuilderState,
-  platformEntriesProvider: (suspend () -> List<DistributionFileEntry>)?,
+  platformEntriesProvider: (() -> List<DistributionFileEntry>)?,
   searchableOptionSet: SearchableOptionSetDescriptor?,
   descriptorCacheContainer: DescriptorCacheContainer,
   context: BuildContext,
   copyFiles: Boolean = true,
   layoutOnly: Boolean = false,
   prepackedPluginContent: Map<PrepackedPluginContentKey, PrepackedPluginContentJar> = emptyMap(),
-  additionalScrambleDescriptorsProvider: (suspend () -> Collection<PluginBuildResult>)? = null,
-  pluginBuilt: (suspend (PluginLayout, pluginDirOrFile: Path) -> List<DistributionFileEntry>)? = null,
+  additionalScrambleDescriptorsProvider: (() -> Collection<PluginBuildResult>)? = null,
+  pluginBuilt: ((PluginLayout, pluginDirOrFile: Path) -> List<DistributionFileEntry>)? = null,
 ): List<PluginBuildResult> {
   val scrambleTool = context.proprietaryBuildTools.scrambleTool
   val isScramblingSkipped = layoutOnly || context.options.buildStepsToSkip.contains(BuildOptions.SCRAMBLING_STEP)
@@ -63,23 +61,21 @@ internal suspend fun buildPlugins(
   val (pluginsBuildInProcess, pluginsBuildByBazel) = partitionPluginsByBuildingMethod(plugins, context)
 
   val resultsForPluginsBuiltInProcess = pluginsBuildInProcess.mapConcurrent { pluginLayout ->
-    withContext(CoroutineName("Build plugin (module=${pluginLayout.mainModule})")) {
-      buildPlugin(
-        pluginLayout = pluginLayout,
-        targetDir = targetDir,
-        state = state,
-        descriptorCacheContainer = descriptorCacheContainer,
-        searchableOptionSet = searchableOptionSet,
-        scrambleTool = scrambleTool,
-        isScramblingSkipped = isScramblingSkipped,
-        os = os,
-        arch = arch,
-        context = context,
-        copyFiles = copyFiles,
-        pluginBuilt = pluginBuilt,
-        prepackedPluginContent = prepackedPluginContent,
-      )
-    }
+    buildPlugin(
+      pluginLayout = pluginLayout,
+      targetDir = targetDir,
+      state = state,
+      descriptorCacheContainer = descriptorCacheContainer,
+      searchableOptionSet = searchableOptionSet,
+      scrambleTool = scrambleTool,
+      isScramblingSkipped = isScramblingSkipped,
+      os = os,
+      arch = arch,
+      context = context,
+      copyFiles = copyFiles,
+      pluginBuilt = pluginBuilt,
+      prepackedPluginContent = prepackedPluginContent,
+    )
   }
 
   val resultsForPluginsBuiltByBazel = buildPluginsByBazel(pluginsBuildByBazel, targetDir, descriptorCacheContainer, searchableOptionSet, context)
@@ -122,7 +118,7 @@ internal suspend fun buildPlugins(
  * the platform ZKM run, since regular plugins that were laid out early still need their per-plugin
  * scramble to happen.
  */
-internal suspend fun scrambleAlreadyLaidOutPlugins(
+internal fun scrambleAlreadyLaidOutPlugins(
   descriptors: Collection<PluginBuildResult>,
   state: DistributionBuilderState,
   platformEntries: List<DistributionFileEntry>,
@@ -154,7 +150,7 @@ internal suspend fun scrambleAlreadyLaidOutPlugins(
   }
 }
 
-private suspend fun buildPlugin(
+private fun buildPlugin(
   pluginLayout: PluginLayout,
   targetDir: Path,
   state: DistributionBuilderState,
@@ -166,7 +162,7 @@ private suspend fun buildPlugin(
   arch: JvmArchitecture?,
   context: BuildContext,
   copyFiles: Boolean,
-  pluginBuilt: (suspend (PluginLayout, Path) -> List<DistributionFileEntry>)?,
+  pluginBuilt: ((PluginLayout, Path) -> List<DistributionFileEntry>)?,
   prepackedPluginContent: Map<PrepackedPluginContentKey, PrepackedPluginContentJar>,
 ): Pair<PluginBuildResult, ScrambleTask?> = taskScope {
   val directoryName = pluginLayout.directoryName

@@ -58,9 +58,6 @@ import com.intellij.platform.pluginGraph.unpackPluginDepFormats
 import com.intellij.platform.pluginGraph.unpackPluginDepHasConfigFile
 import com.intellij.platform.pluginGraph.unpackPluginDepOptional
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.ModuleSet
@@ -72,6 +69,7 @@ import org.jetbrains.intellij.build.productLayout.isModuleSetPluginModuleName
 import org.jetbrains.intellij.build.productLayout.model.ErrorSink
 import org.jetbrains.intellij.build.productLayout.model.error.MissingPluginInGraphError
 import org.jetbrains.intellij.build.productLayout.validator.rule.isTestPlugin
+import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.jps.model.java.JpsJavaDependencyScope
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.module.JpsLibraryDependency
@@ -849,7 +847,7 @@ internal class PluginGraphBuilder(
    * @param pluginContentCache Cache for extracting plugin info from modules
    * @return Map of newly discovered plugin modules to their extracted content
    */
-  suspend fun registerReferencedPlugins(pluginContentCache: PluginContentProvider): Map<TargetName, PluginContentInfo> {
+  fun registerReferencedPlugins(pluginContentCache: PluginContentProvider): Map<TargetName, PluginContentInfo> {
     val targetIndex = store.nameIndex[NODE_TARGET]
     val candidates = ArrayList<TargetName>()
 
@@ -866,14 +864,10 @@ internal class PluginGraphBuilder(
       candidates.add(TargetName(targetName))
     }
 
-    val discoveredInfos = coroutineScope {
-      candidates.map { pluginModule ->
-        async {
-          val pluginInfo = pluginContentCache.getOrExtract(pluginModule) ?: return@async null
-          pluginModule to pluginInfo
-        }
-      }.awaitAll().filterNotNull()
-    }
+    val discoveredInfos = candidates.mapConcurrent { pluginModule ->
+      val pluginInfo = pluginContentCache.getOrExtract(pluginModule) ?: return@mapConcurrent null
+      pluginModule to pluginInfo
+    }.filterNotNull()
 
     val discovered = LinkedHashMap<TargetName, PluginContentInfo>(discoveredInfos.size)
     for ((pluginModule, pluginInfo) in discoveredInfos) {

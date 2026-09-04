@@ -83,7 +83,7 @@ fun createLayoutProviderByContentYamlFiles(
   )
 }
 
-suspend fun createLayoutProviderByContentReport(
+fun createLayoutProviderByContentReport(
   content: ParsedContentReport,
   mainModuleOfCorePlugin: String,
   corePluginDescriptorPath: String,
@@ -98,7 +98,7 @@ suspend fun createLayoutProviderByContentReport(
   )
 }
 
-private suspend fun collectMainModulesWithPluginDescriptor(
+private fun collectMainModulesWithPluginDescriptor(
   content: ParsedContentReport,
   outputProvider: ModuleOutputProvider,
 ): Set<String> {

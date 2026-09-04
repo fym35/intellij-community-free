@@ -15,14 +15,12 @@ import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.ApplicationInfoProperties
 import org.jetbrains.intellij.build.ApplicationInfoPropertiesImpl
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuiltinModulesFileData
 import org.jetbrains.intellij.build.CompilationContext
@@ -66,14 +64,17 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.pathString
 import kotlin.time.Duration
 
-@OptIn(DelicateCoroutinesApi::class)
-suspend fun createBuildContext(
+/**
+ * Creates the context of a product build. [lifetime] owns the caches of the context, such as the module output archives;
+ * `null` caches nothing.
+ */
+fun createBuildContext(
   projectHome: Path,
   productProperties: ProductProperties,
   setupTracer: Boolean = true,
   proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
   options: BuildOptions = BuildOptions(),
-  scope: CoroutineScope? = null,
+  lifetime: BuildLifetime? = null,
 ): BuildContext {
   val context = createBuildContext(
     compilationContext = createCompilationContext(
@@ -85,7 +86,7 @@ suspend fun createBuildContext(
     projectHome = projectHome,
     productProperties = productProperties,
     proprietaryBuildTools = proprietaryBuildTools,
-    scope = scope,
+    lifetime = lifetime,
   )
   context.cleanupJarCache()
   return context
@@ -93,11 +94,11 @@ suspend fun createBuildContext(
 
 @Experimental
 @Internal
-suspend fun createCompilationContext(
+fun createCompilationContext(
   projectHome: Path,
   productProperties: ProductProperties,
   options: BuildOptions,
-  scope: CoroutineScope,
+  lifetime: BuildLifetime,
   setupTracer: Boolean,
 ): CompilationContext {
   return normalizeCompilationContextForBuild(
@@ -107,25 +108,25 @@ suspend fun createCompilationContext(
     options = options,
     setupTracer = setupTracer,
     ),
-    scope = scope,
+    lifetime = lifetime,
   )
 }
 
 @Internal
 fun normalizeCompilationContextForBuild(
   context: CompilationContext,
-  scope: CoroutineScope?,
+  lifetime: BuildLifetime?,
   isBazelBacked: Boolean = isRunningFromBazelOut(),
 ): CompilationContext {
   val bazelAwareContext = when (context) {
-    is CompilationContextImpl -> context.toBazelIfNeeded(scope, isBazelBacked)
+    is CompilationContextImpl -> context.toBazelIfNeeded(lifetime, isBazelBacked)
     else -> context
   }
   return if (bazelAwareContext.options.unpackCompiledClassesArchives) {
-    bazelAwareContext.toArchivedIfNeeded(scope)
+    bazelAwareContext.toArchivedIfNeeded(lifetime)
   }
   else {
-    bazelAwareContext.toArchivedContext(scope)
+    bazelAwareContext.toArchivedContext(lifetime)
   }
 }
 
@@ -134,9 +135,9 @@ fun createBuildContext(
   projectHome: Path,
   productProperties: ProductProperties,
   proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
-  scope: CoroutineScope? = null,
+  lifetime: BuildLifetime? = null,
 ): BuildContextImpl {
-  val normalizedCompilationContext = normalizeCompilationContextForBuild(compilationContext, scope)
+  val normalizedCompilationContext = normalizeCompilationContextForBuild(compilationContext, lifetime)
   val jarCacheManager = normalizedCompilationContext.options.jarCacheDir?.let {
     LocalDiskJarCacheManager(
       cacheDir = it,
@@ -201,7 +202,7 @@ class BuildContextImpl internal constructor(
     }
   }
 
-  override suspend fun cleanupJarCache() {
+  override fun cleanupJarCache() {
     jarCacheManager.cleanup()
   }
 
@@ -252,7 +253,7 @@ class BuildContextImpl internal constructor(
 
   companion object {
     @Deprecated("Use `createBuildContext`", ReplaceWith("createBuildContext(projectHome, productProperties, proprietaryBuildTools, options)"))
-    suspend fun createContext(
+    fun createContext(
       projectHome: Path,
       productProperties: ProductProperties,
       setupTracer: Boolean = true,
@@ -269,7 +270,7 @@ class BuildContextImpl internal constructor(
     }
   }
 
-  private val builtinModules = blockingLazy("provided module list") {
+  private val builtinModules = sharedLazy("provided module list") {
     if (isStepSkipped(BuildOptions.PROVIDED_MODULES_LIST_STEP) || !shouldBuildDistributions()) {
       null
     }
@@ -319,7 +320,7 @@ class BuildContextImpl internal constructor(
     compilationContext.notifyArtifactBuilt(artifactPath)
   }
 
-  private val _frontendModuleFilter = blockingLazy("frontend module filter") {
+  private val _frontendModuleFilter = sharedLazy("frontend module filter") {
     val rootModule = productProperties.embeddedFrontendRootModule
     if (rootModule != null && options.enableEmbeddedFrontend) {
       FrontendModuleFilterImpl.createFrontendModuleFilter(project = project)
@@ -331,23 +332,23 @@ class BuildContextImpl internal constructor(
 
   override fun getFrontendModuleFilter(): FrontendModuleFilter = _frontendModuleFilter.get()
 
-  private val embeddedFrontendProductContext = suspendingLazy("embedded frontend product context") {
+  private val embeddedFrontendProductContext = sharedLazy("embedded frontend product context") {
     if (options.enableEmbeddedFrontend) {
       val factory = productProperties.embeddedFrontendProperties
       if (factory != null) {
-        return@suspendingLazy createCopyForProduct(factory(), paths.projectHome, prepareForBuild = false)
+        return@sharedLazy createCopyForProduct(factory(), paths.projectHome, prepareForBuild = false)
       }
     }
     null
   }
 
-  override suspend fun getEmbeddedFrontendProductContext(): BuildContext? = embeddedFrontendProductContext.await()
+  override fun getEmbeddedFrontendProductContext(): BuildContext? = embeddedFrontendProductContext.get()
 
-  private val layoutOfAdditionalFrontendOnlyPlugins = suspendingLazy("layout of additional frontend only plugins") {
+  private val layoutOfAdditionalFrontendOnlyPlugins = sharedLazy("layout of additional frontend only plugins") {
     computeDescriptorsForAdditionalFrontendPlugins(this@BuildContextImpl, distributionState().platformLayout)
   }
 
-  override suspend fun getLayoutOfAdditionalFrontendOnlyPlugins(): List<PluginBuildResult> = layoutOfAdditionalFrontendOnlyPlugins.await()
+  override fun getLayoutOfAdditionalFrontendOnlyPlugins(): List<PluginBuildResult> = layoutOfAdditionalFrontendOnlyPlugins.get()
 
   private val _contentModuleFilter by lazy { computeContentModuleFilter() }
 
@@ -369,7 +370,7 @@ class BuildContextImpl internal constructor(
     return shouldBuildDistributions() && options.targetOs.contains(os) && (options.targetArch == null || options.targetArch == arch)
   }
 
-  override suspend fun createCopyForProduct(
+  override fun createCopyForProduct(
     productProperties: ProductProperties,
     projectHomeForCustomizers: Path,
     prepareForBuild: Boolean,
@@ -394,15 +395,12 @@ class BuildContextImpl internal constructor(
 
     @Suppress("DEPRECATION")
     val artifactDir = if (prepareForBuild) paths.artifactDir.resolve(productProperties.productCode ?: newAppInfo.productCode) else null
-    val copyContext = currentCoroutineContext()
-    val copyScope = object : CoroutineScope {
-      override val coroutineContext = copyContext
-    }
+    // the copy shares the lifetime of this context, so its caches end with the build that owns both
     val compilationContextCopy = compilationContext.createCopy(
       messages = messages,
       options = options,
       paths = computeBuildPaths(options = options, buildOut = buildOut, projectHome = paths.projectHome, artifactDir = artifactDir),
-      scope = copyScope,
+      lifetime = null,
     )
     val copy = BuildContextImpl(
       compilationContext = compilationContextCopy,
@@ -514,22 +512,22 @@ class BuildContextImpl internal constructor(
     computeAppInfoXml(appInfo = applicationInfo, context = this)
   }
 
-  private val devModeProductRunner = suspendingLazy("dev mode product runner") {
+  private val devModeProductRunner = sharedLazy("dev mode product runner") {
     createDevModeProductRunner(this@BuildContextImpl)
   }
 
-  override suspend fun createProductRunner(additionalPluginModules: List<String>): IntellijProductRunner {
+  override fun createProductRunner(additionalPluginModules: List<String>): IntellijProductRunner {
     return spanBuilder("create product runner")
       .setAttribute("additional.plugin.module.count", additionalPluginModules.size.toLong())
       .use {
         when {
-          additionalPluginModules.isEmpty() -> devModeProductRunner.await()
+          additionalPluginModules.isEmpty() -> devModeProductRunner.get()
           else -> createDevModeProductRunner(additionalPluginModules = additionalPluginModules, context = this@BuildContextImpl)
         }
       }
   }
 
-  override suspend fun runProcess(
+  override fun runProcess(
     args: List<String>,
     workingDir: Path?,
     timeout: Duration,
@@ -551,12 +549,12 @@ class BuildContextImpl internal constructor(
     PluginAutoPublishList(this)
   }
 
-  private val distributionState = suspendingLazy("Creating distribution state") {
+  private val distributionState = sharedLazy("Creating distribution state") {
     createDistributionState(this@BuildContextImpl)
   }
 
-  override suspend fun distributionState(): DistributionBuilderState {
-    return distributionState.await()
+  override fun distributionState(): DistributionBuilderState {
+    return distributionState.get()
   }
 }
 

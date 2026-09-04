@@ -14,7 +14,7 @@ import org.jetbrains.intellij.build.impl.ScopedCachedDescriptorContainer
 import org.jetbrains.intellij.build.impl.contentModuleNameToDescriptorFileName
 import org.jetbrains.jps.model.module.JpsModule
 
-internal suspend fun inferModuleSources(
+internal fun inferModuleSources(
   layout: PluginLayout,
   addedModules: MutableSet<String>,
   platformLayout: PlatformLayout,
@@ -81,7 +81,7 @@ fun inferredAutoLayoutChildren(
   return result
 }
 
-internal suspend fun computeModuleSourcesByContent(
+internal fun computeModuleSourcesByContent(
   helper: JarPackagerDependencyHelper,
   context: BuildContext,
   pluginLayout: PluginLayout,

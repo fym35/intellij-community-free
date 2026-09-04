@@ -4,9 +4,6 @@
 package org.jetbrains.intellij.build.productLayout.generator
 
 import com.intellij.platform.pluginGraph.ContentModuleName
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.ModuleSet
 import org.jetbrains.intellij.build.productLayout.pipeline.ComputeContext
@@ -21,6 +18,7 @@ import org.jetbrains.intellij.build.productLayout.stats.SuppressionType
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.xml.updateXmlDependencies
 import org.jetbrains.intellij.build.productLayout.xml.visitAllModules
+import org.jetbrains.intellij.build.mapConcurrent
 
 /**
  * Generator for product module dependency XML files.
@@ -43,14 +41,14 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
   override val id get() = NodeIds.PRODUCT_MODULE_DEPS
   override val produces: Set<DataSlot<*>> get() = setOf(Slots.PRODUCT_MODULE_DEPS)
 
-  override suspend fun execute(ctx: ComputeContext) {
-    coroutineScope {
+  override fun execute(ctx: ComputeContext) {
+    run {
       val model = ctx.model
       val allModuleSets = model.discovery.communityModuleSets + model.discovery.coreModuleSets + model.discovery.ultimateModuleSets
       val modulesToProcess = collectModulesToProcess(allModuleSets)
       if (modulesToProcess.isEmpty()) {
         ctx.publish(Slots.PRODUCT_MODULE_DEPS, ProductModuleDepsOutput(files = emptyList()))
-        return@coroutineScope
+        return@run
       }
 
       val cache = model.descriptorCache
@@ -60,11 +58,11 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
       val updateSuppressions = model.updateSuppressions
 
       // Write XML files in parallel
-      val results = modulesToProcess.map { moduleName ->
-        async {
-          val info = cache.getOrAnalyze(moduleName) ?: return@async null
+      val results = modulesToProcess.mapConcurrent { moduleName ->
+        run {
+          val info = cache.getOrAnalyze(moduleName) ?: return@mapConcurrent null
           if (info.skipDependencyGeneration) {
-            return@async null
+            return@mapConcurrent null
           }
 
           val contentModuleName = ContentModuleName(moduleName)
@@ -136,7 +134,7 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
             suppressionUsages = suppressionUsages,
           )
         }
-      }.awaitAll().filterNotNull()
+      }.filterNotNull()
 
       ctx.publish(Slots.PRODUCT_MODULE_DEPS, ProductModuleDepsOutput(files = results))
     }

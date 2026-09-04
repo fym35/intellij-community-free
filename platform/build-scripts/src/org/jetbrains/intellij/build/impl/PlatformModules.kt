@@ -33,7 +33,7 @@ private fun addModule(relativeJarPath: String, moduleNames: Sequence<String>, pr
   )
 }
 
-suspend fun createPlatformLayout(context: BuildContext): PlatformLayout {
+fun createPlatformLayout(context: BuildContext): PlatformLayout {
   val enabledPluginModules = context.getBundledPluginModules().toHashSet()
   return createPlatformLayout(
     projectLibrariesUsedByPlugins = computeProjectLibsUsedByPlugins(enabledPluginModules = enabledPluginModules, context = context),
@@ -41,7 +41,7 @@ suspend fun createPlatformLayout(context: BuildContext): PlatformLayout {
   )
 }
 
-internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set<String>>, context: BuildContext): PlatformLayout {
+internal fun createPlatformLayout(projectLibrariesUsedByPlugins: Map<String, Set<String>>, context: BuildContext): PlatformLayout {
   val productLayout = context.productProperties.productLayout
   val descriptorCacheContainer = DescriptorCacheContainer()
   val layout = PlatformLayout(descriptorCacheContainer)
@@ -302,7 +302,7 @@ private fun computePartialListToResolveIncludesAndCollectProductModules(
  * @param context the build context
  * @return map from library name to the library module that exports it
  */
-suspend fun collectExportedLibrariesFromLibraryModules(
+fun collectExportedLibrariesFromLibraryModules(
   layout: PlatformLayout,
   context: BuildContext,
 ): Map<String, String> {
@@ -535,7 +535,7 @@ private fun validateImplicitPlatformModule(
   }
 }
 
-private suspend fun computeContentModulesPluginsWhichUseIdeaClassloader(context: BuildContext): Set<String> {
+private fun computeContentModulesPluginsWhichUseIdeaClassloader(context: BuildContext): Set<String> {
   val bundledPlugins = getPluginLayoutsByJpsModuleNames(modules = context.getBundledPluginModules(), productLayout = context.productProperties.productLayout)
   return bundledPlugins.flatMapTo(LinkedHashSet()) {
     getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(pluginMainModule = it.mainModule, cacheContainer = null, context = context)

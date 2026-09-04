@@ -5,8 +5,6 @@ package org.jetbrains.intellij.build.dev
 
 import com.intellij.platform.buildData.productInfo.CustomCommandLaunchData
 import com.intellij.platform.buildData.productInfo.ProductInfoData
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -154,7 +152,7 @@ fun CustomCommandLaunchData.resolveAdditionalJvmArguments(runDir: Path): List<St
   additionalJvmArguments.map { resolveIdeHomeMacro(it, runDir) }
 
 // returns IDE installation directory
-suspend fun buildProductInProcess(request: BuildRequest): Path {
+fun buildProductInProcess(request: BuildRequest): Path {
   request.tracer?.let {
     TraceManager.setTracer(it)
   }
@@ -168,9 +166,7 @@ suspend fun buildProductInProcess(request: BuildRequest): Path {
     finally {
       // otherwise, a thread leak in tests
       if (!request.keepHttpClient) {
-        withContext(NonCancellable) {
-          closeKtorClient()
-        }
+        closeKtorClient()
       }
     }
   }

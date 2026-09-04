@@ -4,17 +4,15 @@ package org.jetbrains.intellij.build.impl.support
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.taskScope
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 internal class RepairUtilityBinaryCacheTest {
@@ -25,7 +23,7 @@ internal class RepairUtilityBinaryCacheTest {
       val context = buildContext()
       val cache = BuildContextSingleFlightCache("repair utility test") {
         invocationCount.incrementAndGet()
-        delay(20.milliseconds)
+        Thread.sleep(20)
         42
       }
 
@@ -119,10 +117,10 @@ internal class RepairUtilityBinaryCacheTest {
     val context = buildContext()
     lateinit var cache: BuildContextSingleFlightCache<Int>
     cache = BuildContextSingleFlightCache("repair utility test") {
-      coroutineScope {
-        async {
+      taskScope {
+        fork("recursive load") {
           cache.getOrLoad(it)
-        }.await()
+        }.join()
       }
     }
 
@@ -133,7 +131,7 @@ internal class RepairUtilityBinaryCacheTest {
 
   private fun buildContext(): BuildContext = mock(BuildContext::class.java)
 
-  private fun assertFailsFast(block: suspend () -> Unit) {
+  private fun assertFailsFast(block: () -> Unit) {
     assertThatThrownBy {
       runBlocking(Dispatchers.Default) {
         withTimeout(1.seconds) {

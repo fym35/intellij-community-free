@@ -39,7 +39,7 @@ import org.jetbrains.jps.model.library.JpsRepositoryLibraryType
 internal object LibraryLicenseValidator : PipelineNode {
   override val id get() = NodeIds.LIBRARY_LICENSE_VALIDATION
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val licenses = model.config.libraryLicenses
     // an empty license list turns the rule off

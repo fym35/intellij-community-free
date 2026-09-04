@@ -11,8 +11,6 @@ import com.jetbrains.util.filetype.FileTypeDetector.DetectFileType
 import io.opentelemetry.api.common.AttributeKey
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.intellij.build.BuildContext
@@ -140,7 +138,7 @@ class JarPackager private constructor(
   private val claimedPrepackedMembers = LinkedHashMap<PrepackedPluginContentKey, MutableList<String>>()
 
   companion object {
-    suspend fun pack(includedModules: Collection<ModuleItem>, outputDir: Path, context: BuildContext) {
+    fun pack(includedModules: Collection<ModuleItem>, outputDir: Path, context: BuildContext) {
       val packager = JarPackager(outDir = outputDir, context = context, platformLayout = null, isRootDir = false, moduleOutputPatcher = ModuleOutputPatcher())
       packager.computeModuleSources(includedModules = includedModules, layout = null, searchableOptionSet = null, cachedDescriptorWriterProvider = null)
       buildJars(
@@ -155,7 +153,7 @@ class JarPackager private constructor(
       )
     }
 
-    suspend fun pack(
+    fun pack(
       includedModules: Collection<ModuleItem>,
       outputDir: Path,
       isRootDir: Boolean,
@@ -244,7 +242,7 @@ class JarPackager private constructor(
     }
   }
 
-  private suspend fun computeModuleSources(
+  private fun computeModuleSources(
     includedModules: Collection<ModuleItem>,
     layout: BaseLayout?,
     searchableOptionSet: SearchableOptionSetDescriptor?,
@@ -1023,7 +1021,7 @@ internal fun createModuleSourcesNamesFilter(excludes: List<PathMatcher>): (Strin
   }
 }
 
-private suspend fun buildJars(
+private fun buildJars(
   assets: Collection<AssetDescriptor>,
   cache: JarCacheManager,
   isCodesignEnabled: Boolean,
@@ -1040,17 +1038,15 @@ private suspend fun buildJars(
   }
 
   val list = assets.mapConcurrent { asset ->
-    withContext(CoroutineName("build jar for ${asset.relativePath}")) {
-      buildAsset(
-        asset = asset,
-        isCodesignEnabled = isCodesignEnabled,
-        context = context,
-        cache = cache,
-        useCacheAsTargetFile = useCacheAsTargetFile,
-        layout = layout,
-        helper = helper,
-      )
-    }
+    buildAsset(
+      asset = asset,
+      isCodesignEnabled = isCodesignEnabled,
+      context = context,
+      cache = cache,
+      useCacheAsTargetFile = useCacheAsTargetFile,
+      layout = layout,
+      helper = helper,
+    )
   }
 
   val sourceToNativeFiles = TreeMap<ZipSource, List<String>>(compareBy { it.file.fileName.toString() })
@@ -1117,7 +1113,7 @@ private fun buildDuplicateSourceErrorMessage(
   }
 }
 
-private suspend fun buildAsset(
+private fun buildAsset(
   asset: AssetDescriptor,
   isCodesignEnabled: Boolean,
   context: BuildContext,
@@ -1226,7 +1222,7 @@ private suspend fun buildAsset(
             }
           }
 
-          override suspend fun produce(targetFile: Path) {
+          override fun produce(targetFile: Path) {
             val addDirEntries = includedModules.any { helper.isTestPluginModule(moduleName = it.key.moduleName, module = null) }
             buildJar(targetFile = targetFile, sources = sources, nativeFileHandler = nativeFileHandler, addDirEntries = addDirEntries)
           }
@@ -1282,7 +1278,7 @@ private class NativeFileHandlerImpl(private val context: BuildContext) : NativeF
     return !isNative(name) || NativeFilesMatcher.isCompatibleWithTargetPlatform(name, context.options.targetOs, context.options.targetArch)
   }
 
-  override suspend fun sign(name: String, dataSupplier: () -> ByteBuffer): Path? {
+  override fun sign(name: String, dataSupplier: () -> ByteBuffer): Path? {
     if (!context.isMacCodeSignEnabled || context.proprietaryBuildTools.signTool.signNativeFileMode != SignNativeFileMode.ENABLED) {
       return null
     }
@@ -1320,7 +1316,7 @@ private class NativeFileHandlerImpl(private val context: BuildContext) : NativeF
   }
 }
 
-suspend fun buildJar(targetFile: Path, moduleNames: List<String>, context: CompilationContext, dryRun: Boolean = false, forTests: Boolean = false) {
+fun buildJar(targetFile: Path, moduleNames: List<String>, context: CompilationContext, dryRun: Boolean = false, forTests: Boolean = false) {
   if (dryRun) {
     return
   }

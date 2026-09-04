@@ -106,7 +106,7 @@ private val supportedLanguages = mapOf(
   Pair("en-us", LanguageResourcesDescriptor(isRequired = true, resPath = ""))
 )
 
-private suspend fun buildResourcesForHelpPlugin(resourceRoot: Path, classPath: Collection<Path>, assetJar: Path, context: CompilationContext) {
+private fun buildResourcesForHelpPlugin(resourceRoot: Path, classPath: Collection<Path>, assetJar: Path, context: CompilationContext) {
   spanBuilder("index help topics").use {
     helpIndexerLock.withLock {
       supportedLanguages.forEach { (lang, descriptor) ->

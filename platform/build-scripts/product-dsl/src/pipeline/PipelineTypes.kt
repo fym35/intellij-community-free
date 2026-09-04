@@ -6,7 +6,6 @@ package org.jetbrains.intellij.build.productLayout.pipeline
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.PluginGraph
 import com.intellij.platform.pluginGraph.PluginId
-import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.productLayout.ModuleSet
 import org.jetbrains.intellij.build.productLayout.ProductModulesContentSpec
@@ -105,9 +104,6 @@ internal data class GenerationModel(
 
   /** Generated artifact write policy (write/diff/skip based on generation mode) */
   @JvmField val generatedArtifactWritePolicy: FileUpdateStrategy,
-
-  /** Coroutine scope for async operations */
-  @JvmField val scope: CoroutineScope,
 
   // ============ Pre-computed shared values ============
 

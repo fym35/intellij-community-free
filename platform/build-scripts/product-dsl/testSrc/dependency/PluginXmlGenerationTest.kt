@@ -132,7 +132,7 @@ class PluginXmlGenerationTest {
     // (in reality, pluginContentCache would return info because it finds the parent plugin's plugin.xml)
     val yamlPluginInfo = setup.pluginContentInfos["intellij.yaml.plugin"]!!
     val augmentedCache = object : PluginContentProvider {
-      override suspend fun getOrExtract(pluginModule: TargetName): PluginContentInfo? {
+      override fun getOrExtract(pluginModule: TargetName): PluginContentInfo? {
         // Make intellij.yaml detectable as "plugin" (simulates shared resources dir with plugin.xml)
         if (pluginModule.value == "intellij.yaml") {
           return yamlPluginInfo  // Returns the parent plugin's info

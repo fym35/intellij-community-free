@@ -54,7 +54,6 @@ import kotlin.Suppress
 import kotlin.Throwable
 import kotlin.arrayOf
 import kotlin.check
-import kotlin.concurrent.withLock
 import kotlin.emptyArray
 import kotlin.error
 import kotlin.getValue
@@ -190,7 +189,7 @@ object BuildDependenciesDownloader {
     options: Array<out BuildDependenciesExtractOptions>,
   ) {
     cleanUpIfRequired(communityRoot)
-    fileLocks.getLock(target.toString()).withLock {
+    fileLocks.withLock(target.toString()) {
       extractFileWithFlagFileLocation(
         archiveFile = archiveFile,
         targetDirectory = target,
@@ -262,7 +261,7 @@ fun extractToCacheLocation(
 ): Path {
   cleanUpIfRequired(communityRoot)
 
-  return fileLocks.getLockByHash(Hashing.xxh3_64().hashBytesToLong(cacheKey.encodeToByteArray())).withLock {
+  return fileLocks.withLockByHash(Hashing.xxh3_64().hashBytesToLong(cacheKey.encodeToByteArray())) {
     val location = extractCacheLocation(
       cachePath = getDownloadCachePath(communityRoot),
       archiveFile = archiveFile,
@@ -276,7 +275,7 @@ fun extractToCacheLocation(
       cacheKey = cacheKey,
       options = options,
     )
-    return@withLock location.targetDirectory
+    location.targetDirectory
   }
 }
 

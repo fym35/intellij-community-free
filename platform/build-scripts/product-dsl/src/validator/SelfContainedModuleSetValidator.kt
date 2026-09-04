@@ -6,14 +6,13 @@ package org.jetbrains.intellij.build.productLayout.validator
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.ModuleSetNode
 import com.intellij.platform.pluginGraph.PluginGraph
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.intellij.build.productLayout.model.error.SelfContainedValidationError
 import org.jetbrains.intellij.build.productLayout.pipeline.ComputeContext
 import org.jetbrains.intellij.build.productLayout.pipeline.DataSlot
 import org.jetbrains.intellij.build.productLayout.pipeline.NodeIds
 import org.jetbrains.intellij.build.productLayout.pipeline.PipelineNode
 import org.jetbrains.intellij.build.productLayout.pipeline.Slots
+import org.jetbrains.intellij.build.taskScope
 
 /**
  * Self-contained module set validation.
@@ -30,18 +29,18 @@ internal object SelfContainedModuleSetValidator : PipelineNode {
   override val id get() = NodeIds.SELF_CONTAINED_VALIDATION
   override val requires: Set<DataSlot<*>> get() = setOf(Slots.CONTENT_MODULE_PLAN)
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val pluginGraph = model.pluginGraph
 
     // Validate each self-contained set in parallel
-    coroutineScope {
+    taskScope {
       pluginGraph.query {
         moduleSets { moduleSet ->
           if (!moduleSet.selfContained) {
             return@moduleSets
           }
-          launch {
+          fork("validate module set ${moduleSet.name()}") {
             validateSelfContainedModuleSet(moduleSet, pluginGraph)?.let { ctx.emitError(it) }
           }
         }

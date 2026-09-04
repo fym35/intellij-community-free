@@ -3,22 +3,21 @@ package org.jetbrains.intellij.build.productLayout.validator
 
 import com.intellij.platform.pluginGraph.PluginGraph
 import com.intellij.platform.pluginGraph.ProductNode
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.intellij.build.productLayout.model.error.ValidationError
 import org.jetbrains.intellij.build.productLayout.pipeline.ComputeContext
+import org.jetbrains.intellij.build.taskScope
 
-internal suspend inline fun PluginGraph.forEachProductParallel(crossinline action: suspend (ProductNode) -> Unit) {
-  coroutineScope {
+internal inline fun PluginGraph.forEachProductParallel(crossinline action: (ProductNode) -> Unit) {
+  taskScope {
     query {
       products { product ->
-        launch { action(product) }
+        fork("validate product ${product.name()}") { action(product) }
       }
     }
   }
 }
 
-internal suspend inline fun ComputeContext.emitErrorsPerProduct(
+internal inline fun ComputeContext.emitErrorsPerProduct(
   graph: PluginGraph,
   crossinline validator: (ProductNode) -> List<ValidationError>,
 ) {

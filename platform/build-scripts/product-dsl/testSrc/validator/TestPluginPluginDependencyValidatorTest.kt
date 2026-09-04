@@ -524,7 +524,7 @@ class TestPluginPluginDependencyValidatorTest {
     )
   }
 
-  private suspend fun buildPlanOutput(
+  private fun buildPlanOutput(
     model: GenerationModel,
     contentModuleResults: List<DependencyFileResult>,
   ): TestPluginDependencyPlanOutput {

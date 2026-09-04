@@ -26,7 +26,7 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.setLastModifiedTime
 import kotlin.time.Duration.Companion.hours
 
-internal suspend fun buildNsisInstaller(
+internal fun buildNsisInstaller(
   winDistPath: Path,
   productInfoJsonFile: Path,
   additionalDirectoryToInclude: Path,
@@ -161,7 +161,7 @@ private fun prepareNsis(context: BuildContext, tempDir: Path, useBig: Boolean): 
   return nsisDir to nsisBin
 }
 
-private suspend fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileName: String, customizer: WindowsDistributionCustomizer, context: BuildContext, arch: JvmArchitecture) {
+private fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileName: String, customizer: WindowsDistributionCustomizer, context: BuildContext, arch: JvmArchitecture) {
   val expectedArch = when (arch) {  // https://learn.microsoft.com/en-us/windows/win32/sysinfo/image-file-machine-constants
     JvmArchitecture.x64 -> 0x8664  // IMAGE_FILE_MACHINE_AMD64
     JvmArchitecture.aarch64 -> 0xAA64  // IMAGE_FILE_MACHINE_ARM64
@@ -223,7 +223,7 @@ private suspend fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileN
 
 private fun amendVersionNumber(base: String): String = base + ".0".repeat(3 - base.count { it == '.' })
 
-private suspend fun prepareSignTool(nsiConfDir: Path, context: BuildContext, uninstallerCopy: Path): Path {
+private fun prepareSignTool(nsiConfDir: Path, context: BuildContext, uninstallerCopy: Path): Path {
   val toolFile =
     context.proprietaryBuildTools.signTool.commandLineClient(context, OsFamily.currentOs, JvmArchitecture.currentJvmArch)
     ?: error("No command line sign tool is configured")

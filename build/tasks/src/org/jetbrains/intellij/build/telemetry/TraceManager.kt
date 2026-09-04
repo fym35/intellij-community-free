@@ -23,8 +23,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.job
-import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
 import java.nio.file.Path
@@ -33,8 +31,10 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.seconds
 
 // don't use JaegerJsonSpanExporter - not needed for clients, should be enabled only if needed to avoid writing a ~500KB JSON file
-fun <T> withTracer(serviceName: String, traceFile: Path? = null, block: suspend () -> T): T = runBlocking(Dispatchers.Default) {
-  val batchSpanProcessorScope = CoroutineScope(SupervisorJob(parent = coroutineContext.job)) + CoroutineName("BatchSpanProcessor")
+fun <T> withTracer(serviceName: String, traceFile: Path? = null, block: () -> T): T {
+  // the platform BatchSpanProcessor still runs on coroutines, so it gets a scope of its own
+  @Suppress("RAW_SCOPE_CREATION")
+  val batchSpanProcessorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("BatchSpanProcessor"))
 
   @Suppress("ReplaceJavaStaticMethodWithKotlinAnalog")
   val spanProcessor = BatchSpanProcessor(
@@ -61,7 +61,7 @@ fun <T> withTracer(serviceName: String, traceFile: Path? = null, block: suspend 
       BuildDependenciesDownloader.TRACER = tracer
       tracer to spanProcessor
     }
-    block()
+    return block()
   }
   finally {
     batchSpanProcessorScope.cancel()
@@ -69,7 +69,7 @@ fun <T> withTracer(serviceName: String, traceFile: Path? = null, block: suspend 
   }
 }
 
-suspend fun withoutTracer(block: suspend () -> Unit) {
+fun withoutTracer(block: () -> Unit) {
   try {
     traceManagerInitializer = {
       val tracer = TracerProvider.noop().get("build-script")
@@ -133,12 +133,21 @@ object TraceManager {
     }
   }
 
-  suspend fun flush() {
-    batchSpanProcessor?.flush()
+  /** Exports the pending spans and blocks until they are out. */
+  fun flush() {
+    val processor = batchSpanProcessor ?: return
+    // the span processor of the platform is a coroutine API, so the flush enters coroutines here and nowhere else
+    runBlocking {
+      processor.flush()
+    }
   }
 
-  suspend fun shutdown() {
-    batchSpanProcessor?.forceShutdown()
+  /** Exports the pending spans, stops the processor and blocks until both are done. */
+  fun shutdown() {
+    val processor = batchSpanProcessor ?: return
+    runBlocking {
+      processor.forceShutdown()
+    }
   }
 
   fun scheduleExportPendingSpans() {
@@ -201,19 +210,24 @@ object JaegerJsonSpanExporterManager {
   }
 
   /** Closes the current trace file. The span processor stays alive, and a later span goes to no file. */
-  suspend fun closeOutput() {
-    jaegerJsonSpanExporter.getAndSet(null)?.shutdown()
+  fun closeOutput() {
+    shutdownExporter(jaegerJsonSpanExporter.getAndSet(null))
   }
 
-  suspend fun setOutput(file: Path, addShutDownHook: Boolean = true) {
-    jaegerJsonSpanExporter.getAndSet(JaegerJsonSpanExporter(file = file, serviceName = "build"))?.shutdown()
+  fun setOutput(file: Path, addShutDownHook: Boolean = true) {
+    shutdownExporter(jaegerJsonSpanExporter.getAndSet(JaegerJsonSpanExporter(file = file, serviceName = "build")))
     if (addShutDownHook && shutdownHookAdded.compareAndSet(false, true)) {
-      Runtime.getRuntime().addShutdownHook(
-        Thread({
-                 runBlocking(Dispatchers.IO) {
-                   TraceManager.shutdown()
-                 }
-               }, "close tracer"))
+      Runtime.getRuntime().addShutdownHook(Thread({ TraceManager.shutdown() }, "close tracer"))
+    }
+  }
+
+  private fun shutdownExporter(exporter: JaegerJsonSpanExporter?) {
+    if (exporter == null) {
+      return
+    }
+    // the exporter of the platform is a coroutine API, so the shutdown enters coroutines here and nowhere else
+    runBlocking {
+      exporter.shutdown()
     }
   }
 }

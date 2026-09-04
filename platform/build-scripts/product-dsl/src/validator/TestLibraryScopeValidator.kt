@@ -34,7 +34,7 @@ internal object TestLibraryScopeValidator : PipelineNode {
   override val id get() = NodeIds.TEST_LIBRARY_SCOPE_VALIDATION
   override val produces: Set<DataSlot<*>> get() = setOf(Slots.TEST_LIBRARY_SCOPE_SUPPRESSIONS)
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val graph = model.pluginGraph
     val outputProvider = model.outputProvider

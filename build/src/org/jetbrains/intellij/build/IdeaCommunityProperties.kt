@@ -29,7 +29,7 @@ val MAVEN_ARTIFACTS_ADDITIONAL_MODULES: PersistentList<String> = persistentListO
   "intellij.space.java.jps",
 ) + JewelMavenArtifacts.STANDALONE.keys
 
-internal suspend fun createCommunityBuildContext(
+internal fun createCommunityBuildContext(
   options: BuildOptions,
   projectHome: Path = COMMUNITY_ROOT.communityRoot,
 ): BuildContext {
@@ -128,7 +128,7 @@ open class IdeaCommunityProperties(private val communityHomeDir: Path) : JetBrai
     include(intellijCommunityBaseFragment(platformPrefix))
   }
 
-  override suspend fun copyAdditionalFiles(targetDir: Path, context: BuildContext) {
+  override fun copyAdditionalFiles(targetDir: Path, context: BuildContext) {
     super.copyAdditionalFiles(targetDir, context)
 
     copyFileToDir(context.paths.communityHomeDir.resolve("LICENSE.txt"), targetDir)
@@ -142,7 +142,7 @@ open class IdeaCommunityProperties(private val communityHomeDir: Path) : JetBrai
     bundleExternalPlugins(context, targetDir)
   }
 
-  protected open suspend fun bundleExternalPlugins(context: BuildContext, targetDirectory: Path) {}
+  protected open fun bundleExternalPlugins(context: BuildContext, targetDirectory: Path) {}
 
   override fun createWindowsCustomizer(projectHome: Path): WindowsDistributionCustomizer = ideaCommunityWindowsCustomizer(communityHomeDir)
 

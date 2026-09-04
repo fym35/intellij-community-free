@@ -14,13 +14,13 @@ interface SourceBuilder {
 
   fun updateDigest(digest: HashStream64)
 
-  suspend fun produce(targetFile: Path)
+  fun produce(targetFile: Path)
 
   fun consumeInfo(source: Source, size: Int, hash: Long)
 }
 
 sealed interface JarCacheManager {
-  suspend fun computeIfAbsent(
+  fun computeIfAbsent(
     sources: Collection<Source>,
     targetFile: Path,
     nativeFiles: MutableMap<ZipSource, List<String>>?,
@@ -28,11 +28,11 @@ sealed interface JarCacheManager {
     producer: SourceBuilder,
   ): Path
 
-  suspend fun cleanup()
+  fun cleanup()
 }
 
 internal data object NonCachingJarCacheManager : JarCacheManager {
-  override suspend fun computeIfAbsent(
+  override fun computeIfAbsent(
     sources: Collection<Source>,
     targetFile: Path,
     nativeFiles: MutableMap<ZipSource, List<String>>?,
@@ -43,6 +43,6 @@ internal data object NonCachingJarCacheManager : JarCacheManager {
     return targetFile
   }
 
-  override suspend fun cleanup() {
+  override fun cleanup() {
   }
 }

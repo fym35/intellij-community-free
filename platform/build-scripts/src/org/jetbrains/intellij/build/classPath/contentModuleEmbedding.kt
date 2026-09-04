@@ -126,7 +126,7 @@ fun deprecatedResolveDescriptorForEmbeddedProduct(
   spec: PluginLayout.PluginLayoutSpec,
   clientModuleName: String,
   relativePath: String,
-  embeddedProductSpecEvaluator: suspend (BuildContext) -> ProductModulesContentSpec?,
+  embeddedProductSpecEvaluator: (BuildContext) -> ProductModulesContentSpec?,
   additionalSearchModules: Collection<String> = emptyList(),
 ) {
   val layoutPatcherIfNoScrambling: LayoutPatcher = { moduleOutputPatcher, platformLayout, context ->

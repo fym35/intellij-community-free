@@ -5,8 +5,8 @@ package org.jetbrains.intellij.build.impl
 
 import com.intellij.platform.bazel.runfiles.BazelLabel
 import com.intellij.platform.bazel.runfiles.BazelRunfiles
-import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.ApiStatus.Internal
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.jps.model.module.JpsModule
@@ -306,7 +306,7 @@ class BazelModuleOutputProviderState(
 
 internal class BazelModuleOutputProvider(
   private val state: BazelModuleOutputProviderState,
-  scope: CoroutineScope?,
+  lifetime: BuildLifetime?,
   override val useTestCompilationOutput: Boolean,
   private val testCompilationOutputModules: Set<String> = emptySet(),
 ) : ModuleOutputProvider {
@@ -314,7 +314,7 @@ internal class BazelModuleOutputProvider(
     modules: List<JpsModule>,
     projectHome: Path,
     bazelOutputRoot: Path,
-    scope: CoroutineScope?,
+    lifetime: BuildLifetime?,
     useTestCompilationOutput: Boolean,
     testCompilationOutputModules: Set<String> = emptySet(),
   ) : this(
@@ -323,12 +323,12 @@ internal class BazelModuleOutputProvider(
       projectHome = projectHome,
       bazelOutputRootResolver = { bazelOutputRoot },
     ),
-    scope = scope,
+    lifetime = lifetime,
     useTestCompilationOutput = useTestCompilationOutput,
     testCompilationOutputModules = testCompilationOutputModules,
   )
 
-  private val zipFilePool = ModuleOutputZipFilePool(scope)
+  private val zipFilePool = ModuleOutputZipFilePool(lifetime)
 
   /**
    * Reads through the pool of cached zip file instances.

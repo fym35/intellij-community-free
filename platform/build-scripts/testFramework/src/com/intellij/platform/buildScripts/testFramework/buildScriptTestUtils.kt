@@ -14,9 +14,6 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.assertj.core.api.SoftAssertions
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -29,7 +26,8 @@ import org.jetbrains.intellij.build.getDevModeOrTestBuildDateInSeconds
 import org.jetbrains.intellij.build.impl.buildNonBundledPlugins
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
+import org.jetbrains.intellij.build.TaskScope
+import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -135,7 +133,7 @@ fun customizeBuildOptionsForPackagingContentTest(
   options.useReleaseCycleRelatedBundlingRestrictions = false
 }
 
-suspend inline fun createBuildContext(
+inline fun createBuildContext(
   homeDir: Path,
   productProperties: ProductProperties,
   buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
@@ -151,7 +149,7 @@ fun runTestBuild(
   productProperties: ProductProperties,
   buildTools: ProprietaryBuildTools,
   testInfo: TestInfo,
-  onSuccess: suspend (BuildContext) -> Unit = {},
+  onSuccess: (BuildContext) -> Unit = {},
   buildOptionsCustomizer: (BuildOptions) -> Unit = {},
 ) {
   runTestBuild(
@@ -173,14 +171,14 @@ fun runTestBuild(
   isReproducibilityTestAllowed: Boolean = true,
   checkIntegrityOfEmbeddedFrontend: Boolean = true,
   checkPrivatePluginModulesAreNotPublic: Boolean = true,
-  build: suspend (BuildContext) -> Unit = { buildDistributions(context = it) },
-  onSuccess: suspend (BuildContext) -> Unit = {},
+  build: (BuildContext) -> Unit = { buildDistributions(context = it) },
+  onSuccess: (BuildContext) -> Unit = {},
   buildOptionsCustomizer: (BuildOptions) -> Unit = {}
-): Unit = runBlockingOnVirtualThreads {
+): Unit = taskScope {
   if (isReproducibilityTestAllowed && BuildArtifactsReproducibilityTest.isEnabled) {
     val reproducibilityTest = BuildArtifactsReproducibilityTest()
     repeat(reproducibilityTest.iterations) { iterationNumber ->
-      launch {
+      fork("test build iteration $iterationNumber") {
         doRunTestBuild(
           context = createBuildContext(
             projectHome = homeDir,
@@ -214,7 +212,6 @@ fun runTestBuild(
         setupTracer = false,
         proprietaryBuildTools = buildTools,
         options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir, testInfo = testInfo).also { buildOptionsCustomizer(it) },
-        scope = this@runBlockingOnVirtualThreads,
       ),
       writeTelemetry = true,
       checkIntegrityOfEmbeddedFrontend = checkIntegrityOfEmbeddedFrontend,
@@ -237,8 +234,8 @@ fun runNonBundledPluginsBuildTest(
   dependencyModules: List<String> = emptyList(),
   buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
   buildOptionsCustomizer: (BuildOptions) -> Unit = {},
-  onSuccess: suspend (BuildContext) -> Unit = {},
-): Unit = runBlockingOnVirtualThreads {
+  onSuccess: (BuildContext) -> Unit = {},
+) {
   doRunTestBuild(
     context = createBuildContext(
       projectHome = homeDir,
@@ -248,7 +245,6 @@ fun runNonBundledPluginsBuildTest(
       options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir).also {
         buildOptionsCustomizer(it)
       },
-      scope = this@runBlockingOnVirtualThreads,
     ),
     traceSpanName = traceSpanName,
     writeTelemetry = true,
@@ -263,12 +259,12 @@ fun runNonBundledPluginsBuildTest(
 }
 
 // FIXME: test reproducibility
-suspend fun runTestBuild(
+fun runTestBuild(
   testInfo: TestInfo,
-  context: suspend () -> BuildContext,
+  context: () -> BuildContext,
   checkThatBundledPluginInFrontendArePresent: Boolean = true,
   checkPrivatePluginModulesAreNotPublic: Boolean = true,
-  build: suspend (BuildContext) -> Unit = { buildDistributions(it) }
+  build: (BuildContext) -> Unit = { buildDistributions(it) }
 ) {
   doRunTestBuild(
     context = context(),
@@ -283,14 +279,14 @@ suspend fun runTestBuild(
 
 private val defaultLogFactory = Logger.getFactory()
 
-internal suspend fun <T> doRunTestBuild(
+internal fun <T> doRunTestBuild(
   context: BuildContext,
   traceSpanName: String,
   writeTelemetry: Boolean,
   checkIntegrityOfEmbeddedFrontend: Boolean,
   checkThatBundledPluginInFrontendArePresent: Boolean,
   checkPrivatePluginModulesAreNotPublic: Boolean = true,
-  build: suspend (context: BuildContext) -> T,
+  build: (context: BuildContext) -> T,
 ): T {
   var outDir: Path? = null
   var traceFile: Path? = null
@@ -310,12 +306,12 @@ internal suspend fun <T> doRunTestBuild(
         val result = build(context)
 
         val softly = SoftAssertions()
-        coroutineScope {
+        taskScope {
           if (checkIntegrityOfEmbeddedFrontend && context.generateRuntimeModuleRepository) {
             checkEmbeddedFrontendIntegrity(checkThatBundledPluginInFrontendArePresent = checkThatBundledPluginInFrontendArePresent, softly = softly, context = context)
-              }
+          }
           if (checkPrivatePluginModulesAreNotPublic) {
-            launch {
+            fork("check private plugin modules") {
               checkPrivatePluginModulesAreNotPublic(context, softly)
             }
           }
@@ -420,7 +416,7 @@ private fun keepContentReport(context: BuildContext) {
   }
 }
 
-private fun CoroutineScope.checkEmbeddedFrontendIntegrity(
+private fun TaskScope.checkEmbeddedFrontendIntegrity(
   checkThatBundledPluginInFrontendArePresent: Boolean,
   softly: SoftAssertions,
   context: BuildContext,
@@ -430,10 +426,10 @@ private fun CoroutineScope.checkEmbeddedFrontendIntegrity(
   if (checkThatBundledPluginInFrontendArePresent) {
     RuntimeModuleRepositoryChecker.checkBundledPluginsArePresent(productModulesModule = frontendRootModule, context = context, isEmbeddedVariant = true, softly = softly)
   }
-  launch {
+  fork("check embedded frontend integrity") {
     RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedFrontend(frontendRootModule, context, softly)
   }
-  launch {
+  fork("check keymap plugins of the embedded frontend") {
     checkKeymapPluginsAreBundledWithFrontend(frontendRootModule, context, softly)
   }
 }

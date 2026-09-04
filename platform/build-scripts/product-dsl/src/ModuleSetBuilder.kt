@@ -41,9 +41,6 @@ import com.intellij.platform.pluginGraph.PluginId
 import com.intellij.platform.pluginGraph.PluginModuleId
 import com.intellij.platform.pluginGraph.contentName
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.intellij.build.ModuleOutputProvider
@@ -55,6 +52,7 @@ import org.jetbrains.intellij.build.productLayout.util.FileUpdateStrategy
 import org.jetbrains.intellij.build.productLayout.xml.buildModuleAliasesXml
 import org.jetbrains.intellij.build.productLayout.xml.collectAllAliases
 import org.jetbrains.intellij.build.productLayout.xml.withEditorFold
+import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import java.nio.file.Files
 import java.nio.file.Path
@@ -414,25 +412,23 @@ private fun resolveOutputDir(moduleSet: ModuleSet, defaultOutputDir: Path, outpu
  * Automatically cleans up outdated module set XML files that no longer have corresponding
  * Kotlin module set functions.
  */
-internal suspend fun doGenerateAllModuleSetsInternal(
+internal fun doGenerateAllModuleSetsInternal(
   obj: Any,
   outputDir: Path,
   label: String,
   outputProvider: ModuleOutputProvider? = null,
   strategy: FileUpdateStrategy,
 ): ModuleSetGenerationResult {
-  return coroutineScope {
+  return run {
     Files.createDirectories(outputDir)
 
     val moduleSetsToGenerate = discoverModuleSets(obj)
 
     // Generate all module set XML files first (in parallel)
-    val fileResults = moduleSetsToGenerate.map { moduleSet ->
-      async {
-        val targetOutputDir = resolveOutputDir(moduleSet, outputDir, outputProvider)
-        generateModuleSetXml(moduleSet = moduleSet, outputDir = targetOutputDir, label = label, strategy = strategy)
-      }
-    }.awaitAll()
+    val fileResults = moduleSetsToGenerate.mapConcurrent { moduleSet ->
+      val targetOutputDir = resolveOutputDir(moduleSet, outputDir, outputProvider)
+      generateModuleSetXml(moduleSet = moduleSet, outputDir = targetOutputDir, label = label, strategy = strategy)
+    }
 
     // Build map of output directory -> generated file names (for cleanup aggregation)
     val outputDirToGeneratedFiles = HashMap<Path, MutableSet<String>>()

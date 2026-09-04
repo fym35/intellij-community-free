@@ -155,7 +155,7 @@ internal fun TaskScope.packNativePresignedFiles(
   }
 }
 
-private suspend fun unpackNativeLibraries(
+private fun unpackNativeLibraries(
   sourceFile: Path,
   paths: List<String>,
   dryRun: Boolean,

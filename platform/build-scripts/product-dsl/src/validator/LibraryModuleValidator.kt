@@ -33,7 +33,7 @@ import java.nio.file.Files
 internal object LibraryModuleValidator : PipelineNode {
   override val id get() = NodeIds.LIBRARY_MODULE_VALIDATION
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val graph = model.pluginGraph
     val outputProvider = model.config.outputProvider

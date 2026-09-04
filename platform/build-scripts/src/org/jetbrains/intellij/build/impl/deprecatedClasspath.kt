@@ -21,7 +21,7 @@ import java.nio.file.Path
 import kotlin.io.path.invariantSeparatorsPathString
 
 @Deprecated("Do not use it")
-suspend fun createIdeClassPath(platformLayout: PlatformLayout, context: BuildContext): Collection<String> {
+fun createIdeClassPath(platformLayout: PlatformLayout, context: BuildContext): Collection<String> {
   val contentReport = generateProjectStructureMapping(platformLayout = platformLayout, context = context)
   val pluginLayouts = context.productProperties.productLayout.pluginLayouts
   val classPath = LinkedHashSet<Path>()
@@ -91,7 +91,7 @@ private fun sortEntries(unsorted: Collection<DistributionFileEntry>): List<Distr
 // also, put libraries from Maven repo ahead of others, for them to not depend on the lexicographical order of Maven repo and source path
 private fun isFromLocalMavenRepo(path: Path) = path.startsWith(MAVEN_REPO)
 
-private suspend fun generateProjectStructureMapping(
+private fun generateProjectStructureMapping(
   platformLayout: PlatformLayout,
   context: BuildContext,
 ): Pair<List<DistributionFileEntry>, List<PluginBuildResult>> = taskScope {
@@ -158,5 +158,5 @@ private suspend fun generateProjectStructureMapping(
     )
     entries.add(PluginBuildResult(mainModule = pluginLayout.mainModule, dir = targetDir, os = null, arch = null, distribution = pluginEntries))
   }
-  libDirLayout.await() to entries
+  libDirLayout.join() to entries
 }

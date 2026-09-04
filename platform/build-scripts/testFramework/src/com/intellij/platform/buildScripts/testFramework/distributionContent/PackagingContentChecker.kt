@@ -31,11 +31,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.selects.select
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationContext
 import org.jetbrains.intellij.build.JvmArchitecture
@@ -53,11 +56,12 @@ import org.jetbrains.intellij.build.impl.getOsAndArchSpecificDistDirectory
 import org.jetbrains.intellij.build.impl.logging.BuildMessagesImpl
 import org.jetbrains.intellij.build.impl.toArchivedIfNeeded
 import org.jetbrains.intellij.build.impl.toBazelIfNeeded
+import org.jetbrains.intellij.build.joinShared
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.virtualThreadPerResumeDispatcher
+import org.jetbrains.intellij.build.telemetry.useSuspending
 import org.jetbrains.jps.model.JpsProject
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
@@ -68,6 +72,8 @@ import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executor
+import kotlin.coroutines.CoroutineContext
 import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -145,8 +151,8 @@ private fun Iterable<PackagingTask>.startAllPackagingTasks() {
   }
 }
 
-typealias PackagingSuiteValidator = suspend (context: PackagingSuiteContext) -> List<PackagingCheckFailure>
-typealias PackagingTargetValidator = suspend (context: PackagingTargetValidationContext) -> List<PackagingCheckFailure>
+typealias PackagingSuiteValidator = (context: PackagingSuiteContext) -> List<PackagingCheckFailure>
+typealias PackagingTargetValidator = (context: PackagingTargetValidationContext) -> List<PackagingCheckFailure>
 
 @Internal
 enum class PackagingSuiteTaskScheduling {
@@ -207,13 +213,13 @@ class PackagingTargetValidationContext internal constructor(
   @JvmField val project: JpsProject,
   @JvmField val outputProvider: ModuleOutputProvider,
   @JvmField val layout: PackagedLayout,
-  private val packageResultProvider: suspend () -> PackageResult,
+  private val packageResultProvider: () -> PackageResult,
 ) {
   /** The content report of the packaged distribution. A [PackagingTargetValidationStage.LAYOUT] validation must not read it. */
-  suspend fun content(): ParsedContentReport = packageResultProvider().content
+  fun content(): ParsedContentReport = packageResultProvider().content
 
   /** The runtime module repository of the packaged distribution, or `null` when the build generated none. */
-  suspend fun runtimeModuleRepository(): RuntimeModuleRepository? = packageResultProvider().runtimeModuleRepository
+  fun runtimeModuleRepository(): RuntimeModuleRepository? = packageResultProvider().runtimeModuleRepository
 }
 
 @Internal
@@ -264,6 +270,7 @@ class PackagingSuiteFixture private constructor(
   private val spec: PackagingSuiteSpec,
   private val scopeJob: Job,
   private val packagingDispatcher: ExecutorCoroutineDispatcher,
+  private val lifetime: BuildLifetime,
   private val diagnostics: PackagingSuiteHangDiagnostics,
   private val tempDir: Path,
   private val telemetry: PackagingSuiteTelemetry?,
@@ -299,16 +306,20 @@ class PackagingSuiteFixture private constructor(
       val diagnostics = PackagingSuiteHangDiagnostics()
       val packagingDispatcher = createPackagingSuiteDispatcher()
       val scope = createPackagingSuiteScope(job = scopeJob, diagnostics = diagnostics, dispatcher = packagingDispatcher)
+      // the module output caches of the shared compilation context live as long as the fixture
+      val lifetime = BuildLifetime()
       var tempDirForCleanup: Path? = null
       try {
         val tempDir = Files.createTempDirectory("${spec.name}-packaging-suite-").also { tempDirForCleanup = it }
         val suiteContextDeferred = scope.async(start = CoroutineStart.LAZY) {
           withTelemetrySpan(telemetry = telemetry, name = "create shared compilation context") {
-            PackagingSuiteContext(
-              projectHome = spec.homePath,
-              tempDir = tempDir,
-              compilationContext = createSharedCompilationContext(projectHome = spec.homePath, tempDir = tempDir, scope = scope),
-            )
+            runPackagingBuildTask {
+              PackagingSuiteContext(
+                projectHome = spec.homePath,
+                tempDir = tempDir,
+                compilationContext = createSharedCompilationContext(projectHome = spec.homePath, tempDir = tempDir, lifetime = lifetime),
+              )
+            }
           }
         }
         // The gate compiles nothing. Under Bazel `compileModules` has an empty body, and a JPS run reuses the
@@ -322,7 +333,8 @@ class PackagingSuiteFixture private constructor(
               span.setAttribute("packaging.target.count", spec.targets.size.toLong())
             },
           ) {
-            suiteContextDeferred.await().compilationContext.compileProductionModules()
+            val context = suiteContextDeferred.await().compilationContext
+            runPackagingBuildTask { context.compileProductionModules() }
           }
         }
 
@@ -365,6 +377,7 @@ class PackagingSuiteFixture private constructor(
           spec = spec,
           scopeJob = scopeJob,
           packagingDispatcher = packagingDispatcher,
+          lifetime = lifetime,
           diagnostics = diagnostics,
           tempDir = tempDir,
           telemetry = telemetry,
@@ -378,6 +391,7 @@ class PackagingSuiteFixture private constructor(
       }
       catch (t: Throwable) {
         runCatching { runBlocking { scopeJob.cancelAndJoin() } }
+        runCatching { lifetime.close() }
         runCatching { packagingDispatcher.close() }
         runCatching { tracerOverride?.close() }
         telemetry?.rootSpan?.end()
@@ -572,6 +586,7 @@ class PackagingSuiteFixture private constructor(
     }
     finally {
       runCatching { tracerOverride?.close() }
+      runCatching { lifetime.close() }
       runCatching { packagingDispatcher.close() }
     }
   }
@@ -652,7 +667,39 @@ internal fun createPackagingSuiteScope(
  *
  * The caller closes it when the fixture closes.
  */
-internal fun createPackagingSuiteDispatcher(): ExecutorCoroutineDispatcher = virtualThreadPerResumeDispatcher("packaging-suite-")
+internal fun createPackagingSuiteDispatcher(): ExecutorCoroutineDispatcher = VirtualThreadPerResumeDispatcher("packaging-suite-")
+
+/** Runs a blocking build on the fixture thread. Coroutine cancellation interrupts the build and waits for its cleanup. */
+internal suspend fun <T> runPackagingBuildTask(block: () -> T): T = runInterruptible(block = block)
+
+/**
+ * A dispatcher with one virtual thread per resume. `close` releases nothing, because no thread outlives its resume.
+ *
+ * A thread drops its task before it runs the task. A dead virtual thread keeps its task through its continuation, and
+ * a debug probe or a logger can hold the thread, so the task must not keep what it captured alive.
+ */
+private class VirtualThreadPerResumeDispatcher(threadNamePrefix: String) : ExecutorCoroutineDispatcher() {
+  private val threadFactory = Thread.ofVirtual().name(threadNamePrefix, 0).factory()
+
+  override val executor: Executor = Executor { task -> threadFactory.newThread(ForgetfulTask(task)).start() }
+
+  override fun dispatch(context: CoroutineContext, block: Runnable) {
+    executor.execute(block)
+  }
+
+  override fun close() {
+  }
+}
+
+private class ForgetfulTask(task: Runnable) : Runnable {
+  private var task: Runnable? = task
+
+  override fun run() {
+    val task = task ?: return
+    this.task = null
+    task.run()
+  }
+}
 
 /**
  * Runs [block] on the test thread and waits for it.
@@ -973,7 +1020,8 @@ private fun createValidationTasks(
             },
           ) {
             moduleOutputDeferred.await()
-            validation.validator(suiteContextDeferred.await())
+            val context = suiteContextDeferred.await()
+            runPackagingBuildTask { validation.validator(context) }
           }
         }
       },
@@ -1015,13 +1063,15 @@ private fun createPackagingTasks(
                 ensureBlockingValidationsSucceededOrAbort(blockingTasks)
                 moduleOutputDeferred.await()
                 val suiteContext = suiteContextDeferred.await()
-                val context = createDerivedBuildContext(
-                  sharedCompilationContext = suiteContext.compilationContext,
-                  target = target,
-                  projectHome = spec.homePath,
-                  buildOutputRoot = suiteContext.tempDir.resolve(target.id),
-                )
-                computePackageResult(context = context, layoutDeferred = layoutDeferred)
+                runPackagingBuildTask {
+                  val context = createDerivedBuildContext(
+                    sharedCompilationContext = suiteContext.compilationContext,
+                    target = target,
+                    projectHome = spec.homePath,
+                    buildOutputRoot = suiteContext.tempDir.resolve(target.id),
+                  )
+                  computePackageResult(context = context, layoutDeferred = layoutDeferred)
+                }
               }
             }
             // the task can fail before it computes the layout, and a LAYOUT validation waits for the layout alone.
@@ -1065,13 +1115,15 @@ private fun createPluginCheckTasks(
             },
           ) {
             val packageResult = task.resultDeferred.await().getOrAbort("Plugin content check for ${task.spec.id} skipped because packaging failed")
-            collectPluginContentFailures(
-              content = packageResult.content,
-              project = packageResult.jpsProject,
-              projectHome = packageResult.projectHome,
-              suggestedReviewer = task.spec.suggestedReviewer,
-              testName = { category, key -> "${task.spec.id} $category: $key" },
-            )
+            runPackagingBuildTask {
+              collectPluginContentFailures(
+                content = packageResult.content,
+                project = packageResult.jpsProject,
+                projectHome = packageResult.projectHome,
+                suggestedReviewer = task.spec.suggestedReviewer,
+                testName = { category, key -> "${task.spec.id} $category: $key" },
+              )
+            }
           }
         }
       },
@@ -1110,29 +1162,32 @@ private fun createTargetValidationTasks(
               val abortMessage = "Target validation '${validation.name}' for ${validation.targetId} skipped because packaging failed"
               val suiteContext = suiteContextDeferred.await()
               val layout = packagingTask.layoutDeferred.awaitOrAbort(abortMessage)
-              val packageResultProvider: suspend () -> PackageResult = {
-                packagingTask.resultDeferred.await().getOrAbort(abortMessage)
+              val packageResultFuture = packagingTask.resultDeferred.asCompletableFuture()
+              val packageResultProvider: () -> PackageResult = {
+                packageResultFuture.joinShared().getOrAbort(abortMessage)
               }
               if (validation.stage == PackagingTargetValidationStage.CONTENT) {
-                packageResultProvider()
+                packagingTask.resultDeferred.await().getOrAbort(abortMessage)
               }
-              spanBuilder("run target validation: ${validation.targetId} ${validation.name}").use {
-                val validationTempDir = suiteContext.tempDir
-                  .resolve("target-validation")
-                  .resolve(validation.targetId)
-                  .resolve(validation.name)
-                  .createDirectories()
-                validation.validator(
-                  PackagingTargetValidationContext(
-                    target = packagingTask.spec,
-                    projectHome = layout.buildContext.paths.projectHome,
-                    tempDir = validationTempDir,
-                    project = layout.buildContext.project,
-                    outputProvider = suiteContext.compilationContext.outputProvider,
-                    layout = layout,
-                    packageResultProvider = packageResultProvider,
+              runPackagingBuildTask {
+                spanBuilder("run target validation: ${validation.targetId} ${validation.name}").use {
+                  val validationTempDir = suiteContext.tempDir
+                    .resolve("target-validation")
+                    .resolve(validation.targetId)
+                    .resolve(validation.name)
+                    .createDirectories()
+                  validation.validator(
+                    PackagingTargetValidationContext(
+                      target = packagingTask.spec,
+                      projectHome = layout.buildContext.paths.projectHome,
+                      tempDir = validationTempDir,
+                      project = layout.buildContext.project,
+                      outputProvider = suiteContext.compilationContext.outputProvider,
+                      layout = layout,
+                      packageResultProvider = packageResultProvider,
+                    )
                   )
-                )
+                }
               }
             }
           }
@@ -1268,13 +1323,13 @@ private fun ensureTargetValidationsReferenceExistingTargets(spec: PackagingSuite
   }
 }
 
-private suspend fun createSharedCompilationContext(projectHome: Path, tempDir: Path, scope: CoroutineScope): CompilationContext {
+private fun createSharedCompilationContext(projectHome: Path, tempDir: Path, lifetime: BuildLifetime): CompilationContext {
   return createCompilationContext(
     projectHome = projectHome,
     buildOutputRootEvaluator = { tempDir },
     options = createBuildOptionsForTest(homeDir = projectHome, outDir = tempDir),
     setupTracer = false,
-  ).toBazelIfNeeded(scope).toArchivedIfNeeded(scope)
+  ).toBazelIfNeeded(lifetime).toArchivedIfNeeded(lifetime)
 }
 
 private fun createPackagingBuildOptions(projectHome: Path, buildOutputRoot: Path) =
@@ -1309,7 +1364,7 @@ private fun createDerivedBuildContext(
   )
 }
 
-private suspend fun computePackageResult(context: BuildContext, layoutDeferred: CompletableDeferred<PackagedLayout>): PackageResult {
+private fun computePackageResult(context: BuildContext, layoutDeferred: CompletableDeferred<PackagedLayout>): PackageResult {
   return doRunTestBuild(
     context = context,
     writeTelemetry = false,
@@ -1317,7 +1372,6 @@ private suspend fun computePackageResult(context: BuildContext, layoutDeferred: 
     checkThatBundledPluginInFrontendArePresent = false,
     traceSpanName = context.productProperties.baseFileName,
     build = { buildContext ->
-      // the state is a suspending lazy of the build context, so `buildDistributions` reuses this one.
       val distributionState = spanBuilder("compute distribution state").use { buildContext.distributionState() }
       layoutDeferred.complete(PackagedLayout(buildContext = buildContext, distributionState = distributionState))
       buildDistributions(buildContext)
@@ -1407,7 +1461,7 @@ private suspend fun <T> withTelemetrySpan(
     return block()
   }
 
-  return spanBuilder(name).setParent(telemetry.parentContext).use { span ->
+  return spanBuilder(name).setParent(telemetry.parentContext).useSuspending { span ->
     configure(span)
     block()
   }

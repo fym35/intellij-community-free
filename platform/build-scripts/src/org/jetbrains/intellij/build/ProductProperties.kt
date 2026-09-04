@@ -391,12 +391,12 @@ abstract class ProductProperties {
   /**
    * Override this method to copy additional files to distributions of all operating systems.
    */
-  open suspend fun copyAdditionalFiles(targetDir: Path, context: BuildContext) { }
+  open fun copyAdditionalFiles(targetDir: Path, context: BuildContext) { }
 
   /**
    * Override this method to copy additional OS- and arch-specific files.
    */
-  open suspend fun copyAdditionalOsSpecificFiles(runDir: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext) { }
+  open fun copyAdditionalOsSpecificFiles(runDir: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext) { }
 
   /**
    * Override this method if the product has several editions to ensure that their artifacts won't be mixed up.
@@ -409,7 +409,7 @@ abstract class ProductProperties {
    * Paths to externally built plugins to be included in the IDE.
    * They will be copied into the build, as well as included in the IDE classpath when launching it to build search index, .jar order, etc.
    */
-  open suspend fun getAdditionalPluginPaths(context: BuildContext): List<Path> = emptyList()
+  open fun getAdditionalPluginPaths(context: BuildContext): List<Path> = emptyList()
 
   /**
    * Override this function to provide additional JVM command line arguments which will be added to launchers along with
@@ -471,7 +471,7 @@ abstract class ProductProperties {
    * Copies additional localization resources to the plugin-generated localization resources directory.
    */
   @ApiStatus.Internal
-  open suspend fun copyAdditionalLocalizationResourcesToPlugin(lang: String, targetDir: Path, context: BuildContext) {}
+  open fun copyAdditionalLocalizationResourcesToPlugin(lang: String, targetDir: Path, context: BuildContext) {}
 
   /**
    * Build steps which are always skipped for this product.

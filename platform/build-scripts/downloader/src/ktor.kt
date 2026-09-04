@@ -60,7 +60,6 @@ import java.util.EnumSet
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
-import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.hours
 
 const val SPACE_REPO_HOST: String = "packages.jetbrains.team"
@@ -312,7 +311,7 @@ private fun downloadFileToCacheLocation(
   val preloaded = PreloadedDownloads.findByUrl(url)
   val target = BuildDependenciesDownloader.getTargetFile(communityRoot, url, preloaded?.sha256)
   val targetPath = target.toString()
-  return fileLocks.getLock(targetPath).withLock {
+  return fileLocks.withLock(targetPath) {
     if (Files.exists(target)) {
       Span.current().addEvent(
         "use asset from cache", Attributes.of(

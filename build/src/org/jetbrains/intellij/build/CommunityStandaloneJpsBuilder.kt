@@ -2,8 +2,6 @@
 package org.jetbrains.intellij.build
 
 import com.intellij.openapi.util.io.NioFiles
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.impl.BaseLayout
 import org.jetbrains.intellij.build.impl.JarPackager
 import org.jetbrains.intellij.build.impl.LibraryPackMode
@@ -18,7 +16,7 @@ import java.nio.file.Path
 /**
  * Creates JARs containing classes required to run the external build for IDEA project without IDE.
  */
-suspend fun buildCommunityStandaloneJpsBuilder(
+fun buildCommunityStandaloneJpsBuilder(
   targetDir: Path,
   context: BuildContext,
   dryRun: Boolean = false,
@@ -154,8 +152,6 @@ suspend fun buildCommunityStandaloneJpsBuilder(
     context.notifyArtifactBuilt(targetFile)
   }
   finally {
-    withContext(NonCancellable) {
-      NioFiles.deleteRecursively(tempDir)
-    }
+    NioFiles.deleteRecursively(tempDir)
   }
 }

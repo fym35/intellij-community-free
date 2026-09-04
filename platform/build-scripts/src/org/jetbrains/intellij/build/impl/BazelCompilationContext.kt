@@ -8,12 +8,12 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.platform.bazel.runfiles.BazelRunfiles
 import com.intellij.util.io.URLUtil
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.jetbrains.annotations.ApiStatus.Internal
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildMessages
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildPaths
@@ -36,7 +36,7 @@ import kotlin.io.path.pathString
 @Internal
 class BazelCompilationContext(
   private val delegate: CompilationContext,
-  private val scope: CoroutineScope?,
+  private val lifetime: BuildLifetime?,
   @JvmField val outputProviderState: BazelModuleOutputProviderState = BazelModuleOutputProviderState(
     modules = delegate.project.modules,
     projectHome = computeProjectHomeForModuleOutputs(delegate.paths.projectHome),
@@ -45,7 +45,7 @@ class BazelCompilationContext(
   override val outputProvider: ModuleOutputProvider by lazy {
     BazelModuleOutputProvider(
       state = outputProviderState,
-      scope = scope,
+      lifetime = lifetime,
       useTestCompilationOutput = options.useTestCompilationOutput,
       testCompilationOutputModules = options.testCompilationOutputModules,
     )
@@ -70,12 +70,12 @@ class BazelCompilationContext(
   override val stableJavaExecutable: Path
     get() = delegate.stableJavaExecutable
 
-  override suspend fun getStableJdkHome(): Path = delegate.getStableJdkHome()
+  override fun getStableJdkHome(): Path = delegate.getStableJdkHome()
 
   override val classesOutputDirectory: Path
     get() = delegate.classesOutputDirectory
 
-  override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> {
+  override fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> {
     val enumerator = JpsJavaExtensionService.dependencies(module).recursively()
       .also {
         if (forTests) {
@@ -110,21 +110,21 @@ class BazelCompilationContext(
     delegate.notifyArtifactBuilt(artifactPath)
   }
 
-  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
-    val effectiveScope = scope ?: this.scope
-    return BazelCompilationContext(delegate = delegate.createCopy(messages, options, paths, effectiveScope), scope = effectiveScope, outputProviderState = outputProviderState)
+  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, lifetime: BuildLifetime?): CompilationContext {
+    val effectiveLifetime = lifetime ?: this.lifetime
+    return BazelCompilationContext(delegate = delegate.createCopy(messages, options, paths, effectiveLifetime), lifetime = effectiveLifetime, outputProviderState = outputProviderState)
   }
 
-  override suspend fun prepareForBuild() {
+  override fun prepareForBuild() {
     delegate.prepareForBuild()
   }
 
-  override suspend fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
+  override fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
     // Be sure to call ./bazel-build-all.cmd
     // Later we will add all required Bazel dependencies to the build scripts target
   }
 
-  override suspend fun withCompilationLock(block: suspend () -> Unit): Unit = delegate.withCompilationLock(block)
+  override fun withCompilationLock(block: () -> Unit): Unit = delegate.withCompilationLock(block)
 }
 
 private fun computeProjectHomeForModuleOutputs(projectHome: Path): Path {
@@ -294,11 +294,11 @@ private inline fun cutBazelOutputRoot(realPath: Path, message: (Path) -> String)
 }
 
 val CompilationContextImpl.asBazelIfNeeded: CompilationContext
-  get() = toBazelIfNeeded(scope = null)
+  get() = toBazelIfNeeded(lifetime = null)
 
-fun CompilationContextImpl.toBazelIfNeeded(scope: CoroutineScope?, isBazelBacked: Boolean = isRunningFromBazelOut()): CompilationContext {
+fun CompilationContextImpl.toBazelIfNeeded(lifetime: BuildLifetime?, isBazelBacked: Boolean = isRunningFromBazelOut()): CompilationContext {
   return when {
-    isBazelBacked -> BazelCompilationContext(delegate = this, scope = scope)
+    isBazelBacked -> BazelCompilationContext(delegate = this, lifetime = lifetime)
     else -> this
   }
 }

@@ -6,7 +6,7 @@ import org.jetbrains.intellij.build.classPath.orderCoreClasspathEntries
 import org.jetbrains.intellij.build.classPath.writePluginClassPathCount
 import org.jetbrains.intellij.build.impl.PLUGIN_CLASSPATH
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.io.BufferedOutputStream
 import java.io.DataOutputStream
 import java.nio.file.FileVisitResult
@@ -137,7 +137,7 @@ fun composeDevBuildComponents(
       }
     }
     // one span per component, so that a composition that is slow because of one fragment says which one
-    spanBuilder("merge dev build component").setAttribute("kind", manifest.kind).blockingUse { span ->
+    spanBuilder("merge dev build component").setAttribute("kind", manifest.kind).use { span ->
       span.setAttribute("manifestOnly", root == null)
       val merged = if (root == null) {
         copyManifestOnlyComponent(manifest = manifest, target = target)

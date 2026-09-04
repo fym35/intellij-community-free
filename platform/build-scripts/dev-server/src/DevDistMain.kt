@@ -21,7 +21,7 @@ import org.jetbrains.intellij.build.dev.buildProductInProcess
 import org.jetbrains.intellij.build.dev.materializeProjectModelTree
 import org.jetbrains.intellij.build.impl.BazelBuildInputs
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.DirectoryNotEmptyException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -65,7 +65,7 @@ fun main(args: Array<String>) {
 }
 
 @OptIn(ExperimentalPathApi::class)
-private suspend fun assembleDevDistribution(options: CommandLineOptions) {
+private fun assembleDevDistribution(options: CommandLineOptions) {
   val outputDir = options.requiredPath("--output-dir")
   val scratchDir = options.optionalPath("--scratch-dir") ?: Path.of("${outputDir.invariantSeparatorsPathString}.scratch")
   // Either the caller points at a checkout, or it hands over a manifest of the project-model files it declares and gets a
@@ -77,7 +77,7 @@ private suspend fun assembleDevDistribution(options: CommandLineOptions) {
   }
   else {
     require(options.optional("--project-dir") == null) { "--project-dir and --project-manifest are mutually exclusive" }
-    spanBuilder("materialize project model tree (inline)").blockingUse {
+    spanBuilder("materialize project model tree (inline)").use {
       materializeProjectModelTree(manifest = projectManifest, target = scratchDir.resolve("project"))
     }
   }

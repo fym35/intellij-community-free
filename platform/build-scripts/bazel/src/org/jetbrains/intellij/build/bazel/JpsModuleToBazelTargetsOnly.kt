@@ -1,10 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.bazel
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.jps.model.serialization.JpsModelSerializationDataService
 import java.nio.file.Files
 import java.nio.file.Path
@@ -119,11 +115,8 @@ internal class JpsModuleToBazelTargetsOnly {
 
       val modulesXml = ModulesXml.readFromProject(projectDir)
 
-      @Suppress("RAW_RUN_BLOCKING")
-      runBlocking {
-        modulesXml.modules
-          .map { async(Dispatchers.IO) { check(it.exists()) { "Module path $it does not exist" } } }
-          .awaitAll()
+      for (module in modulesXml.modules) {
+        check(module.exists()) { "Module path $module does not exist" }
       }
 
       // use empty directory as m2 repo, targets-only run should not depend on maven resolver result

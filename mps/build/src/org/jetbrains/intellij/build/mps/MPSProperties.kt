@@ -133,7 +133,7 @@ class MPSProperties : JetBrainsProductProperties() {
         buildSourcesArchive = true
     }
 
-    override suspend fun copyAdditionalFiles(targetDir: Path, context: BuildContext) {
+    override fun copyAdditionalFiles(targetDir: Path, context: BuildContext) {
         val communityHome = COMMUNITY_ROOT.communityRoot
         FileSet(Path.of("$communityHome/lib/ant")).includeAll().copyToDir(Path.of("$targetDir/lib/ant"))
 

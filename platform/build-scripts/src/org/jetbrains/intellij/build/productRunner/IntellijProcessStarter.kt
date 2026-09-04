@@ -30,7 +30,7 @@ import kotlin.time.Duration.Companion.minutes
 
 @Internal
 @Deprecated("Use IntellijProductRunner.runProduct instead")
-suspend fun runApplicationStarter(
+fun runApplicationStarter(
   context: BuildContext,
   classpath: Collection<String>,
   args: List<String>,
@@ -60,7 +60,7 @@ suspend fun runApplicationStarter(
  * Internal function which runs IntelliJ process. Use [IntellijProductRunner.runProduct] instead.
  */
 @Internal
-suspend fun doRunApplicationStarter(
+fun doRunApplicationStarter(
   appStarterId: String,
   tempDir: Path,
   classpath: Collection<String>,
@@ -149,7 +149,7 @@ suspend fun doRunApplicationStarter(
   }
 }
 
-private suspend fun prepareFlatClasspath(classpath: Collection<String>, tempDir: Path, context: BuildContext): LinkedHashSet<String> {
+private fun prepareFlatClasspath(classpath: Collection<String>, tempDir: Path, context: BuildContext): LinkedHashSet<String> {
   val effectiveIdeClasspath = LinkedHashSet(classpath)
 
   val additionalPluginPaths = context.productProperties.getAdditionalPluginPaths(context)

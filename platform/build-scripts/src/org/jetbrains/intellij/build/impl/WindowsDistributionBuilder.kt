@@ -8,8 +8,6 @@ import com.intellij.openapi.util.text.StringUtilRt
 import com.intellij.platform.buildData.productInfo.ProductInfoLaunchData
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -78,7 +76,7 @@ internal class WindowsDistributionBuilder(
   override val targetLibcImpl: LibcImpl
     get() = WindowsLibcImpl.DEFAULT
 
-  override suspend fun copyNativeBinFiles(binDir: Path, arch: JvmArchitecture): List<Path> {
+  override fun copyNativeBinFiles(binDir: Path, arch: JvmArchitecture): List<Path> {
     val sourceBinDir = context.paths.communityHomeDir.resolve("bin/win")
     // `add`, not `+`: `Path` is an `Iterable<Path>` of its own name elements, so `List<Path> + Path` appends
     // those elements instead of the path
@@ -90,7 +88,7 @@ internal class WindowsDistributionBuilder(
     }
   }
 
-  override suspend fun copyFilesForOsDistribution(targetPath: Path, arch: JvmArchitecture) {
+  override fun copyFilesForOsDistribution(targetPath: Path, arch: JvmArchitecture) {
     val distBinDir = targetPath.resolve("bin").createDirectories()
     writeVmOptions(distBinDir)
 
@@ -140,7 +138,7 @@ internal class WindowsDistributionBuilder(
     }
   }
 
-  override suspend fun buildArtifacts(osAndArchSpecificDistPath: Path, arch: JvmArchitecture) {
+  override fun buildArtifacts(osAndArchSpecificDistPath: Path, arch: JvmArchitecture) {
     Regex("\\d+").findAll(context.buildNumber).forEach {
       val number = it.value.toIntOrNull() ?: return@forEach
       require(number <= 65535) {
@@ -213,7 +211,7 @@ internal class WindowsDistributionBuilder(
       }
 
       // the forks end inside the step, so both paths are known here
-      zipWithJbrJob?.await() to exeJob?.await()
+      zipWithJbrJob?.join() to exeJob?.join()
     } ?: (null to null)
 
     if (zipWithJbrPath != null && exePath != null) {
@@ -229,7 +227,7 @@ internal class WindowsDistributionBuilder(
     }
   }
 
-  override suspend fun writeProductInfoFile(targetDir: Path, arch: JvmArchitecture): Path {
+  override fun writeProductInfoFile(targetDir: Path, arch: JvmArchitecture): Path {
     return writeProductJsonFile(targetDir = targetDir, arch = arch, withRuntime = true, context = context)
   }
 
@@ -319,7 +317,7 @@ internal class WindowsDistributionBuilder(
       }
   }
 
-  private suspend fun createBuildWinZipTask(
+  private fun createBuildWinZipTask(
     runtimeDir: Path?,
     zipNameSuffix: String,
     winDistPath: Path,
@@ -364,7 +362,7 @@ internal class WindowsDistributionBuilder(
     return targetFile
   }
 
-  private suspend fun buildWinLauncher(winDistPath: Path, arch: JvmArchitecture, copyLicense: Boolean, customizer: WindowsDistributionCustomizer, context: BuildContext) {
+  private fun buildWinLauncher(winDistPath: Path, arch: JvmArchitecture, copyLicense: Boolean, customizer: WindowsDistributionCustomizer, context: BuildContext) {
     spanBuilder("build Windows executable").use {
       val appInfo = context.applicationInfo
       val icoPath = if (context.isLanguageServer) "no-icon" else locateIcoFileForWindowsLauncher(customizer, context).absolutePathString()
@@ -404,7 +402,7 @@ internal class WindowsDistributionBuilder(
     }
   }
 
-  private suspend fun patchLauncher(exeIn: Path, exeOut: Path, properties: Map<String, String>, icoPath: String, context: BuildContext) {
+  private fun patchLauncher(exeIn: Path, exeOut: Path, properties: Map<String, String>, icoPath: String, context: BuildContext) {
     val launcherPropertiesPath = createTempFile(context.paths.tempDir, "launcher-", ".properties")
       .writeLines(properties.map { (k, v) -> "${k}=${v}" })
     val resourcePath = "${context.paths.communityHomeDir}/native/XPlatLauncher/resources/windows/resource.h"
@@ -420,7 +418,7 @@ internal class WindowsDistributionBuilder(
     )
   }
 
-  private suspend fun checkThatExeInstallerAndZipWithJbrAreTheSame(
+  private fun checkThatExeInstallerAndZipWithJbrAreTheSame(
     zipPath: Path,
     exePath: Path,
     arch: JvmArchitecture,
@@ -521,9 +519,7 @@ internal class WindowsDistributionBuilder(
       }
     }
     finally {
-      withContext(NonCancellable) {
-        NioFiles.deleteRecursively(tempExe)
-      }
+      NioFiles.deleteRecursively(tempExe)
     }
   }
 
@@ -534,7 +530,7 @@ internal class WindowsDistributionBuilder(
     return vmOptionsFile
   }
 
-  private suspend fun writeProductJsonFile(targetDir: Path, arch: JvmArchitecture, withRuntime: Boolean, context: BuildContext): Path {
+  private fun writeProductJsonFile(targetDir: Path, arch: JvmArchitecture, withRuntime: Boolean, context: BuildContext): Path {
     val baseName = context.add64IfNeeded(context.productProperties.baseFileName)
     val json = generateProductInfoJson(
       relativePathToBin = "bin",

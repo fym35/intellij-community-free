@@ -15,10 +15,6 @@ import com.intellij.platform.pluginGraph.isSlashNotation
 import com.intellij.platform.pluginGraph.isTestDescriptor
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
 import com.intellij.platform.pluginSystem.parser.impl.parseContentAndXIncludes
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.PLUGIN_XML_RELATIVE_PATH
 import org.jetbrains.intellij.build.findFileInModuleSources
@@ -102,20 +98,18 @@ internal object ModelBuildingStage {
    * after a label would mislabel itself. A step that runs twice gets a `#2` suffix, so a reader can compare the two
    * runs.
    *
-   * The top level of this method is sequential, so a plain list is correct. This method also takes a [CoroutineScope].
-   * A timing recorded inside a `scope.launch` would race, so never put one there.
+   * The top level of this method is sequential, so a plain list is correct. A timing recorded inside a fork would
+   * race, so never put one there.
    *
    * @param discovery Results from discovery stage
    * @param config Generation configuration
-   * @param scope Coroutine scope for async operations
    * @param errorSink Sink for errors discovered during model building (e.g., xi:include resolution)
    * @param phaseTimings Collects one timing per step of this stage
    * @return Fully initialized generation model
    */
-  suspend fun execute(
+  fun execute(
     discovery: DiscoveryResult,
     config: ModuleSetGenerationConfig,
-    scope: CoroutineScope,
     updateSuppressions: Boolean,
     commitChanges: Boolean,
     errorSink: ErrorSink,
@@ -324,7 +318,6 @@ internal object ModelBuildingStage {
       pluginContentCache = pluginContentCache,
       fileUpdater = fileUpdater,
       generatedArtifactWritePolicy = generatedArtifactWritePolicy,
-      scope = scope,
       pluginGraph = pluginGraph,
       dslTestPluginsByProduct = dslTestPluginExpansion.pluginsByProduct,
       dslTestPluginDependencyChains = dslTestPluginExpansion.dependencyChains,
@@ -342,7 +335,7 @@ internal object ModelBuildingStage {
     val dependencyChains: Map<PluginId, Map<ContentModuleName, List<ContentModuleName>>>,
   )
 
-  private suspend fun extractPlugins(
+  private fun extractPlugins(
     pluginTargets: List<TargetName>,
     pluginContentCache: PluginContentCache,
     builder: PluginGraphBuilder,
@@ -794,7 +787,7 @@ internal object ModelBuildingStage {
     }
   }
 
-  private suspend fun linkProductAliases(
+  private fun linkProductAliases(
     discovery: DiscoveryResult,
     config: ModuleSetGenerationConfig,
     builder: PluginGraphBuilder,
@@ -824,10 +817,9 @@ internal object ModelBuildingStage {
       val aliases: Set<PluginId>,
     )
 
-    val aliasResults = coroutineScope {
-      discovery.products.map { product ->
-        async {
-          val spec = product.spec ?: return@async null
+    val aliasResults = discovery.products.mapConcurrent { product ->
+        run {
+          val spec = product.spec ?: return@mapConcurrent null
 
           val aliasIds = LinkedHashSet<PluginId>()
           aliasIds.addAll(OS_MODULE_ALIASES)
@@ -864,8 +856,7 @@ internal object ModelBuildingStage {
           }
           ProductAliasResult(product.name, aliasIds)
         }
-      }.awaitAll().filterNotNull()
-    }
+      }.filterNotNull()
 
     for (result in aliasResults) {
       for (alias in result.aliases) {
@@ -1068,7 +1059,7 @@ internal object ModelBuildingStage {
     }
   }
 
-  private suspend fun registerReferencedPlugins(
+  private fun registerReferencedPlugins(
     builder: PluginGraphBuilder,
     pluginContentCache: PluginContentCache,
     pluginInfos: MutableMap<TargetName, PluginContentInfo>,

@@ -8,14 +8,13 @@ import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.impl.collectPluginDescriptors
 import org.jetbrains.intellij.build.impl.createBuildContext
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
 import java.nio.file.Path
 
 fun runEssentialPluginsTest(
   homePath: Path,
   productProperties: ProductProperties,
   buildTools: ProprietaryBuildTools,
-): Unit = runBlockingOnVirtualThreads {
+): Unit = run {
   val buildContext = createBuildContext(
     projectHome = homePath,
     productProperties = productProperties,
@@ -48,7 +47,7 @@ private data class PluginDescription(
   val requiredDependencies: Set<String> = emptySet(),
 )
 
-private suspend fun getPluginByIdMap(context: BuildContext): Map<String, PluginDescription> {
+private fun getPluginByIdMap(context: BuildContext): Map<String, PluginDescription> {
   val pluginMap = collectPluginDescriptors(
     skipImplementationDetails = true,  // it's not possible to disable implementation detail plugins
     skipBundled = false,

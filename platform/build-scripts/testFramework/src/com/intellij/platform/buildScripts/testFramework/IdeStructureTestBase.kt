@@ -11,7 +11,6 @@ import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.impl.ModuleStructureValidator
 import org.jetbrains.intellij.build.impl.createDistributionBuilderState
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
 import org.jetbrains.jps.model.java.JpsJavaDependencyScope
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -31,7 +30,7 @@ abstract class IdeStructureTestBase {
 
   private fun createBuildContext(): BuildContext {
     val productProperties = createProductProperties(projectHome)
-    return runBlockingOnVirtualThreads {
+    return run {
       createBuildContext(homeDir = projectHome, productProperties = productProperties, buildTools = createBuildTools())
     }
   }
@@ -39,7 +38,7 @@ abstract class IdeStructureTestBase {
   @Test
   fun moduleStructureValidation(softly: SoftAssertions) {
     val context = createBuildContext()
-    val state = runBlockingOnVirtualThreads {
+    val state = run {
       createDistributionBuilderState(context = context)
     }
 
@@ -49,7 +48,7 @@ abstract class IdeStructureTestBase {
     }
 
     val validator = ModuleStructureValidator(context, state.platformLayout.includedModules)
-    val errors = runBlockingOnVirtualThreads { validator.validate() }
+    val errors = run { validator.validate() }
     val expectedMissingModuleMessages = missingModulesException.mapTo(HashSet()) {
       "Missing dependency found: ${it.fromModule} -> ${it.toModule} [${it.scope.name}]"
     }

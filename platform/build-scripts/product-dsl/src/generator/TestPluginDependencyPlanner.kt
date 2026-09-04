@@ -45,7 +45,7 @@ internal object TestPluginDependencyPlanner : PipelineNode {
   override val requires: Set<DataSlot<*>> get() = setOf(Slots.CONTENT_MODULE_PLAN)
   override val produces: Set<DataSlot<*>> get() = setOf(Slots.TEST_PLUGIN_DEPENDENCY_PLAN)
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val productClassByName = model.discovery.products
       .associate { product -> product.name to (product.properties?.javaClass?.name ?: TEST_PRODUCT_CLASS_NAME) }

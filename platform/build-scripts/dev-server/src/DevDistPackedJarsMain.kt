@@ -10,7 +10,7 @@ import org.jetbrains.intellij.build.dev.DevBuildComponentSourcedFile
 import org.jetbrains.intellij.build.dev.collectPrepackedPluginContentJars
 import org.jetbrains.intellij.build.dev.writeSourcedDevBuildComponentManifest
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -82,7 +82,7 @@ private fun collectPackedJars(options: CommandLineOptions) {
  * composer, whose own working directory is what they have to resolve against.
  */
 private fun collectPlatformJars(jarListFile: Path): List<DevBuildComponentSourcedFile> {
-  return spanBuilder("collect platform jars").blockingUse { span ->
+  return spanBuilder("collect platform jars").use { span ->
     val jars = Files.readAllLines(jarListFile).filter { it.isNotBlank() }
     require(jars.isNotEmpty()) { "$jarListFile names no jar, so this component would contribute nothing" }
 

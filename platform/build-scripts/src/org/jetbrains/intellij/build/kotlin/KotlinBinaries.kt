@@ -34,7 +34,7 @@ class KotlinBinaries(private val communityHome: BuildDependenciesCommunityRoot) 
     compilerHome
   }
 
-  suspend fun loadKotlinJpsPluginToClassPath() {
+  fun loadKotlinJpsPluginToClassPath() {
     require(!BazelRunfiles.isRunningFromBazel) {
       "Dynamically loading Kotlin JPS plugin is not supported while running from Bazel. " +
       "JPS compilation at all is not supported when running from Bazel."

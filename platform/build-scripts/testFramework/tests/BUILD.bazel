@@ -52,6 +52,10 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
+        "//platform/build-scripts/api",
+        "//platform/build-scripts/api:api_test_lib",
+        "//platform/testFramework/common",
+        "//platform/testFramework/common:common_test_lib",
         "//platform/distribution-content",
         "//platform/distribution-content:distribution-content_test_lib",
         "//libraries/kotlinx/coroutines/core",

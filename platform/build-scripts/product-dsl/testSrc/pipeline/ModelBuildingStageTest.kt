@@ -72,7 +72,6 @@ class ModelBuildingStageTest {
       val model = ModelBuildingStage.execute(
         discovery = discovery,
         config = config,
-        scope = this,
         updateSuppressions = false,
         commitChanges = false,
         errorSink = ErrorSink(),

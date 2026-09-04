@@ -10,7 +10,7 @@ import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.classPath.orderCoreClasspathEntries
 import org.jetbrains.intellij.build.impl.PLUGIN_CLASSPATH
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -237,7 +237,7 @@ fun computeIdeFingerprintFromComponents(
  * actions. `fileCount` and `byteCount` are what the duration has to be read against.
  */
 private fun inventoryDevBuildComponent(componentRoot: Path): List<DevBuildComponentEntry> {
-  return spanBuilder("inventory dev build component").blockingUse { span ->
+  return spanBuilder("inventory dev build component").use { span ->
     val normalizedComponentRoot = componentRoot.toAbsolutePath().normalize()
     val hasher = DevBuildContentHasher()
     val result = ArrayList<DevBuildComponentEntry>()
@@ -305,7 +305,7 @@ private fun inventoryDevBuildComponent(componentRoot: Path): List<DevBuildCompon
  * where inventorying a tree hashed each copy of it.
  */
 private fun inventorySourcedDevBuildComponent(files: Collection<DevBuildComponentSourcedFile>): List<DevBuildComponentEntry> {
-  return spanBuilder("inventory dev build component").blockingUse { span ->
+  return spanBuilder("inventory dev build component").use { span ->
     val hasher = DevBuildContentHasher()
     val result = files.mapTo(ArrayList(files.size)) { file ->
       val source = Path.of(file.source)

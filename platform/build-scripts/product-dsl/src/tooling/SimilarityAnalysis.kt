@@ -2,12 +2,11 @@
 package org.jetbrains.intellij.build.productLayout.tooling
 
 import com.intellij.platform.pluginGraph.PluginGraph
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.productLayout.traversal.collectModuleSetDirectModuleNames
 import org.jetbrains.intellij.build.productLayout.traversal.collectProductModuleSetNames
 import org.jetbrains.intellij.build.productLayout.traversal.isModuleSetTransitivelyNested
+import org.jetbrains.intellij.build.taskScope
+import org.jetbrains.intellij.build.Subtask
 
 /**
  * Detects overlapping or redundant module sets.
@@ -20,23 +19,23 @@ import org.jetbrains.intellij.build.productLayout.traversal.isModuleSetTransitiv
  * @param minOverlapPercent Minimum overlap percentage (0-100) to include in results
  * @return List of overlapping module set pairs sorted by overlap percentage (descending)
  */
-internal suspend fun detectModuleSetOverlap(
+internal fun detectModuleSetOverlap(
   allModuleSets: List<ModuleSetMetadata>,
   pluginGraph: PluginGraph,
   minOverlapPercent: Int = 50
 ): List<ModuleSetOverlap> {
-  return coroutineScope {
-    val comparisons = ArrayList<Deferred<ModuleSetOverlap?>>()
+  return taskScope {
+    val comparisons = ArrayList<Subtask<ModuleSetOverlap?>>()
 
     for (i in allModuleSets.indices) {
       for (j in i + 1 until allModuleSets.size) {
-        comparisons.add(async {
+        comparisons.add(fork("compare module sets $i and $j") {
           computeOverlap(allModuleSets[i], allModuleSets[j], pluginGraph, minOverlapPercent)
         })
       }
     }
 
-    comparisons.mapNotNull { it.await() }.sortedByDescending { it.overlapPercent }
+    comparisons.mapNotNull { it.join() }.sortedByDescending { it.overlapPercent }
   }
 }
 
@@ -118,24 +117,24 @@ private fun generateOverlapRecommendation(
  * @param similarityThreshold Minimum similarity (0.0 to 1.0) to include in results
  * @return List of similar product pairs sorted by similarity (descending)
  */
-internal suspend fun analyzeProductSimilarity(
+internal fun analyzeProductSimilarity(
   products: List<ProductSpec>,
   pluginGraph: PluginGraph,
   similarityThreshold: Double = 0.7
 ): List<ProductSimilarityPair> {
-  return coroutineScope {
+  return taskScope {
     val productsWithContent = products.filter { it.contentSpec != null }
-    val comparisons = ArrayList<Deferred<ProductSimilarityPair?>>()
+    val comparisons = ArrayList<Subtask<ProductSimilarityPair?>>()
 
     for (i in productsWithContent.indices) {
       for (j in i + 1 until productsWithContent.size) {
-        comparisons.add(async {
+        comparisons.add(fork("compare products $i and $j") {
           computeProductSimilarity(productsWithContent[i], productsWithContent[j], pluginGraph, similarityThreshold)
         })
       }
     }
 
-    comparisons.mapNotNull { it.await() }.sortedByDescending { it.similarity }
+    comparisons.mapNotNull { it.join() }.sortedByDescending { it.similarity }
   }
 }
 

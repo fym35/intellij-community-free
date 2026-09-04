@@ -29,9 +29,9 @@ sealed interface Source {
 class LazySource(
   @JvmField internal val name: String,
   @JvmField val precomputedHash: Long,
-  private val sourceSupplier: suspend () -> Sequence<Source>,
+  private val sourceSupplier: () -> Sequence<Source>,
 ) : Source {
-  suspend fun getSources(): Sequence<Source> = sourceSupplier()
+  fun getSources(): Sequence<Source> = sourceSupplier()
 
   override fun toString(): String = "LazySource(name=$name, precomputedHash=$precomputedHash)"
 }
@@ -58,7 +58,7 @@ data class UnpackedZipSource(
 }
 
 class CustomAssetShimSource(
-  @JvmField val task: suspend (pluginDir: Path, context: BuildContext) -> List<DistributionFileEntry>,
+  @JvmField val task: (pluginDir: Path, context: BuildContext) -> List<DistributionFileEntry>,
 ) : Source
 
 data class ZipSource(

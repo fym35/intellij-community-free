@@ -349,7 +349,7 @@ class SuppressionConfigGeneratorTest {
   }
 }
 
-private suspend fun runSuppressionConfigGenerator(
+private fun runSuppressionConfigGenerator(
   tempDir: Path,
   graph: com.intellij.platform.pluginGraph.PluginGraph,
   existingConfig: SuppressionConfig,

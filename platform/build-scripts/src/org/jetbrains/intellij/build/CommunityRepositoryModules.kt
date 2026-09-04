@@ -797,7 +797,7 @@ private fun copyMavenLibraries(libraries: List<BundledMavenDownloader.MavenLibra
   }
 }
 
-private suspend fun copyAnt(mainModule: String, pluginDir: Path, context: BuildContext): List<DistributionFileEntry> {
+private fun copyAnt(mainModule: String, pluginDir: Path, context: BuildContext): List<DistributionFileEntry> {
   val antDir = pluginDir.resolve("dist")
   return spanBuilder("copy Ant lib").setAttribute("antDir", antDir.toString()).use {
     val sources = ArrayList<ZipSource>()

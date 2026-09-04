@@ -54,13 +54,13 @@ internal fun readSearchableOptionIndex(baseDir: Path): SearchableOptionSetDescri
   }
 }
 
-suspend fun buildSearchableOptions(context: BuildContext, systemProperties: VmProperties = VmProperties(emptyMap())): SearchableOptionSetDescriptor? =
+fun buildSearchableOptions(context: BuildContext, systemProperties: VmProperties = VmProperties(emptyMap())): SearchableOptionSetDescriptor? =
   buildSearchableOptions(context.createProductRunner(), context, systemProperties)
 
 /**
  * Build index which is used to search options in the Settings dialog.
  */
-internal suspend fun buildSearchableOptions(
+internal fun buildSearchableOptions(
   productRunner: IntellijProductRunner,
   context: BuildContext,
   systemProperties: VmProperties = VmProperties(emptyMap()),

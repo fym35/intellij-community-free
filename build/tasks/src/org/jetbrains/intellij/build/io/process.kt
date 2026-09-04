@@ -8,7 +8,7 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.context.Context
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -59,7 +59,7 @@ fun runJava(
     .setAttribute(AttributeKey.stringArrayKey("jvmArgs"), jvmArgs)
     .setAttribute("workingDir", "$workingDir")
     .setAttribute("timeoutMillis", "$timeout")
-    .blockingUse { span ->
+    .use { span ->
       val toDelete = ArrayList<Path>(3)
       var process: Process? = null
       var failure: Throwable? = null
@@ -257,7 +257,7 @@ fun runProcess(
   spanBuilder(commandLine)
     .setAttribute("workingDir", "$workingDir")
     .setAttribute("timeoutMillis", "$timeout")
-    .blockingUse { span ->
+    .use { span ->
       var process: Process? = null
       val pumps = ArrayList<ProcessOutputPump>(2)
       var failure: Throwable? = null

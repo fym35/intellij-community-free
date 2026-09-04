@@ -28,8 +28,8 @@ import kotlin.time.Duration
  * The loader runs inside the single-flight computations of the caller, so a recursive [getOrPut] of the same key
  * fails fast.
  *
- * The loader runs on a thread of its own and carries no telemetry context. A loader that opens a span passes the
- * context of its first caller into the entry it runs. See `runBlockingOnVirtualThreads`.
+ * The loader runs on a thread of its own and carries no telemetry context. A loader that opens a span makes the
+ * context of its first caller current in the entry it runs.
  *
  * This prevents expensive repeated computations and thundering herd scenarios when
  * operations fail.
@@ -52,13 +52,9 @@ class AsyncCache<K : Any, V> {
     return sharedFuture(key, loader).await(timeout)
   }
 
-  /**
-   * The future of the shared computation of [key], for a caller that must wait without blocking its thread.
-   *
-   * A coroutine waits on it with `awaitShared` and stays cancellable. Every other caller uses [getOrPut].
-   */
+  /** The future of the shared computation of [key]. It starts the computation when no other caller has. */
   @Suppress("UNCHECKED_CAST")
-  fun sharedFuture(key: K, loader: () -> V): CompletableFuture<V> {
+  private fun sharedFuture(key: K, loader: () -> V): CompletableFuture<V> {
     while (true) {
       when (val existing = cache.get(key)) {
         is CachedValue<*> -> {

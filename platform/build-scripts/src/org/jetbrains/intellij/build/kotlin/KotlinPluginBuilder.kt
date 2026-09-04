@@ -138,7 +138,7 @@ abstract class KotlinPluginBuilder(val kind : KotlinPluginKind = System.getPrope
     }
   }
 
-  suspend fun build(home: Path, properties: ProductProperties) {
+  fun build(home: Path, properties: ProductProperties) {
     val context = createBuildContext(
       setupTracer = true,
       projectHome = home,

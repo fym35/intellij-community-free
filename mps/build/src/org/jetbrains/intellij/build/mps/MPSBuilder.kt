@@ -1,8 +1,5 @@
 package org.jetbrains.intellij.build.mps
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationTasks
@@ -53,45 +50,40 @@ class MPSBuilder {
                     scrambleTool = null, artifactsServer = null,
                     featureUsageStatisticsProperties = listOf(fusp), licenseServerHost = null
             )
-            @Suppress("RAW_RUN_BLOCKING")
-            runBlocking(Dispatchers.Default) {
 
-                val buildContext = BuildContextImpl.createContext(
-                    projectHome = home,
-                    productProperties = MPSProperties(),
-                    proprietaryBuildTools = buildTools,
-                    options = options
-                )
-                CompilationTasks.create(buildContext).compileAllModulesAndTests()
-                val binDir = buildContext.paths.distAllDir.resolve("bin");
+            val buildContext = BuildContextImpl.createContext(
+                projectHome = home,
+                productProperties = MPSProperties(),
+                proprietaryBuildTools = buildTools,
+                options = options
+            )
+            CompilationTasks.create(buildContext).compileAllModulesAndTests()
+            val binDir = buildContext.paths.distAllDir.resolve("bin");
 
-                val buildTasks = createBuildTasks(buildContext)
+            val buildTasks = createBuildTasks(buildContext)
 
-                buildTasks.buildDistributions()
+            buildTasks.buildDistributions()
 
-                copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.LINUX, JvmArchitecture.x64), binDir.resolve("linux/amd64"))
-                copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.LINUX, JvmArchitecture.aarch64), binDir.resolve("linux/aarch64"))
-                copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.MACOS, JvmArchitecture.x64), binDir.resolve("mac/amd64"))
-                copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.MACOS, JvmArchitecture.aarch64), binDir.resolve("mac/aarch64"))
+            copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.LINUX, JvmArchitecture.x64), binDir.resolve("linux/amd64"))
+            copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.LINUX, JvmArchitecture.aarch64), binDir.resolve("linux/aarch64"))
+            copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.MACOS, JvmArchitecture.x64), binDir.resolve("mac/amd64"))
+            copyFileToDir(NativeBinaryDownloader.getRestarter(buildContext, OsFamily.MACOS, JvmArchitecture.aarch64), binDir.resolve("mac/aarch64"))
 
-                val jpsArtifactDir = "${buildContext.paths.distAllDir}/lib/jps"
-                val jpsArtifactPath = Path.of(jpsArtifactDir)
+            val jpsArtifactDir = "${buildContext.paths.distAllDir}/lib/jps"
+            val jpsArtifactPath = Path.of(jpsArtifactDir)
 
-                withContext(Dispatchers.IO) {
-                    buildJar(
-                      targetFile = jpsArtifactPath.resolve("jps-build-test.jar"),
-                      moduleNames = listOf(
-                        "intellij.platform.jps.build.tests",
-                        "intellij.platform.jps.model.tests",
-                        "intellij.platform.jps.model.serialization.tests"
-                      ),
-                      context = buildContext,
-                      forTests = true
-                    )
-                  }
+            buildJar(
+              targetFile = jpsArtifactPath.resolve("jps-build-test.jar"),
+              moduleNames = listOf(
+                "intellij.platform.jps.build.tests",
+                "intellij.platform.jps.model.tests",
+                "intellij.platform.jps.model.serialization.tests"
+              ),
+              context = buildContext,
+              forTests = true
+            )
 
-                buildContext.notifyArtifactBuilt(jpsArtifactPath)
-            }
+            buildContext.notifyArtifactBuilt(jpsArtifactPath)
         }
     }
 }

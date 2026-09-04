@@ -13,10 +13,6 @@ import com.intellij.platform.pluginGraph.PluginGraph
 import com.intellij.platform.pluginGraph.PluginId
 import com.intellij.platform.pluginGraph.TargetDependencyScope
 import com.intellij.platform.pluginGraph.isSlashNotation
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
 import org.jetbrains.intellij.build.productLayout.debug
@@ -33,6 +29,8 @@ import org.jetbrains.intellij.build.productLayout.pipeline.Slots
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionType
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.util.isProductionRuntimeDependency
+import org.jetbrains.intellij.build.taskScope
+import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModuleDependency
@@ -77,8 +75,8 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
   override val id get() = NodeIds.CONTENT_MODULE_DEPS
   override val produces: Set<DataSlot<*>> get() = setOf(Slots.CONTENT_MODULE_PLAN)
 
-  override suspend fun execute(ctx: ComputeContext) {
-    coroutineScope {
+  override fun execute(ctx: ComputeContext) {
+    taskScope {
       val model = ctx.model
 
       // Process all content modules in parallel
@@ -92,8 +90,8 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
       // hasContentSource filters to modules declared in plugins/products/module-sets or test plugins
       // Each content module has ONE descriptor: regular modules have moduleName.xml,
       // test descriptor modules (foo._test) have foo._test.xml - these are separate content modules
-      val mainDescriptorJobs = ArrayList<Deferred<GenerationOutput>>()
-      val testDescriptorJobs = ArrayList<Deferred<GenerationOutput>>()
+      val mainDescriptorJobs = ArrayList<Subtask<GenerationOutput>>()
+      val testDescriptorJobs = ArrayList<Subtask<GenerationOutput>>()
 
       model.pluginGraph.query {
         contentModules { contentModule ->
@@ -106,7 +104,7 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
           val isTestDescriptorModule = contentModule.isTestDescriptor
 
           // Each content module has ONE descriptor - process uniformly
-          val job = async {
+          val job = fork("plan content module ${moduleName.value}") {
             val (plan, suppressibleError) = planContentModuleDependenciesWithBothSets(
               contentModuleName = moduleName,
               descriptorCache = model.descriptorCache,
@@ -130,11 +128,11 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
         }
       }
 
-      val mainOutputs = mainDescriptorJobs.awaitAll()
+      val mainOutputs = mainDescriptorJobs.map { it.join() }
       val mainPlans = mainOutputs.mapNotNull { it.plan }
       val mainErrors = mainOutputs.mapNotNull { it.suppressibleError }
 
-      val testOutputs = testDescriptorJobs.awaitAll()
+      val testOutputs = testDescriptorJobs.map { it.join() }
       val testDescriptorPlans = testOutputs.mapNotNull { it.plan }
       val testErrors = testOutputs.mapNotNull { it.suppressibleError }
 

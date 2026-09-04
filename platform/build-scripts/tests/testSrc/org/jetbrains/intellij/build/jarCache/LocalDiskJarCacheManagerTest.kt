@@ -1240,10 +1240,10 @@ internal class LocalDiskJarCacheManagerTest {
       digest.putString("test")
     }
 
-    override suspend fun produce(targetFile: Path) {
+    override fun produce(targetFile: Path) {
       produceCalls.incrementAndGet()
       if (produceDelayMs > 0) {
-        delay(produceDelayMs)
+        Thread.sleep(produceDelayMs)
       }
       Files.createDirectories(targetFile.parent)
       Files.writeString(targetFile, "payload")

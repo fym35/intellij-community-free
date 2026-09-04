@@ -142,7 +142,7 @@ class MacCustomizerBuilder @PublishedApi internal constructor(private val projec
   var extraExecutables: PersistentList<String> = persistentListOf()
 
   // Method override handlers (stored as lambdas)
-  private var copyAdditionalFilesHandler: (suspend (Path, JvmArchitecture, BuildContext) -> Unit)? = null
+  private var copyAdditionalFilesHandler: ((Path, JvmArchitecture, BuildContext) -> Unit)? = null
   private var rootDirectoryNameHandler: ((ApplicationInfoProperties, String) -> String)? = null
   private var customIdeaPropertiesHandler: ((ApplicationInfoProperties) -> Map<String, String>)? = null
   private var binariesToSignHandler: ((BuildContext, JvmArchitecture) -> List<String>)? = null
@@ -153,7 +153,7 @@ class MacCustomizerBuilder @PublishedApi internal constructor(private val projec
    * Gets the current copyAdditionalFiles handler for wrapping purposes.
    * @return the current handler, or `null` if none is set
    */
-  fun getCopyAdditionalFilesHandler(): (suspend (Path, JvmArchitecture, BuildContext) -> Unit)? = copyAdditionalFilesHandler
+  fun getCopyAdditionalFilesHandler(): ((Path, JvmArchitecture, BuildContext) -> Unit)? = copyAdditionalFilesHandler
 
   /**
    * Gets the current distributionUUID handler for checking if one is set.
@@ -167,7 +167,7 @@ class MacCustomizerBuilder @PublishedApi internal constructor(private val projec
    *
    * @see [ProductProperties.copyAdditionalOsSpecificFiles]
    */
-  fun copyAdditionalFiles(handler: suspend (targetDir: Path, arch: JvmArchitecture, context: BuildContext) -> Unit) {
+  fun copyAdditionalFiles(handler: (targetDir: Path, arch: JvmArchitecture, context: BuildContext) -> Unit) {
     copyAdditionalFilesHandler = handler
   }
 
@@ -248,7 +248,7 @@ class MacCustomizerBuilder @PublishedApi internal constructor(private val projec
       extraExecutables = builder.extraExecutables
     }
 
-    override suspend fun copyAdditionalFiles(context: BuildContext, targetDir: Path, arch: JvmArchitecture) {
+    override fun copyAdditionalFiles(context: BuildContext, targetDir: Path, arch: JvmArchitecture) {
       super.copyAdditionalFiles(context = context, targetDir = targetDir, arch = arch)
       context.productProperties.copyAdditionalOsSpecificFiles(targetDir, OsFamily.MACOS, arch, context)
       builder.copyAdditionalFilesHandler?.invoke(targetDir, arch, context)
@@ -414,7 +414,7 @@ open class MacDistributionCustomizer {
   /**
    * Override this method to copy additional files to the macOS distribution of the product.
    */
-  open suspend fun copyAdditionalFiles(context: BuildContext, targetDir: Path, arch: JvmArchitecture) {
+  open fun copyAdditionalFiles(context: BuildContext, targetDir: Path, arch: JvmArchitecture) {
     bundleRepairUtility(os = OsFamily.MACOS, arch = arch, distributionDir = targetDir, context = context)
   }
 

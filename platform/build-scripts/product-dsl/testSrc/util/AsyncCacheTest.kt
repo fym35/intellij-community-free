@@ -2,12 +2,9 @@
 package org.jetbrains.intellij.build.productLayout.util
 
 import com.intellij.util.ref.GCUtil
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
+import org.jetbrains.intellij.build.taskScope
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.lang.ref.WeakReference
@@ -43,12 +40,12 @@ class AsyncCacheTest {
 
   @Test
   fun `concurrent requests for same key share computation`() {
-    runBlockingOnVirtualThreads {
+    taskScope {
       val loadCount = AtomicInteger(0)
       val cache = AsyncCache<String, String>()
 
       val deferreds = (1..10).map {
-        async {
+        fork("cache access") {
           cache.getOrPut("shared-key") {
             loadCount.incrementAndGet()
             Thread.sleep(50)
@@ -57,7 +54,7 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.awaitAll()
+      val results = deferreds.map { it.join() }
 
       // All should get the same result
       assertThat(results).allMatch { it == "computed-value" }
@@ -128,11 +125,11 @@ class AsyncCacheTest {
 
   @Test
   fun `concurrent access with different keys works correctly`() {
-    runBlockingOnVirtualThreads {
+    taskScope {
       val cache = AsyncCache<Int, String>()
 
       val deferreds = (1..100).map { key ->
-        async {
+        fork("cache access") {
           cache.getOrPut(key) {
             Thread.sleep(10)
             "value-$key"
@@ -140,7 +137,7 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.awaitAll()
+      val results = deferreds.map { it.join() }
 
       // Each key should have its own value
       results.forEachIndexed { index, value ->
@@ -151,12 +148,12 @@ class AsyncCacheTest {
 
   @Test
   fun `failed computation with concurrent waiters - all see exception`() {
-    runBlockingOnVirtualThreads {
+    taskScope {
       val loadCount = AtomicInteger(0)
       val cache = AsyncCache<String, String>()
 
       val deferreds = (1..5).map {
-        async {
+        fork("cache access") {
           assertThatThrownBy {
             cache.getOrPut("failing-key") {
               val count = loadCount.incrementAndGet()
@@ -170,7 +167,7 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.awaitAll()
+      val results = deferreds.map { it.join() }
 
       // All concurrent requests should see the exception
       assertThat(results).allMatch { it == "caught-exception" }
@@ -230,18 +227,16 @@ class AsyncCacheTest {
   }
 
   @Test
-  fun `fails fast on child coroutine recursive await for same key`() {
+  fun `fails fast on a fork's recursive await for same key`() {
     val cache = AsyncCache<String, Int>()
 
     assertFailsFast {
       cache.getOrPut("loop", timeout = 10.seconds) {
-        // the guard travels into the coroutine, see `singleFlightContextElement`
-        runBlockingOnVirtualThreads {
-          coroutineScope {
-            async {
-              cache.getOrPut("loop", timeout = 10.seconds) { 42 }
-            }.await()
-          }
+        // the guard travels into the fork, see `TaskScope.fork`
+        taskScope {
+          fork("recursive load") {
+            cache.getOrPut("loop", timeout = 10.seconds) { 42 }
+          }.join()
         }
       }
     }

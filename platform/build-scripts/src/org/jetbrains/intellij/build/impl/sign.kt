@@ -24,7 +24,6 @@ import org.jetbrains.intellij.build.io.PackageIndexBuilder
 import org.jetbrains.intellij.build.io.WRITE_OPEN_OPTION
 import org.jetbrains.intellij.build.io.ZipEntryProcessorResult
 import org.jetbrains.intellij.build.io.readZipFile
-import org.jetbrains.intellij.build.io.suspendAwareReadZipFile
 import org.jetbrains.intellij.build.io.writeToFileChannelFully
 import org.jetbrains.intellij.build.io.writeZipUsingTempFile
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -50,7 +49,7 @@ internal fun isMacLibrary(name: String): Boolean =
   name.endsWith(".jnilib") || name.endsWith(".dylib") || name.endsWith(".so") || name.endsWith(".tbd")
 
 /** Signs the binaries under [root] and repacks the archives under it whose binaries are not signed. */
-internal suspend fun recursivelySignMacBinaries(
+internal fun recursivelySignMacBinaries(
   root: Path,
   context: BuildContext,
   executableFileMatchers: Collection<PathMatcher> = emptyList(),
@@ -90,11 +89,11 @@ internal suspend fun recursivelySignMacBinaries(
   }
 }
 
-private suspend fun signAndRepackZipIfMacSignaturesAreMissing(zip: Path, context: BuildContext) {
+private fun signAndRepackZipIfMacSignaturesAreMissing(zip: Path, context: BuildContext) {
   val filesToBeSigned = LinkedHashMap<String, Path>()
-  suspendAwareReadZipFile(zip) { name, dataSupplier ->
+  readZipFile(zip) { name, dataSupplier ->
     if (!isMacLibrary(name)) {
-      return@suspendAwareReadZipFile
+      return@readZipFile ZipEntryProcessorResult.CONTINUE
     }
 
     val data = dataSupplier()
@@ -111,6 +110,7 @@ private suspend fun signAndRepackZipIfMacSignaturesAreMissing(zip: Path, context
         filesToBeSigned[name] = fileToBeSigned
       }
     }
+    ZipEntryProcessorResult.CONTINUE
   }
 
   if (filesToBeSigned.isEmpty()) {
@@ -126,7 +126,7 @@ private suspend fun signAndRepackZipIfMacSignaturesAreMissing(zip: Path, context
   }
 }
 
-private suspend fun copyZipReplacing(origin: Path, entries: Map<String, Path>, context: BuildContext) {
+private fun copyZipReplacing(origin: Path, entries: Map<String, Path>, context: BuildContext) {
   spanBuilder("replacing unsigned entries in zip")
     .setAttribute("zip", origin.toString())
     .setAttribute(AttributeKey.stringArrayKey("unsigned"), entries.keys.toList())
@@ -162,7 +162,7 @@ internal fun macSigningOptions(contentType: String, context: BuildContext): Pers
   )
 }
 
-internal suspend fun signMacBinaries(
+internal fun signMacBinaries(
   files: List<Path>,
   context: BuildContext,
   additionalOptions: Map<String, String> = emptyMap(),

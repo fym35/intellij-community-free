@@ -66,7 +66,7 @@ internal fun partitionPluginsByBuildingMethod(pluginLayouts: Collection<PluginLa
   return PluginsSplitByBuildingMethod(pluginsToBuildByScripts, pluginsToBuildByBazel)
 }
 
-internal suspend fun buildPluginsByBazel(
+internal fun buildPluginsByBazel(
   plugins: List<PluginBuiltByBazelDescriptor>,
   targetDir: Path,
   descriptorCacheContainer: DescriptorCacheContainer,
@@ -225,7 +225,7 @@ internal fun computeSearchableOptionsInjections(
   return entriesByJar.map { SearchableOptionsInjection(it.key, it.value) }
 }
 
-private suspend fun getPluginId(mainModule: String, buildContext: BuildContext): String {
+private fun getPluginId(mainModule: String, buildContext: BuildContext): String {
   val module = buildContext.outputProvider.findRequiredModule(mainModule)
   return (buildContext as BuildContextImpl).jarPackagerDependencyHelper.getPluginIdByModule(module)
 }

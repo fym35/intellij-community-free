@@ -5,7 +5,6 @@ import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.buildCommunityStandaloneJpsBuilder
 import org.jetbrains.intellij.build.createCommunityBuildContext
 import org.jetbrains.intellij.build.impl.buildDistributions
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 
@@ -37,14 +36,12 @@ object OpenSourceCommunityInstallersBuildTarget {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    runBlockingOnVirtualThreads {
-      val options = OPTIONS.copy(buildStepsToSkip = OPTIONS.buildStepsToSkip + BUILD_STEPS_DISABLED_FOR_GITHUB_ACTIONS)
-      val context = createCommunityBuildContext(options)
-      context.compileModules(moduleNames = null, includingTestsInModules = listOf("intellij.platform.jps.build.tests"))
-      buildDistributions(context)
-      spanBuilder("build standalone JPS").use {
-        buildCommunityStandaloneJpsBuilder(targetDir = context.paths.artifactDir.resolve("jps"), context)
-      }
+    val options = OPTIONS.copy(buildStepsToSkip = OPTIONS.buildStepsToSkip + BUILD_STEPS_DISABLED_FOR_GITHUB_ACTIONS)
+    val context = createCommunityBuildContext(options)
+    context.compileModules(moduleNames = null, includingTestsInModules = listOf("intellij.platform.jps.build.tests"))
+    buildDistributions(context)
+    spanBuilder("build standalone JPS").use {
+      buildCommunityStandaloneJpsBuilder(targetDir = context.paths.artifactDir.resolve("jps"), context)
     }
   }
 }

@@ -24,7 +24,7 @@ import org.jetbrains.intellij.build.telemetry.use
 
 private const val CORE_PLUGIN_ID = "com.intellij"
 
-suspend fun collectCompatiblePluginsToPublish(pluginsToPublish: MutableSet<PluginLayout>, platformLayout: PlatformLayout, context: BuildContext) {
+fun collectCompatiblePluginsToPublish(pluginsToPublish: MutableSet<PluginLayout>, platformLayout: PlatformLayout, context: BuildContext) {
   val availableModulesAndPlugins = HashSet(collectBundledLayoutNames(platformLayout = platformLayout, context = context))
 
   val minimal = System.getProperty("intellij.build.minimal").toBoolean()
@@ -70,7 +70,7 @@ suspend fun collectCompatiblePluginsToPublish(pluginsToPublish: MutableSet<Plugi
  * The build reads every name from a declaration. It does not start the headless IDE for this answer any more.
  * The answer is now independent of the host OS. The IDE dropped each plugin that needs another OS.
  */
-suspend fun collectBundledLayoutNames(platformLayout: PlatformLayout, context: BuildContext): Set<String> {
+fun collectBundledLayoutNames(platformLayout: PlatformLayout, context: BuildContext): Set<String> {
   return spanBuilder("collect bundled layout names").use { span ->
     val result = LinkedHashSet<String>()
     result.add(CORE_PLUGIN_ID)
@@ -163,7 +163,7 @@ internal fun isPluginCompatible(
   return true
 }
 
-suspend fun collectPluginDescriptors(
+fun collectPluginDescriptors(
   skipImplementationDetails: Boolean,
   skipBundled: Boolean,
   honorCompatiblePluginsToIgnore: Boolean,

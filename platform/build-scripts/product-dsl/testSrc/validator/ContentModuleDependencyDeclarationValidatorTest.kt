@@ -333,7 +333,7 @@ private fun descriptor(
 /**
  * Writes each descriptor into the resource root of its own JPS module, then runs the rule on the built graph.
  */
-private suspend fun validate(
+private fun validate(
   tempDir: Path,
   descriptors: Map<String, String>,
   suppressionConfig: SuppressionConfig = SuppressionConfig(),

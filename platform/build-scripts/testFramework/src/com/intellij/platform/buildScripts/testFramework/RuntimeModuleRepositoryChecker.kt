@@ -17,7 +17,6 @@ import org.jetbrains.intellij.build.hasModuleOutputPath
 import org.jetbrains.intellij.build.impl.SUPPORTED_DISTRIBUTIONS
 import org.jetbrains.intellij.build.impl.getOsAndArchSpecificDistDirectory
 import org.jetbrains.intellij.build.impl.moduleRepository.MODULE_DESCRIPTORS_COMPACT_PATH
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
 import java.io.IOException
 import kotlin.io.path.exists
 import kotlin.io.path.pathString
@@ -318,8 +317,7 @@ private fun loadProductModules(productModulesModule: String, outputProvider: Mod
   val relativePath = "META-INF/$productModulesModule/product-modules.xml"
   val debugName = "($relativePath file in $productModulesModule)"
 
-  @Suppress("RAW_RUN_BLOCKING")
-  val content = runBlockingOnVirtualThreads {
+  val content = run {
     outputProvider.readFileContentFromModuleOutput(outputProvider.findRequiredModule(productModulesModule), relativePath)
   } ?: throw MalformedRepositoryException("File '$relativePath' is not found in module $productModulesModule output")
   try {

@@ -14,11 +14,9 @@ import com.jetbrains.JBR
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.sync.Mutex
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BUILD_CONCURRENCY
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildMessages
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildPaths
@@ -60,12 +58,15 @@ import org.jetbrains.jps.util.JpsPathUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Properties
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.locks.ReentrantLock
 import java.util.stream.Stream
+import kotlin.concurrent.withLock
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.relativeToOrNull
 
-suspend fun createCompilationContext(
+fun createCompilationContext(
   projectHome: Path,
   defaultOutputRoot: Path,
   options: BuildOptions = BuildOptions(),
@@ -94,7 +95,7 @@ internal fun computeBuildPaths(options: BuildOptions, buildOut: Path, projectHom
   return result
 }
 
-suspend fun createCompilationContext(
+fun createCompilationContext(
   projectHome: Path,
   buildOutputRootEvaluator: (JpsProject) -> Path,
   options: BuildOptions,
@@ -122,7 +123,7 @@ suspend fun createCompilationContext(
  * to abort the whole launch. JPS compilation has been unimplemented since MRI-3677 anyway.
  */
 @Internal
-suspend fun createDevBuildCompilationContext(
+fun createDevBuildCompilationContext(
   projectHome: Path,
   buildOutputRootEvaluator: (JpsProject) -> Path,
   options: BuildOptions,
@@ -141,7 +142,7 @@ suspend fun createDevBuildCompilationContext(
   )
 }
 
-private suspend fun doCreateCompilationContext(
+private fun doCreateCompilationContext(
   projectHome: Path,
   buildOutputRootEvaluator: (JpsProject) -> Path,
   options: BuildOptions,
@@ -277,7 +278,7 @@ class CompilationContextImpl internal constructor(
     }
   }
 
-  override suspend fun getStableJdkHome(): Path {
+  override fun getStableJdkHome(): Path {
     var jdkHome = cachedJdkHome
     if (jdkHome == null) {
       jdkHome = JdkDownloader.getJdkHome(COMMUNITY_ROOT, infoLog = Span.current()::addEvent)
@@ -286,13 +287,13 @@ class CompilationContextImpl internal constructor(
     return jdkHome
   }
 
-  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
+  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, lifetime: BuildLifetime?): CompilationContext {
     val copy = CompilationContextImpl(model = projectModel, messages = messages, paths = paths, options = options, outputProviderState = outputProviderState)
     copy.compilationData = compilationData
     return copy
   }
 
-  override suspend fun prepareForBuild() {
+  override fun prepareForBuild() {
     checkCompilationOptions(this)
 
     val logDir = paths.logDir
@@ -334,15 +335,16 @@ class CompilationContextImpl internal constructor(
     }
   }
 
-  private val compileMutex = Mutex()
+  /** One compilation at a time. A `ReentrantLock` lets a compilation that holds the lock ask for it again on its thread. */
+  private val compileLock = ReentrantLock()
 
-  override suspend fun withCompilationLock(block: suspend () -> Unit) {
-    compileMutex.withReentrantLock(block)
+  override fun withCompilationLock(block: () -> Unit) {
+    compileLock.withLock(block)
   }
 
-  override suspend fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
+  override fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
     spanBuilder("resolve dependencies and compile modules").use { span ->
-      compileMutex.withReentrantLock {
+      compileLock.withLock {
         resolveProjectDependencies(this@CompilationContextImpl)
         reuseOrCompile(moduleNames = moduleNames, includingTestsInModules = includingTestsInModules, span = span, context = this@CompilationContextImpl)
       }
@@ -360,7 +362,7 @@ class CompilationContextImpl internal constructor(
     Span.current().addEvent("set class output directory", Attributes.of(AttributeKey.stringKey("classOutputDirectory"), classesOutputDirectory.toString()))
   }
 
-  override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> {
+  override fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> {
     return JpsJavaExtensionService.dependencies(module).recursively()
       // if a project requires different SDKs, they all shouldn't be added to the test classpath
       .also { if (forTests) it.withoutSdk() }
@@ -413,7 +415,7 @@ ${dumpCoroutines()}
   }
 }
 
-private suspend fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinaries, isCompilationRequired: Boolean, mavenRepositoryPath: String): JpsModel {
+private fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinaries, isCompilationRequired: Boolean, mavenRepositoryPath: String): JpsModel {
   val model = JpsElementFactory.getInstance().createModel()
   val pathVariablesConfiguration = JpsModelSerializationDataService.getOrCreatePathVariablesConfiguration(model.global)
   if (isCompilationRequired) {
@@ -433,20 +435,26 @@ private suspend fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinarie
     pathVariablesConfiguration.addPathVariable("MAVEN_REPOSITORY", mavenRepositoryPath)
     val pathVariables = JpsModelSerializationDataService.computeAllPathVariables(model.global)
     // the loader submits two runnables per module, so the workers bound the parallelism and not the fork count
-    val tasks = Channel<Runnable>(Channel.UNLIMITED)
+    val tasks = LinkedBlockingQueue<Runnable>()
+    val endOfTasks = Runnable {}
     taskScope {
       repeat(BUILD_CONCURRENCY) { worker ->
         fork("loading project worker $worker") {
-          for (task in tasks) {
+          while (true) {
+            val task = tasks.take()
+            if (task === endOfTasks) {
+              break
+            }
             task.run()
           }
         }
       }
       try {
-        loadProject(model.project, pathVariables, JpsPathMapper.IDENTITY, projectHome, null, { task: Runnable -> tasks.trySend(task).getOrThrow() }, false)
+        loadProject(model.project, pathVariables, JpsPathMapper.IDENTITY, projectHome, null, { task: Runnable -> tasks.add(task) }, false)
       }
       finally {
-        tasks.close()
+        // one end marker per worker, so every worker ends
+        repeat(BUILD_CONCURRENCY) { tasks.add(endOfTasks) }
       }
     }
     span.setAllAttributes(
@@ -467,7 +475,7 @@ private fun suppressWarnings(project: JpsProject) {
   compilerOptions.ADDITIONAL_OPTIONS_STRING = compilerOptions.ADDITIONAL_OPTIONS_STRING.replace("-Xlint:unchecked", "")
 }
 
-private suspend fun defineJavaSdk(context: CompilationContext) {
+private fun defineJavaSdk(context: CompilationContext) {
   val homePath = context.getStableJdkHome()
   val jbrVersionName = "jbr-25"
   defineJdk(global = context.projectModel.global, jdkName = jbrVersionName, homeDir = homePath)
@@ -506,7 +514,7 @@ private fun readModulesFromReleaseFile(model: JpsModel, sdkName: String, sdkHome
   }
 }
 
-internal suspend fun cleanOutput(context: CompilationContext, keepCompilationState: Boolean) {
+internal fun cleanOutput(context: CompilationContext, keepCompilationState: Boolean) {
   val compilationState = setOf(
     context.compilationData.dataStorageRoot,
     context.classesOutputDirectory,
@@ -582,7 +590,7 @@ private fun printEnvironmentDebugInfo() {
   }
 }
 
-internal suspend fun resolveProjectDependencies(context: CompilationContext) {
+internal fun resolveProjectDependencies(context: CompilationContext) {
   if (context.compilationData.projectDependenciesResolved) {
     Span.current().addEvent("project dependencies are already resolved")
   }

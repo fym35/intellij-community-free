@@ -34,7 +34,7 @@ import org.jetbrains.intellij.build.productLayout.xml.visitAllModules
 internal object CommunityLibraryLicenseValidator : PipelineNode {
   override val id get() = NodeIds.COMMUNITY_LIBRARY_LICENSE_VALIDATION
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val licenses = model.config.communityLibraryLicenses
     // an empty license list turns the rule off

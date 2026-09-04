@@ -3,7 +3,6 @@ package org.jetbrains.intellij.build.jarCache
 
 import com.dynatrace.hash4j.hashing.HashStream64
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.intellij.build.InMemoryContentSource
@@ -18,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 internal class LocalDiskJarCacheCleanupTest {
@@ -1036,10 +1034,10 @@ internal class LocalDiskJarCacheCleanupTest {
       digest.putString("test")
     }
 
-    override suspend fun produce(targetFile: Path) {
+    override fun produce(targetFile: Path) {
       produceCalls.incrementAndGet()
       if (produceDelayMs > 0) {
-        delay(produceDelayMs.milliseconds)
+        Thread.sleep(produceDelayMs)
       }
       Files.createDirectories(targetFile.parent)
       Files.writeString(targetFile, "payload")

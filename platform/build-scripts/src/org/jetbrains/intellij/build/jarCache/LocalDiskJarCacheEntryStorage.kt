@@ -95,7 +95,7 @@ internal fun tryUseCacheEntry(
   return resolvedTarget
 }
 
-internal suspend fun produceAndCache(
+internal fun produceAndCache(
   paths: CacheEntryPaths,
   producer: SourceBuilder,
   targetFile: Path,

@@ -174,13 +174,13 @@ class MavenCentralPublication(
     }
   }
 
-  suspend fun execute() {
+  fun execute() {
     sign()
     val deploymentId = publish(bundle())
     if (deploymentId != null) wait(deploymentId)
   }
 
-  private suspend fun sign() {
+  private fun sign() {
     context.proprietaryBuildTools.signTool.signFilesWithGpg(
       artifacts.flatMap {
         it.distributionFiles - it.checksums.toSet()
@@ -195,7 +195,7 @@ class MavenCentralPublication(
     }
   }
 
-  private suspend fun generateOrVerifyChecksums() {
+  private fun generateOrVerifyChecksums() {
     val checksumAlgorithms = listOf(
       Checksums.Algorithm.SHA1,
       Checksums.Algorithm.SHA256,
@@ -224,7 +224,7 @@ class MavenCentralPublication(
   /**
    * https://central.sonatype.org/publish/publish-portal-upload/
    */
-  suspend fun bundle(): Path {
+  fun bundle(): Path {
     generateOrVerifyChecksums()
     return spanBuilder("creating a bundle").use {
       val bundle = workDir.resolve("bundle.zip")
@@ -249,10 +249,10 @@ class MavenCentralPublication(
     }
   }
 
-  private suspend fun <T> callSonatype(
+  private fun <T> callSonatype(
     uri: String,
-    builder: suspend (Request.Builder) -> Request.Builder,
-    action: suspend (Response) -> T,
+    builder: (Request.Builder) -> Request.Builder,
+    action: (Response) -> T,
   ): T {
     requireNotNull(userName) {
       "Please specify intellij.build.mavenCentral.userName system property"
@@ -282,7 +282,7 @@ class MavenCentralPublication(
       }
   }
 
-  private suspend fun publish(bundle: Path): String? {
+  private fun publish(bundle: Path): String? {
     return spanBuilder("publishing").setAttribute("bundle", "$bundle").use { span ->
       if (dryRun && userName == null && token == null) {
         span.addEvent("skipped in the dryRun mode")
@@ -315,7 +315,7 @@ class MavenCentralPublication(
   /**
    * @param deploymentId see https://central.sonatype.org/publish/publish-portal-api/#uploading-a-deployment-bundle
    */
-  private suspend fun wait(deploymentId: String) {
+  private fun wait(deploymentId: String) {
     spanBuilder("waiting").setAttribute("deploymentId", deploymentId).use { span ->
       val deadline = TimeSource.Monotonic.markNow() + DEPLOYMENT_TIMEOUT
       while (true) {

@@ -9,8 +9,6 @@ import com.intellij.platform.pluginGraph.PluginId
 import com.intellij.platform.pluginGraph.TargetName
 import com.intellij.platform.pluginGraph.contentName
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleVisibilityValue
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
 import org.jetbrains.intellij.build.productLayout.dependency.ModuleDescriptorCache
 import org.jetbrains.intellij.build.productLayout.model.error.ContentModuleDependencyDeclarationError
@@ -23,6 +21,7 @@ import org.jetbrains.intellij.build.productLayout.pipeline.GenerationModel
 import org.jetbrains.intellij.build.productLayout.pipeline.NodeIds
 import org.jetbrains.intellij.build.productLayout.pipeline.PipelineNode
 import org.jetbrains.intellij.build.productLayout.pipeline.Slots
+import org.jetbrains.intellij.build.taskScope
 import java.nio.file.Path
 
 /** `com.intellij.modules.java` is the old alias of the Java plugin. */
@@ -81,7 +80,7 @@ internal object ContentModuleDependencyDeclarationValidator : PipelineNode {
   // Requires CONTENT_MODULE_PLAN, so the descriptor cache is warm and the graph holds every module dependency edge.
   override val requires: Set<DataSlot<*>> get() = setOf(Slots.CONTENT_MODULE_PLAN)
 
-  override suspend fun execute(ctx: ComputeContext) {
+  override fun execute(ctx: ComputeContext) {
     val model = ctx.model
     val facts = collectGraphFacts(model.pluginGraph)
     if (facts.owners.isEmpty()) {
@@ -171,23 +170,23 @@ private class DescriptorData(
  * A plugin id resolves through an alias, and an alias comes from either kind of descriptor. So the pass must read
  * both kinds before the first check runs.
  */
-private suspend fun readDescriptors(model: GenerationModel, facts: GraphFacts): DescriptorData {
+private fun readDescriptors(model: GenerationModel, facts: GraphFacts): DescriptorData {
   val moduleNames = facts.owners.keys.toList()
-  return coroutineScope {
-    val descriptorTasks = moduleNames.map { name -> async { model.descriptorCache.getOrAnalyze(name.value) } }
-    val pluginTasks = facts.pluginTargets.map { target -> async { model.pluginContentCache.getOrExtract(target) } }
+  return taskScope {
+    val descriptorTasks = moduleNames.map { name -> fork("read descriptor ${name.value}") { model.descriptorCache.getOrAnalyze(name.value) } }
+    val pluginTasks = facts.pluginTargets.map { target -> fork("read plugin ${target.value}") { model.pluginContentCache.getOrExtract(target) } }
 
     val aliasIds = HashSet<PluginId>()
     val descriptors = HashMap<ContentModuleName, ModuleDescriptorCache.DescriptorInfo>(moduleNames.size)
     for ((index, task) in descriptorTasks.withIndex()) {
-      val descriptor = task.await() ?: continue
+      val descriptor = task.join() ?: continue
       descriptors.put(moduleNames[index], descriptor)
       for (alias in descriptor.pluginAliases) {
         aliasIds.add(PluginId(alias))
       }
     }
     for (task in pluginTasks) {
-      aliasIds.addAll(task.await()?.pluginAliases ?: emptyList())
+      aliasIds.addAll(task.join()?.pluginAliases ?: emptyList())
     }
 
     DescriptorData(descriptors = descriptors, aliasIds = aliasIds)

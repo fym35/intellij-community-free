@@ -20,7 +20,7 @@ import org.jetbrains.intellij.build.dependencies.DependenciesProperties
 import org.jetbrains.intellij.build.ResolvedDownload
 import org.jetbrains.intellij.build.resolveFileForReading
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -181,7 +181,7 @@ class BundledRuntimeImpl(
       .setAttribute("archive", archive.toString())
       .setAttribute("os", os.osName)
       .setAttribute("destination", destinationDir.toString())
-      .blockingUse {
+      .use {
         NioFiles.deleteRecursively(destinationDir)
         unTar(archive, destinationDir)
         fixPermissions(destinationDir, os == OsFamily.WINDOWS)

@@ -11,11 +11,11 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-class BlockingLazyTest {
+class SharedLazyTest {
   @Test
   fun computesValueOnceForConcurrentGetters() {
     val invocationCount = AtomicInteger()
-    val lazyValue = blockingLazy("test value") {
+    val lazyValue = sharedLazy("test value") {
       invocationCount.incrementAndGet()
       Thread.sleep(20)
       42
@@ -34,7 +34,7 @@ class BlockingLazyTest {
   @Test
   fun reusesInitializerFailure() {
     val invocationCount = AtomicInteger()
-    val lazyValue = blockingLazy<Int>("failing value") {
+    val lazyValue = sharedLazy<Int>("failing value") {
       invocationCount.incrementAndGet()
       error("boom")
     }
@@ -51,8 +51,8 @@ class BlockingLazyTest {
 
   @Test
   fun failsFastOnRecursiveGet() {
-    lateinit var lazyValue: BlockingLazy<Int>
-    lazyValue = blockingLazy("recursive value") {
+    lateinit var lazyValue: SharedLazy<Int>
+    lazyValue = sharedLazy("recursive value") {
       lazyValue.get()
     }
 
@@ -66,8 +66,8 @@ class BlockingLazyTest {
   /** The initializer runs on a thread of its own, so the lazy must pass the telemetry context of its first caller along. */
   @Test
   fun initializerSeesTheSpanOfTheFirstGetter() {
-    val tracer = SdkTracerProvider.builder().build().get("BlockingLazyTest")
-    val lazyValue = blockingLazy("traced value") {
+    val tracer = SdkTracerProvider.builder().build().get("SharedLazyTest")
+    val lazyValue = sharedLazy("traced value") {
       val child = tracer.spanBuilder("child").startSpan()
       child.end()
       (child as ReadableSpan).parentSpanContext

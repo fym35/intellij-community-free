@@ -97,14 +97,14 @@ internal class CleanupCandidateIndex(
   }
 }
 
-internal suspend fun cleanupLocalDiskJarCache(
+internal fun cleanupLocalDiskJarCache(
   entriesDir: Path,
   lastCleanupMarkerFile: Path,
   cleanupInterval: Duration,
   maxAccessTimeAge: Duration,
   cleanupCandidateIndex: CleanupCandidateIndex,
   metadataTouchTracker: MetadataTouchTracker,
-  withCacheEntryLock: suspend (Long, suspend () -> Unit) -> Unit,
+  withCacheEntryLock: (Long, () -> Unit) -> Unit,
 ) {
   try {
     if (!isTimeForCleanup(lastCleanupMarkerFile = lastCleanupMarkerFile, cleanupInterval = cleanupInterval)) {
@@ -196,13 +196,13 @@ private fun isTimeForCleanup(lastCleanupMarkerFile: Path, cleanupInterval: Durat
   return lastCleanupTime < (System.currentTimeMillis() - cleanupInterval.inWholeMilliseconds)
 }
 
-private suspend fun cleanupEntries(
+private fun cleanupEntries(
   entriesDir: Path,
   currentTime: Long,
   maxTimeMs: Long,
   cleanupCandidateIndex: CleanupCandidateIndex,
   metadataTouchTracker: MetadataTouchTracker,
-  withCacheEntryLock: suspend (Long, suspend () -> Unit) -> Unit,
+  withCacheEntryLock: (Long, () -> Unit) -> Unit,
 ) {
   val staleThreshold = currentTime - maxTimeMs
   val scanCursorFile = entriesDir.resolveSibling(cleanupScanCursorFileName)

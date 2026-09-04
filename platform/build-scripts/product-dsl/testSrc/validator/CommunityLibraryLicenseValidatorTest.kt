@@ -172,7 +172,7 @@ class CommunityLibraryLicenseValidatorTest {
     assertThat(errors).isEmpty()
   }
 
-  private suspend fun run(tempDir: Path, label: String, licenses: List<LibraryLicense>): List<ValidationError> {
+  private fun run(tempDir: Path, label: String, licenses: List<LibraryLicense>): List<ValidationError> {
     val jps = jpsProject(tempDir) {
       mavenLibrary("example-lib", groupId = "com.example", artifactId = "example-lib", version = "1.0")
       module("intellij.libraries.example") {
@@ -185,7 +185,7 @@ class CommunityLibraryLicenseValidatorTest {
     return runRule(jps.outputProvider, label, set, licenses)
   }
 
-  private suspend fun runRule(
+  private fun runRule(
     outputProvider: ModuleOutputProvider,
     label: String,
     set: ModuleSet,

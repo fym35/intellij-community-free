@@ -843,7 +843,7 @@ class TestPluginXmlGeneratorTest {
     }
   }
 
-  private suspend fun runPlannerAndGenerator(
+  private fun runPlannerAndGenerator(
     ctx: ComputeContextImpl,
     contentModulePlans: List<ContentModuleDependencyPlan> = emptyList(),
   ) {

@@ -1,10 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-@file:Suppress("RAW_RUN_BLOCKING")
 package org.jetbrains.intellij.build.devServer
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import org.jetbrains.intellij.build.runBlockingOnVirtualThreads
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
@@ -43,9 +39,9 @@ internal const val TRACE_FILE_OPTION: String = "--trace-file"
  * its file. That is also why the root span is opened here rather than by whatever the producer calls - a producer that
  * opened two of them would be two unrelated traces in one file.
  *
- * With a [traceFile], [withTracer] owns the exporter lifecycle: its span processor runs in a scope that is a child of
- * the `runBlocking` job, so the trace file is written, closed and complete by the time this returns, before the process
- * reports success. It also pins the exporter set to the console and the trace file - unlike `TraceManager`'s default
+ * With a [traceFile], [withTracer] owns the exporter lifecycle: its span processor runs in a scope that [withTracer]
+ * cancels when the block returns, so the trace file is written, closed and complete by the time this returns, before the
+ * process reports success. It also pins the exporter set to the console and the trace file - unlike `TraceManager`'s default
  * initializer, which adds an OTLP exporter as soon as `OTLP_ENDPOINT` is set, and these actions run with no network.
  *
  * Without one, each producer keeps the tracer it had before it could write a trace file - see
@@ -58,9 +54,9 @@ internal const val TRACE_FILE_OPTION: String = "--trace-file"
  * printed, and no exporter coroutine is started - which is what the three producers that never had a tracer did.
  *
  * What that branch preserves is *same outputs, same stdout, same exit code* - not "byte for byte what the main did
- * before". Wrapping the whole body widened `DevDistMain`'s `runBlockingOnVirtualThreads` from
- * `buildProductInProcess` to everything around it, so `materializeProjectModelTree`, the `println` and
- * `writeUnusedInputs` now run on a virtual thread rather than on the main thread. Nothing there is
+ * before". Wrapping the whole body widened the traced region of `DevDistMain` from `buildProductInProcess` to
+ * everything around it, so `materializeProjectModelTree`, the `println` and `writeUnusedInputs` now run inside the
+ * root span as well. Nothing there is
  * thread-affine, which is why it is fine; the stronger claim is not true and should not be repeated.
  *
  * The invariant is *unchanged when not measuring*, per producer, not *silent when not measuring*. Do not collapse the
@@ -77,7 +73,7 @@ internal fun runDevDistJob(
   traceFile: Path?,
   jobName: String,
   consoleSpansWhenNotMeasuring: Boolean = false,
-  block: suspend CoroutineScope.() -> Unit,
+  block: () -> Unit,
 ) {
   if (traceFile != null) {
     withTracer(serviceName = jobName, traceFile = traceFile) {
@@ -100,14 +96,9 @@ internal fun runDevDistJob(
     return
   }
 
-  runBlockingOnVirtualThreads {
-    if (consoleSpansWhenNotMeasuring) {
-      block()
-    }
-    else {
-      withoutTracer {
-        coroutineScope { block() }
-      }
-    }
+  if (consoleSpansWhenNotMeasuring) {
+    block()
+    return
   }
+  withoutTracer(block)
 }

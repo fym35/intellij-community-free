@@ -53,8 +53,8 @@ import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.util.SmartList
 import com.intellij.util.SystemProperties
 import com.intellij.util.lang.UrlClassLoader
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.java.JavaSourceRootType
@@ -82,9 +82,9 @@ class PluginDependenciesValidator private constructor(
   private val options: PluginDependenciesValidationOptions,
 ) {
   companion object {
-    private val pluginSetBuildMutex = Mutex()
+    private val pluginSetBuildLock = ReentrantLock()
 
-    suspend fun validatePluginDependencies(
+    fun validatePluginDependencies(
       project: JpsProject,
       productMode: ProductMode,
       pluginLayoutProvider: PluginLayoutProvider,
@@ -93,7 +93,7 @@ class PluginDependenciesValidator private constructor(
     ): List<PluginModuleConfigurationError> {
       val validator = PluginDependenciesValidator(tempDir = tempDir, project = project, productMode = productMode, pluginLayoutProvider = pluginLayoutProvider, options = options)
       val pluginSetTestBuilder = validator.createPluginSet()
-      val pluginSet = pluginSetBuildMutex.withLock { pluginSetTestBuilder.build() }
+      val pluginSet = pluginSetBuildLock.withLock { pluginSetTestBuilder.build() }
       validator.reportPluginLoadingErrors(pluginSet)
       validator.checkPluginSet(pluginSet)
       return validator.errors

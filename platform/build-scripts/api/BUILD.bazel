@@ -23,8 +23,8 @@ jvm_library(
         "//platform/build-scripts/downloader",
         "//jps/model-api:model",
         "//platform/util/zip",
-        "//libraries/kotlinx/coroutines/core",
         "@community//build:zip",
+        "//libraries/opentelemetry",
     ],
 )
 
@@ -47,8 +47,8 @@ jvm_library(
         "//platform/build-scripts/downloader:downloader_test_lib",
         "//jps/model-api:model_test_lib",
         "//platform/util/zip:zip_test_lib",
-        "//libraries/kotlinx/coroutines/core:core_test_lib",
         "@community//build:zip_test_lib",
+        "//libraries/opentelemetry:opentelemetry_test_lib",
     ],
 )
 ### auto-generated section `build intellij.platform.buildScripts.api` end

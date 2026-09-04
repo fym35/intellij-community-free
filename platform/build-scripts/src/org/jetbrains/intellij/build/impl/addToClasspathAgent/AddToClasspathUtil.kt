@@ -15,7 +15,7 @@ import kotlin.io.path.absolutePathString
 object AddToClasspathUtil {
   private var addStackTrace: Throwable? = null
 
-  suspend fun addToClassPathViaAgent(additionalClassPath: List<Path>) {
+  fun addToClassPathViaAgent(additionalClassPath: List<Path>) {
     require(additionalClassPath.isNotEmpty())
 
     if (addStackTrace != null) {

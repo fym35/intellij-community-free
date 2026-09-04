@@ -5,14 +5,11 @@ package org.jetbrains.intellij.build.impl.support
 
 import com.intellij.openapi.util.SystemInfoRt
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions.Companion.REPAIR_UTILITY_BUNDLE_STEP
 import org.jetbrains.intellij.build.checkRecursiveSingleFlightAwait
+import org.jetbrains.intellij.build.currentSingleFlightOwners
 import org.jetbrains.intellij.build.JvmArchitecture
 import org.jetbrains.intellij.build.JvmArchitecture.Companion.currentJvmArch
 import org.jetbrains.intellij.build.OsFamily
@@ -22,9 +19,10 @@ import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.Docker
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder
 import org.jetbrains.intellij.build.io.runProcess
+import org.jetbrains.intellij.build.joinShared
 import org.jetbrains.intellij.build.retryWithExponentialBackOff
-import org.jetbrains.intellij.build.singleFlightComputationContext
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
+import org.jetbrains.intellij.build.withSingleFlightOwners
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
@@ -38,6 +36,7 @@ import java.nio.file.attribute.PosixFilePermission.OWNER_READ
 import java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
 import java.util.UUID
 import java.util.WeakHashMap
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.minutes
@@ -56,7 +55,7 @@ import kotlin.time.Duration.Companion.minutes
  * Note: Bash and Docker are required to build the utility.
  * </p>
  */
-suspend fun bundleRepairUtility(os: OsFamily, arch: JvmArchitecture, distributionDir: Path, context: BuildContext) {
+fun bundleRepairUtility(os: OsFamily, arch: JvmArchitecture, distributionDir: Path, context: BuildContext) {
   context.executeStep(spanBuilder("bundle repair-utility").setAttribute("os", os.osName), REPAIR_UTILITY_BUNDLE_STEP) {
     if (!canBinariesBeBuilt(context)) {
       return@executeStep
@@ -75,7 +74,7 @@ suspend fun bundleRepairUtility(os: OsFamily, arch: JvmArchitecture, distributio
   }
 }
 
-suspend fun generateInstallationIntegrityManifest(unpackedDistribution: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext) {
+fun generateInstallationIntegrityManifest(unpackedDistribution: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext) {
   context.executeStep(
     spanBuilder("generate installation integrity manifest")
       .setAttribute("dir", unpackedDistribution.toString()), REPAIR_UTILITY_BUNDLE_STEP
@@ -127,9 +126,6 @@ object RepairUtilityBuilder {
 /** One `build.sh` at a time, on the thread that runs it: the body blocks and never suspends. */
 private val buildLock = ReentrantLock()
 
-// AsyncCache is not a fit here: this process-level cache must not keep BuildContext instances alive
-// across repeated in-process builds, and the build must stay attached to the caller coroutine
-// instead of a detached cache scope.
 private val binaryCache = BuildContextSingleFlightCache(
   operationName = "build repair-utility",
   loader = ::buildBinaries,
@@ -144,7 +140,7 @@ private val binaries: List<Binary> = listOf(
   Binary(OsFamily.MACOS, JvmArchitecture.aarch64, "bin/repair-darwin-arm64", "bin/repair", "darwin_arm64_url"),
 )
 
-private suspend fun getBinaryCache(context: BuildContext): Map<Binary, Path> = binaryCache.getOrLoad(context)
+private fun getBinaryCache(context: BuildContext): Map<Binary, Path> = binaryCache.getOrLoad(context)
 
 private fun findBinary(os: OsFamily, arch: JvmArchitecture): Binary {
   val binary = binaries.find { it.os == os && it.arch == arch }
@@ -174,7 +170,7 @@ private fun baseArtifactName(context: BuildContext): String {
   return "${context.applicationInfo.productCode}-${context.buildNumber}"
 }
 
-private suspend fun buildBinaries(context: BuildContext): Map<Binary, Path> {
+private fun buildBinaries(context: BuildContext): Map<Binary, Path> {
   return spanBuilder("build repair-utility").use {
     val projectHome = repairUtilityProjectHome(context) ?: return@use emptyMap()
     try {
@@ -234,22 +230,28 @@ private class Binary(
     }
 }
 
+/**
+ * One value per build context, computed by the first caller on its own thread and shared with every other caller.
+ *
+ * `AsyncCache` is not a fit here: this process-level cache must not keep `BuildContext` instances alive across repeated
+ * in-process builds, and the computation stays on the thread of the caller instead of a thread of its own.
+ */
 @ApiStatus.Internal
 class BuildContextSingleFlightCache<V>(
   private val operationName: String,
-  private val loader: suspend (BuildContext) -> V,
+  private val loader: (BuildContext) -> V,
 ) {
-  private val lock = Mutex()
+  private val lock = ReentrantLock()
   private val cache = WeakHashMap<BuildContext, CacheEntry<V>>()
 
-  suspend fun getOrLoad(context: BuildContext): V {
+  fun getOrLoad(context: BuildContext): V {
     val (entry, isOwner) = lock.withLock {
       cache.get(context)?.let {
         return@withLock it to false
       }
 
       val created = CacheEntry(
-        result = CompletableDeferred<V>(),
+        result = CompletableFuture<V>(),
         owner = Any(),
       )
       cache.put(context, created)
@@ -257,21 +259,21 @@ class BuildContextSingleFlightCache<V>(
     }
 
     if (!isOwner) {
-      checkRecursiveSingleFlightAwait(entry.owner, operationName, completed = entry.result.isCompleted)
-      return entry.result.await()
+      checkRecursiveSingleFlightAwait(entry.owner, operationName, completed = entry.result.isDone)
+      return entry.result.joinShared()
     }
 
     try {
-      entry.result.complete(withContext(singleFlightComputationContext(entry.owner)) { loader(context) })
+      entry.result.complete(withSingleFlightOwners(inherited = currentSingleFlightOwners(), owner = entry.owner) { loader(context) })
     }
     catch (t: Throwable) {
       entry.result.completeExceptionally(t)
     }
-    return entry.result.await()
+    return entry.result.joinShared()
   }
 
   private class CacheEntry<V>(
-    val result: CompletableDeferred<V>,
+    val result: CompletableFuture<V>,
     val owner: Any,
   )
 }

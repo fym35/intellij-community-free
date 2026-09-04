@@ -3,8 +3,8 @@
 
 package org.jetbrains.intellij.build.productRunner
 
-import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.VmProperties
 import org.jetbrains.intellij.build.checkForNoDiskSpace
 import org.jetbrains.intellij.build.dev.BuildRequest
@@ -26,7 +26,7 @@ import kotlin.time.Duration
  * Only for use in build scripts, not for dev mode / integrations tests.
  * Use [BuildContext.createProductRunner] instead of calling this function directly.
  */
-internal suspend fun createDevModeProductRunner(context: BuildContextImpl, additionalPluginModules: List<String> = emptyList()): IntellijProductRunner {
+internal fun createDevModeProductRunner(context: BuildContextImpl, additionalPluginModules: List<String> = emptyList()): IntellijProductRunner {
   var newClassPath: Collection<Path>? = null
   return checkForNoDiskSpace(context) {
     val request = BuildRequest(
@@ -46,8 +46,8 @@ internal suspend fun createDevModeProductRunner(context: BuildContextImpl, addit
       },
       isBootClassPathCorrect = true,
     )
-    val runDir = buildProduct(request) { buildDir ->
-      createBuildContextFromExistingContext(baseContext = context, request = request, buildDir = buildDir, scope = this)
+    val runDir = buildProduct(request) { buildDir, lifetime ->
+      createBuildContextFromExistingContext(baseContext = context, request = request, buildDir = buildDir, lifetime = lifetime)
     }
     DevModeProductRunner(context = context, homePath = runDir, classPath = newClassPath!!.map { it.toString() })
   }
@@ -57,7 +57,7 @@ private fun createBuildContextFromExistingContext(
   baseContext: BuildContextImpl,
   request: BuildRequest,
   buildDir: Path,
-  scope: CoroutineScope,
+  lifetime: BuildLifetime,
 ): BuildContext {
   val options = baseContext.options.copyWithDevBuildOverrides(
     request = request,
@@ -78,8 +78,8 @@ private fun createBuildContextFromExistingContext(
   BuildMessagesHandler.initLoggingIfNeeded(messages)
 
   val compilationContext = normalizeCompilationContextForBuild(
-    context = baseContext.compilationContext.createCopy(messages = messages, options = options, paths = buildPaths, scope = scope),
-    scope = scope,
+    context = baseContext.compilationContext.createCopy(messages = messages, options = options, paths = buildPaths, lifetime = lifetime),
+    lifetime = lifetime,
   )
   return createDevBuildContext(
     compilationContext = compilationContext,
@@ -93,7 +93,7 @@ private class DevModeProductRunner(
   private val homePath: Path,
   private val classPath: Collection<String>,
 ) : IntellijProductRunner {
-  override suspend fun runProduct(args: List<String>, additionalVmProperties: VmProperties, timeout: Duration) {
+  override fun runProduct(args: List<String>, additionalVmProperties: VmProperties, timeout: Duration) {
     val vmOptionsFromBuild = readVmOptions(homePath)
     val appStarterId = args.firstOrNull() ?: "appStarter"
     doRunApplicationStarter(

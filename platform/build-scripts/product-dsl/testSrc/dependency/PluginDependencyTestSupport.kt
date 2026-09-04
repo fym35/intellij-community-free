@@ -11,10 +11,6 @@ import com.intellij.platform.pluginGraph.TargetName
 import com.intellij.platform.pluginGraph.contentName
 import com.intellij.platform.pluginGraph.isSlashNotation
 import com.intellij.platform.pluginSystem.parser.impl.parseContentAndXIncludes
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.findFileInModuleSources
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
@@ -47,6 +43,7 @@ import org.jetbrains.intellij.build.productLayout.validator.ContentModulePluginD
 import org.jetbrains.intellij.build.productLayout.validator.PluginContentDependencyValidator
 import org.jetbrains.intellij.build.productLayout.xml.extractDependenciesEntries
 import org.jetbrains.intellij.build.productLayout.xml.updateXmlDependencies
+import org.jetbrains.intellij.build.mapConcurrent
 import java.nio.file.Files
 
 /**
@@ -61,7 +58,7 @@ import java.nio.file.Files
  *
  * For more control, use [generatePluginDependencies] directly.
  */
-internal suspend fun PluginTestSetupContext.generateDependencies(
+internal fun PluginTestSetupContext.generateDependencies(
   plugins: List<String>,
   suppressionConfig: SuppressionConfig = SuppressionConfig(),
   testFrameworkContentModules: Set<ContentModuleName> = emptySet(),
@@ -99,7 +96,7 @@ internal suspend fun PluginTestSetupContext.generateDependencies(
  * [org.jetbrains.intellij.build.productLayout.validator.PluginContentDependencyValidator] and
  * [org.jetbrains.intellij.build.productLayout.validator.ContentModulePluginDependencyValidator].
  */
-internal suspend fun generatePluginDependencies(
+internal fun generatePluginDependencies(
   plugins: List<String>,
   pluginContentCache: PluginContentProvider,
   testSetup: PluginTestSetupContext,
@@ -113,9 +110,9 @@ internal suspend fun generatePluginDependencies(
   productAllowedMissing: Map<String, Set<ContentModuleName>> = emptyMap(),
   updateSuppressions: Boolean = false,
 ): PluginDependencyGenerationResult {
-  return coroutineScope {
+  return run {
     if (plugins.isEmpty()) {
-      return@coroutineScope PluginDependencyGenerationResult(emptyList())
+      return@run PluginDependencyGenerationResult(emptyList())
     }
 
     val outputProvider = testSetup.jps.outputProvider
@@ -125,9 +122,9 @@ internal suspend fun generatePluginDependencies(
       .associateBy { it.pluginContentModuleName.value }
     val actionGroupProviderModules = buildActionGroupProviderModules(graph = graph, descriptorCache = descriptorCache)
 
-    val generationOutputs = plugins.map { pluginModuleName ->
-      async {
-        val graphDeps = pluginGraphDeps.get(pluginModuleName) ?: return@async null
+    val generationOutputs = plugins.mapConcurrent { pluginModuleName ->
+      run {
+        val graphDeps = pluginGraphDeps.get(pluginModuleName) ?: return@mapConcurrent null
         generatePluginDependency(
           pluginModuleName = TargetName(pluginModuleName),
           graphDeps = graphDeps,
@@ -143,7 +140,7 @@ internal suspend fun generatePluginDependencies(
           testContentModuleCache = testContentModuleCache,
         )
       }
-    }.awaitAll().filterNotNull()
+    }.filterNotNull()
 
     val generationResults = generationOutputs.map { it.fileResult }
 
@@ -169,7 +166,6 @@ internal suspend fun generatePluginDependencies(
     val validationCache = buildValidationCache(
       outputProvider = outputProvider,
       pluginContentInfos = testSetup.pluginContentInfos,
-      scope = this,
     )
     val validationExceptions = contentModuleAllowedMissingPluginDeps.mapValues { (_, plugins) ->
       ValidationException(allowMissingPlugins = plugins)
@@ -222,7 +218,7 @@ private data class PluginDependencyGenerationOutput(
 
 // ========== Private helpers ==========
 
-private suspend fun generatePluginDependency(
+private fun generatePluginDependency(
   pluginModuleName: TargetName,
   graphDeps: PluginGraphDeps,
   pluginContentCache: PluginContentProvider,
@@ -476,11 +472,9 @@ private fun generateTestDescriptorDependencies(
   )
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun buildValidationCache(
   outputProvider: ModuleOutputProvider,
   pluginContentInfos: Map<String, PluginContentInfo>,
-  scope: CoroutineScope,
 ): PluginContentCache {
   val cache = PluginContentCache(
     outputProvider = outputProvider,

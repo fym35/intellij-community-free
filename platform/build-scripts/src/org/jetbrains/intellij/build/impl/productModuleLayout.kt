@@ -22,7 +22,7 @@ import org.jetbrains.intellij.build.productLayout.buildProductContentXml
 import org.jetbrains.jps.model.java.JavaSourceRootType
 
 // result _must be_ consistent, do not use Set.of or HashSet here
-internal suspend fun processAndGetProductPluginContentModules(
+internal fun processAndGetProductPluginContentModules(
   layout: PlatformLayout,
   descriptorCache: ScopedCachedDescriptorContainer,
   includedPlatformModulesPartialList: Collection<String>,
@@ -146,11 +146,11 @@ private fun collectContentModules(
   return result
 }
 
-internal suspend fun filterAndProcessContentModules(
+internal fun filterAndProcessContentModules(
   rootElement: Element,
   pluginMainModuleName: String?,
   context: BuildContext,
-  contentHandler: suspend (moduleElement: Element, moduleName: String, loadingRule: String?) -> Unit,
+  contentHandler: (moduleElement: Element, moduleName: String, loadingRule: String?) -> Unit,
 ) {
   for (module in collectContentModules(rootElement = rootElement, pluginMainModuleName = pluginMainModuleName, context = context)) {
     contentHandler(module.element, module.name, module.loadingRule)

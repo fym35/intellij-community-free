@@ -10,15 +10,9 @@ import com.intellij.util.lang.PathClassLoader
 import com.intellij.util.lang.UrlClassLoader
 import io.opentelemetry.api.trace.Tracer
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationContext
@@ -32,6 +26,7 @@ import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.ScrambleTool
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
+import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.classPath.contentModuleJarCoreClasspathEntries
@@ -67,6 +62,7 @@ import org.jetbrains.intellij.build.jarCache.NonCachingJarCacheManager
 import org.jetbrains.intellij.build.normalizeCompiledClassesOptions
 import org.jetbrains.intellij.build.productLayout.discovery.ProductConfiguration
 import org.jetbrains.intellij.build.readSearchableOptionIndex
+import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.io.ByteArrayOutputStream
@@ -215,23 +211,27 @@ internal fun resolveProjectClassesOutputDirectory(request: BuildRequest, buildOp
   return request.classesOutputDirectory ?: buildOptionsTemplate.classOutDir?.let { Path.of(it) } ?: defaultClassesOutputDirectory(request.projectDir)
 }
 
-internal suspend fun buildProductFromProject(
+internal fun buildProductFromProject(
   request: BuildRequest,
   productConfiguration: ProductConfiguration,
   buildOptionsTemplate: BuildOptions,
 ): Path {
-  return buildProduct(request = request) { buildDir ->
+  return buildProduct(request = request) { buildDir, lifetime ->
     createBuildContextFromProject(
       productConfiguration = productConfiguration,
       request = request,
       buildDir = buildDir,
       buildOptionsTemplate = buildOptionsTemplate,
-      scope = this,
+      lifetime = lifetime,
     )
   }
 }
 
-internal suspend fun buildProduct(request: BuildRequest, createBuildContext: suspend CoroutineScope.(buildDir: Path) -> BuildContext): Path {
+/**
+ * Assembles the distribution and blocks until it is complete. The steps are a group of forks, and the lifetime that
+ * [createBuildContext] gets owns the caches of the context for the time of the assembly.
+ */
+internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: Path, lifetime: BuildLifetime) -> BuildContext): Path {
   check(request.fragment.isComplete || request.scrambleTool == null) {
     "Split dev distribution assembly does not support scrambling"
   }
@@ -239,10 +239,11 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
   request.scratchDir?.let { prepareScratchDir(it) }
 
   val runDir = buildDir
+  val lifetime = BuildLifetime()
   var contextToClose: BuildContext? = null
   try {
-    coroutineScope {
-      val context = createBuildContext(buildDir)
+    taskScope {
+      val context = createBuildContext(buildDir, lifetime)
       contextToClose = context
       // Must precede layout: dev mode uses cache payload paths directly on the classpath,
       // so a concurrent cleanup can delete a payload after layout captures its path,
@@ -253,7 +254,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
       val moduleOutputPatcher = ModuleOutputPatcher()
 
       val platformLayout = if (request.fragment.ownsPlatformJars || request.fragment.ownsPlugins || request.fragment.platformResources) {
-        async(CoroutineName("create platform layout")) {
+        fork("create platform layout") {
           spanBuilder("create platform layout").use {
             createPlatformLayout(context)
           }
@@ -262,14 +263,14 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
       else null
 
       val searchableOptionSetDeferred = if (request.fragment.ownsPlatformJars || request.fragment.ownsPlugins) {
-        async(CoroutineName("read searchable options")) {
+        fork("read searchable options") {
           getSearchableOptionSet(context)
         }
       }
       else null
 
       val platformResourcesJob = if (request.fragment.platformResources) {
-        launch(CoroutineName("layout platform resources")) {
+        fork("layout platform resources") {
           // Product metadata, like `bin/product-info.json` below - and so owned by this fragment alone. It used to be
           // written while laying out the platform jars, which the lib-owning fragment and the reference target both
           // do, and each producer then claimed the same file.
@@ -303,16 +304,16 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
       }
       else null
 
-      val platformLayoutResultDeferred: Deferred<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
-        CompletableDeferred(PlatformLayoutResult(distributionEntries = emptyList(), coreClassPath = emptySet()))
+      val platformLayoutResultDeferred: Subtask<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
+        Subtask.completed(PlatformLayoutResult(distributionEntries = emptyList(), coreClassPath = emptySet()))
       }
-      else async(CoroutineName("platform distribution entries")) {
-        val platformLayoutAwaited = checkNotNull(platformLayout).await()
+      else fork("platform distribution entries") {
+        val platformLayoutAwaited = checkNotNull(platformLayout).join()
         spanBuilder("layout platform").use {
           layoutPlatform(
             runDir = runDir,
             platformLayout = platformLayoutAwaited,
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
             context = context,
             moduleOutputPatcher = moduleOutputPatcher,
             request = request,
@@ -330,14 +331,14 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         // Lay out ALL plugins early (no scrambling). The platform ZKM run below scrambles
         // co-scramble plugin jars in the same call and needs every plugin's lib/modules on its
         // scramble classpath; per-plugin scramble runs after platform scramble.
-        async(CoroutineName("lay out plugins")) {
+        fork("lay out plugins") {
           layoutAllPluginsForDevMode(
             request = request,
             pluginLayouts = pluginLayouts,
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
           )
         }
       }
@@ -345,18 +346,18 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         null
       }
 
-      val platformScrambleResultDeferred: Deferred<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
+      val platformScrambleResultDeferred: Subtask<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
         platformLayoutResultDeferred
       }
-      else async(CoroutineName("scramble platform")) {
-        val platformLayoutResult = platformLayoutResultDeferred.await()
+      else fork("scramble platform") {
+        val platformLayoutResult = platformLayoutResultDeferred.join()
         if (context.productProperties.scrambleMainJar) {
           request.scrambleTool?.let { scrambleTool ->
             spanBuilder("scramble platform").use {
-              val buildResults = pluginsBuildResultsDeferred?.await().orEmpty()
+              val buildResults = pluginsBuildResultsDeferred?.join().orEmpty()
               val coScrambleEntries = if (buildResults.isEmpty()) emptyList() else collectCoScrambleEntries(buildResults, layoutsOfPluginsToScramble = layoutsOfPluginsToScramble)
               scrambleTool.scramble(
-                platformLayout = checkNotNull(platformLayout).await(),
+                platformLayout = checkNotNull(platformLayout).join(),
                 platformContent = platformLayoutResult.distributionEntries,
                 coScrambleEntries = coScrambleEntries,
                 // Skip the per-plugin lib/ walk when nothing opts in — pure platform scramble doesn't
@@ -370,19 +371,19 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         platformLayoutResult
       }
 
-      val pluginDistributionEntriesDeferred: Deferred<PluginsLayoutResult> = if (!request.fragment.ownsPlugins) {
-        CompletableDeferred(PluginsLayoutResult(pluginEntries = emptyList(), additionalPlugins = null))
+      val pluginDistributionEntriesDeferred: Subtask<PluginsLayoutResult> = if (!request.fragment.ownsPlugins) {
+        Subtask.completed(PluginsLayoutResult(pluginEntries = emptyList(), additionalPlugins = null))
       }
-      else async(CoroutineName("scramble plugins")) {
+      else fork("scramble plugins") {
         if (pluginBuildStrategy == DevModePluginBuildStrategy.LAYOUT_BEFORE_PLATFORM_SCRAMBLE) {
           scrambleAlreadyLaidOutPluginsForDevMode(
             request = request,
-            descriptors = checkNotNull(pluginsBuildResultsDeferred).await(),
+            descriptors = checkNotNull(pluginsBuildResultsDeferred).join(),
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
             layoutsOfPluginsToScramble = layoutsOfPluginsToScramble,
-            platformEntriesProvider = { platformScrambleResultDeferred.await().distributionEntries },
+            platformEntriesProvider = { platformScrambleResultDeferred.join().distributionEntries },
           )
         }
         else {
@@ -392,17 +393,17 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
-          ) { platformScrambleResultDeferred.await().distributionEntries }
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
+          ) { platformScrambleResultDeferred.join().distributionEntries }
         }
       }
 
-      val coreClassPathDeferred = async(CoroutineName("compute core classpath")) {
-        val platformClasspath = platformLayoutResultDeferred.await().coreClassPath
+      val coreClassPathDeferred = fork("compute core classpath") {
+        val platformClasspath = platformLayoutResultDeferred.join().coreClassPath
         val coreClasspathFromPlugins = if (request.fragment.ownsPlugins) {
           generateCoreClasspathFromPlugins(
-            platformLayout = checkNotNull(platformLayout).await(),
-            pluginBuildResults = pluginDistributionEntriesDeferred.await().pluginEntries,
+            platformLayout = checkNotNull(platformLayout).join(),
+            pluginBuildResults = pluginDistributionEntriesDeferred.join().pluginEntries,
             context = context,
           )
         }
@@ -411,8 +412,8 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
       }
 
       // Write and publish the one classpath computation shared with the component manifest below.
-      launch(CoroutineName("publish core classpath")) {
-        val classPath = coreClassPathDeferred.await()
+      fork("publish core classpath") {
+        val classPath = coreClassPathDeferred.join()
         if (request.writeCoreClasspath && request.fragment.isComplete) {
           val classPathString = formatCoreClasspath(classPath = classPath, runDir = runDir)
           Files.writeString(runDir.resolve("core-classpath.txt"), classPathString)
@@ -421,11 +422,11 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         request.platformClassPathConsumer?.invoke(context.ideMainClassName, classPath, runDir)
       }
 
-      val postProcessJob = launch(CoroutineName("post-process distribution")) {
+      val postProcessJob = fork("post-process distribution") {
         // ensure platform dist files added to the list
-        val platformFileEntries = platformScrambleResultDeferred.await().distributionEntries
+        val platformFileEntries = platformScrambleResultDeferred.join().distributionEntries
         // ensure plugin dist files added to the list
-        val pluginDistributionEntries = pluginDistributionEntriesDeferred.await()
+        val pluginDistributionEntries = pluginDistributionEntriesDeferred.join()
         request.componentOutput?.prepackedPluginContentPlacementFile?.let { placementFile ->
           writePrepackedPluginContentPlacement(
             file = placementFile,
@@ -433,9 +434,9 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
             runDir = runDir,
           )
         }
-        val platformLayoutAwaited = platformLayout?.await()
+        val platformLayoutAwaited = platformLayout?.join()
 
-        val pluginClasspathJob = if (request.fragment.ownsPlugins) launch {
+        val pluginClasspathJob = if (request.fragment.ownsPlugins) fork("generate plugin classpath") {
           val (pluginEntries, additionalEntries) = pluginDistributionEntries
           val requiredPlatformLayout = checkNotNull(platformLayoutAwaited)
           val cachedDescriptorContainer = requiredPlatformLayout.descriptorCacheContainer
@@ -477,7 +478,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         else null
 
         request.componentOutput?.pluginClasspathPrefixFile?.let { prefixFile ->
-          launch(CoroutineName("write plugin classpath prefix")) {
+          fork("write plugin classpath prefix") {
             val requiredPlatformLayout = checkNotNull(platformLayoutAwaited) {
               "The '${request.fragment}' fragment must lay out the platform to describe the product"
             }
@@ -497,7 +498,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         }
 
         if (context.generateRuntimeModuleRepository && request.fragment.isComplete) {
-          launch(CoroutineName("generate runtime repository")) {
+          fork("generate runtime repository") {
             val contentReport = ContentReport(
               platform = platformFileEntries,
               bundledPlugins = pluginDistributionEntries.pluginEntries,
@@ -539,7 +540,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         )
       }
 
-      launch(CoroutineName("compute IDE fingerprint")) {
+      fork("compute IDE fingerprint") {
         // The component manifest inventories the finished tree, including DistFiles and semantic archive links. It
         // must therefore run after every post-processing child has completed, not merely after jars were laid out.
         postProcessJob.join()
@@ -552,7 +553,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
           )
         }
         else {
-          val pluginsResult = pluginDistributionEntriesDeferred.await()
+          val pluginsResult = pluginDistributionEntriesDeferred.join()
           writeDevBuildComponentManifest(
             file = checkNotNull(request.componentOutput).manifestFile,
             kind = request.fragment.name,
@@ -561,7 +562,7 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
             arch = request.arch,
             additionalModules = if (request.fragment.ownsPlugins) request.additionalModules else emptyList(),
             mainClass = context.ideMainClassName,
-            coreClassPath = coreClassPathDeferred.await(),
+            coreClassPath = coreClassPathDeferred.join(),
             pluginCount = pluginsResult.pluginEntries.size + (pluginsResult.additionalPlugins?.size ?: 0),
             componentRoot = runDir,
           )
@@ -570,6 +571,8 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
     }
   }
   finally {
+    // the cached module output archives end with the assembly
+    lifetime.close()
     // close debug logging to prevent locking of the output directory on Windows
     contextToClose?.messages?.close()
   }
@@ -649,7 +652,7 @@ internal fun prepareOverriddenRunDir(runDir: Path): Path {
 }
 
 /** Derives the run directory name from the request and clears stale content from it. */
-private suspend fun prepareDevRunDir(request: BuildRequest): Path {
+private fun prepareDevRunDir(request: BuildRequest): Path {
   val requestedRootDir = request.devRootDir
   // if symlinked to RAM disk, use a real path for performance reasons and avoid any issues in ant/other code.
   // toRealPath must be called only on an existing file
@@ -707,7 +710,7 @@ private suspend fun prepareDevRunDir(request: BuildRequest): Path {
  *
  * Returns the copied files, which the caller must keep out of the sweep that deletes whatever else is in `bin`.
  */
-private suspend fun layOutNativeBinFiles(
+private fun layOutNativeBinFiles(
   osDistributionBuilder: OsSpecificDistributionBuilder,
   binDir: Path,
   runDir: Path,
@@ -732,14 +735,14 @@ internal fun formatCoreClasspath(classPath: Collection<Path>, runDir: Path): Str
   }
 }
 
-private suspend fun computeIdeFingerprint(
-  platformDistributionEntriesDeferred: Deferred<PlatformLayoutResult>,
-  pluginDistributionEntriesDeferred: Deferred<PluginsLayoutResult>,
+private fun computeIdeFingerprint(
+  platformDistributionEntriesDeferred: Subtask<PlatformLayoutResult>,
+  pluginDistributionEntriesDeferred: Subtask<PluginsLayoutResult>,
   runDir: Path,
   projectDir: Path,
 ) {
-  val entries = platformDistributionEntriesDeferred.await().distributionEntries.asSequence() +
-                pluginDistributionEntriesDeferred.await().pluginEntries.asSequence().flatMap { it.distribution.asSequence() }
+  val entries = platformDistributionEntriesDeferred.join().distributionEntries.asSequence() +
+                pluginDistributionEntriesDeferred.join().pluginEntries.asSequence().flatMap { it.distribution.asSequence() }
   writeIdeFingerprint(entries = entries, runDir = runDir, projectDir = projectDir)
 }
 
@@ -752,12 +755,12 @@ private fun getSearchableOptionSet(context: CompilationContext): SearchableOptio
   }
 }
 
-private suspend fun createBuildContextFromProject(
+private fun createBuildContextFromProject(
   productConfiguration: ProductConfiguration,
   request: BuildRequest,
   buildDir: Path,
   buildOptionsTemplate: BuildOptions,
-  scope: CoroutineScope,
+  lifetime: BuildLifetime,
 ): BuildContext {
   val options = createProjectDevBuildOptions(request = request, buildDir = buildDir, buildOptionsTemplate = buildOptionsTemplate)
 
@@ -774,7 +777,7 @@ private suspend fun createBuildContextFromProject(
       options = options,
       customBuildPaths = buildPaths,
     ),
-    scope = scope,
+    lifetime = lifetime,
     isBazelBacked = isDevBuildBazelBacked(),
   )
   val productProperties = createProductProperties(
@@ -921,7 +924,7 @@ internal fun createDevBuildContext(
   )
 }
 
-internal suspend fun createProductProperties(
+internal fun createProductProperties(
   productConfiguration: ProductConfiguration,
   outputProvider: ModuleOutputProvider,
   projectDir: Path,
@@ -988,7 +991,7 @@ private data class PlatformLayoutResult(
   @JvmField val coreClassPath: Set<Path>,
 )
 
-private suspend fun layoutPlatform(
+private fun layoutPlatform(
   runDir: Path,
   platformLayout: PlatformLayout,
   searchableOptionSet: SearchableOptionSetDescriptor?,

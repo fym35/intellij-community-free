@@ -4,12 +4,11 @@
 package org.jetbrains.intellij.build.productLayout.tooling
 
 import com.intellij.platform.pluginGraph.PluginGraph
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.intellij.build.productLayout.traversal.collectModuleSetModuleNames
 import org.jetbrains.intellij.build.productLayout.traversal.collectProductModuleSetNames
 import org.jetbrains.intellij.build.productLayout.traversal.findModuleSetInclusionChain
 import org.jetbrains.intellij.build.productLayout.traversal.isModuleSetTransitivelyNested
+import org.jetbrains.intellij.build.taskScope
 
 /**
  * Index for O(1) lookup of products by module set name.
@@ -52,7 +51,7 @@ internal class ProductModuleSetIndex(products: List<ProductSpec>, pluginGraph: P
  * @param strategy Filter by strategy: "merge", "inline", "factor", "split", or "all"
  * @return List of suggestions sorted by priority
  */
-internal suspend fun suggestModuleSetUnification(
+internal fun suggestModuleSetUnification(
   allModuleSets: List<ModuleSetMetadata>,
   products: List<ProductSpec>,
   overlaps: List<ModuleSetOverlap>,
@@ -61,29 +60,29 @@ internal suspend fun suggestModuleSetUnification(
   maxSuggestions: Int = 10,
   strategy: String = "all"
 ): List<UnificationSuggestion> {
-  return coroutineScope {
+  return taskScope {
     // Build index for O(1) product lookups
     val productIndex = ProductModuleSetIndex(products, pluginGraph)
 
     // Run all 4 strategies in parallel
-    val mergeJob = async {
+    val mergeJob = fork("merge suggestions") {
       if (strategy == "merge" || strategy == "all") computeMergeSuggestions(overlaps) else emptyList()
     }
 
-    val inlineJob = async {
+    val inlineJob = fork("inline suggestions") {
       if (strategy == "inline" || strategy == "all") computeInlineSuggestions(allModuleSets, productIndex, pluginGraph) else emptyList()
     }
 
-    val factorJob = async {
+    val factorJob = fork("factor suggestions") {
       if (strategy == "factor" || strategy == "all") computeFactorSuggestions(similarityPairs) else emptyList()
     }
 
-    val splitJob = async {
+    val splitJob = fork("split suggestions") {
       if (strategy == "split" || strategy == "all") computeSplitSuggestions(allModuleSets, pluginGraph) else emptyList()
     }
 
     // Await all and flatten
-    val suggestions = mergeJob.await() + inlineJob.await() + factorJob.await() + splitJob.await()
+    val suggestions = mergeJob.join() + inlineJob.join() + factorJob.join() + splitJob.join()
 
     // Remove duplicates and sort by priority
     val uniqueSuggestions = ArrayList<UnificationSuggestion>()

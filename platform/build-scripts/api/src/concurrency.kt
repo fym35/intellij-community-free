@@ -1,11 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
+
+/** The number of workers of a fan-out in the build. A caller that runs its own workers bounds them with it too. */
+@ApiStatus.Internal
+val BUILD_CONCURRENCY: Int = (Runtime.getRuntime().availableProcessors() * 2).coerceIn(4, 16)
 
 /**
  * Runs [action] with one permit of the semaphore, and returns the permit when [action] ends.
@@ -24,20 +26,16 @@ inline fun <T> Semaphore.withPermit(action: () -> T): T {
   }
 }
 
-/** The number of workers of a fan-out in the build. A caller that runs its own workers bounds them with it too. */
-@ApiStatus.Internal
-val BUILD_CONCURRENCY: Int = (Runtime.getRuntime().availableProcessors() * 2).coerceIn(4, 16)
-
 /**
- * Runs [action] for every item on up to [concurrency] virtual threads, and waits for all of them.
+ * Runs [action] for every item on up to [concurrency] virtual threads, and blocks until all of them have ended.
  *
  * The first failure cancels the other workers and is rethrown. A worker is a virtual thread, so a blocking action
- * occupies no dispatcher thread. Build-scripts internal; not part of the public build API.
+ * occupies no other thread. Build-scripts internal; not part of the public build API.
  */
 @ApiStatus.Internal
-suspend fun <T> Collection<T>.forEachConcurrent(
+fun <T> Collection<T>.forEachConcurrent(
   concurrency: Int = BUILD_CONCURRENCY,
-  action: suspend (T) -> Unit,
+  action: (T) -> Unit,
 ) {
   runOnVirtualThreads(items = asList(), concurrency = concurrency) { _, item -> action(item) }
 }
@@ -48,9 +46,9 @@ suspend fun <T> Collection<T>.forEachConcurrent(
  * The first failure cancels the other workers and is rethrown. See [forEachConcurrent].
  */
 @ApiStatus.Internal
-suspend fun <T, R> Collection<T>.mapConcurrent(
+fun <T, R> Collection<T>.mapConcurrent(
   concurrency: Int = BUILD_CONCURRENCY,
-  action: suspend (T) -> R,
+  action: (T) -> R,
 ): List<R> {
   val items = asList()
   val result = arrayOfNulls<Any?>(items.size)
@@ -64,13 +62,13 @@ private fun <T> Collection<T>.asList(): List<T> = this as? List<T> ?: toList()
 /**
  * The workers take the next index from a shared counter, so a slow item holds one worker and not a fixed chunk.
  */
-private suspend fun <T> runOnVirtualThreads(items: List<T>, concurrency: Int, action: suspend (Int, T) -> Unit) {
+private fun <T> runOnVirtualThreads(items: List<T>, concurrency: Int, action: (Int, T) -> Unit) {
   require(concurrency > 0) { "Concurrency must be positive, but was $concurrency" }
   if (items.isEmpty()) {
     return
   }
 
-  val name = currentCoroutineContext()[CoroutineName]?.name ?: "concurrent"
+  val name = Thread.currentThread().name.ifEmpty { "concurrent" }
   val nextIndex = AtomicInteger()
   taskScope {
     repeat(minOf(concurrency, items.size)) { worker ->

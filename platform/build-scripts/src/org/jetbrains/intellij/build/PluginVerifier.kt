@@ -50,7 +50,7 @@ class PluginVerifier internal constructor(
   val errorHandler: (exception: String) -> Unit,
 ) {
 
-  suspend fun verify(
+  fun verify(
     homeDir: Path,
     reportDir: Path,
     plugin: VerifierPluginInfo,

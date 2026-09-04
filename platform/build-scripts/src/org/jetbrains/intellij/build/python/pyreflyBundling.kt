@@ -50,7 +50,7 @@ internal fun PluginLayout.PluginLayoutSpec.withBundledPyrefly() {
 
 private fun isPyreflyBundlingEnabled(): Boolean = System.getProperty(PYREFLY_BUNDLE_ENABLED_PROPERTY).toBoolean()
 
-private suspend fun copyPyreflyLicenseReport(targetDir: Path, context: BuildContext) {
+private fun copyPyreflyLicenseReport(targetDir: Path, context: BuildContext) {
   val licenseDir = downloadPyrefly(context, PYREFLY_LICENSE_ARTIFACT_ID).resolve("license")
   check(Files.isDirectory(licenseDir)) {
     "Pyrefly license report is missing from the archive: $licenseDir"
@@ -59,7 +59,7 @@ private suspend fun copyPyreflyLicenseReport(targetDir: Path, context: BuildCont
   copyDir(sourceDir = licenseDir, targetDir = targetDir.resolve(PYREFLY_DIR_NAME).resolve("license"))
 }
 
-private suspend fun copyPyreflyBinary(targetDir: Path, context: BuildContext, os: OsFamily, arch: JvmArchitecture) {
+private fun copyPyreflyBinary(targetDir: Path, context: BuildContext, os: OsFamily, arch: JvmArchitecture) {
   val platformDirName = pyreflyPlatformDirName(os, arch)
   val platformDir = downloadPyrefly(context, pyreflyArtifactId(platformDirName)).resolve(platformDirName)
   val binary = platformDir.resolve(os.binaryName(PYREFLY_BINARY_NAME))
@@ -70,7 +70,7 @@ private suspend fun copyPyreflyBinary(targetDir: Path, context: BuildContext, os
   copyFileToDir(binary, targetDir.resolve(PYREFLY_DIR_NAME))
 }
 
-private suspend fun downloadPyrefly(context: BuildContext, artifactId: String): Path {
+private fun downloadPyrefly(context: BuildContext, artifactId: String): Path {
   val communityRoot = context.paths.communityHomeDirRoot
   val version = context.dependenciesProperties.property(PYREFLY_VERSION_PROPERTY)
   val uri = BuildDependenciesDownloader.getUriForMavenArtifact(INTELLIJ_DEPENDENCIES_URL, PYREFLY_GROUP_ID, artifactId, version, PYREFLY_PACKAGING)

@@ -4,7 +4,7 @@ package org.jetbrains.intellij.build.dev
 import io.opentelemetry.api.trace.Span
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.blockingUse
+import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.invariantSeparatorsPathString
@@ -22,7 +22,7 @@ import kotlin.io.path.invariantSeparatorsPathString
  */
 @ApiStatus.Internal
 fun collectPrepackedPluginContentJars(pluginJarsFile: Path, placementFiles: List<Path>): List<DevBuildComponentSourcedFile> {
-  return spanBuilder("collect prepacked plugin content jars").blockingUse { span ->
+  return spanBuilder("collect prepacked plugin content jars").use { span ->
     collectPrepackedPluginContentJars(
       pluginJarsFile = pluginJarsFile,
       placementFiles = placementFiles,

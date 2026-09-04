@@ -5,9 +5,8 @@ package org.jetbrains.intellij.build.jarCache
 
 import com.dynatrace.hash4j.hashing.Hashing
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.sync.withLock
 import org.jetbrains.intellij.build.Source
-import org.jetbrains.intellij.build.StripedMutex
+import org.jetbrains.intellij.build.StripedLock
 import org.jetbrains.intellij.build.ZipSource
 import org.jetbrains.intellij.build.createSourceAndCacheStrategyList
 import java.nio.file.Files
@@ -15,7 +14,7 @@ import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
-private val keyLocks = StripedMutex(256)
+private val keyLocks = StripedLock(256)
 // Bump this version when build scripts semantics affecting cache contents change.
 private const val CACHE_VERSION = 1
 
@@ -59,7 +58,7 @@ class LocalDiskJarCacheManager(
     )
   }
 
-  override suspend fun cleanup() {
+  override fun cleanup() {
     cleanupLocalDiskJarCache(
       entriesDir = entriesDir,
       lastCleanupMarkerFile = lastCleanupMarkerFile,
@@ -71,7 +70,7 @@ class LocalDiskJarCacheManager(
     )
   }
 
-  override suspend fun computeIfAbsent(
+  override fun computeIfAbsent(
     sources: Collection<Source>,
     targetFile: Path,
     nativeFiles: MutableMap<ZipSource, List<String>>?,
@@ -146,7 +145,7 @@ class LocalDiskJarCacheManager(
     }
   }
 
-  private suspend fun <T> withCacheEntryLock(lockHash: Long, task: suspend () -> T): T {
-    return keyLocks.getLockByHash(lockHash).withLock { task() }
+  private fun <T> withCacheEntryLock(lockHash: Long, task: () -> T): T {
+    return keyLocks.withLockByHash(lockHash, task)
   }
 }

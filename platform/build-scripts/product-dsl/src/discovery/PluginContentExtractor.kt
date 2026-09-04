@@ -174,8 +174,7 @@ internal fun extractLegacyDepends(content: String): List<LegacyDepends> {
  *               should use [computePluginContentFromDslSpec] instead of this function.
  * @param errorSink Sink for emitting xi:include resolution errors
  */
-@Suppress("BlockingMethodInNonBlockingContext") // the build runs on virtual threads
-internal suspend fun extractPluginContent(
+internal fun extractPluginContent(
   pluginName: String,
   outputProvider: ModuleOutputProvider,
   xIncludeCache: AsyncCache<String, ByteArray?>,
@@ -267,7 +266,7 @@ private class ExtractedContent(
  * Tracks deps per-file (main file + xi:includes) via [FileDepInfo] to support proper detection
  * of existing deps in xi:included files.
  */
-private suspend fun extractContentModules(
+private fun extractContentModules(
   input: ByteArray,
   skipXIncludePaths: Set<String>,
   xIncludeResolver: (path: String) -> ByteArray?,

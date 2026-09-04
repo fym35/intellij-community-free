@@ -177,7 +177,7 @@ fun orderCoreClasspathEntries(entries: Collection<String>): List<String> {
  * This generation is based on the plugins' distribution,
  * so we would like to include all distribution entities of **embedded** modules (and their libraries) from plugins marked with `use-idea-classloader`.
  */
-internal suspend fun generateCoreClasspathFromPlugins(
+internal fun generateCoreClasspathFromPlugins(
   platformLayout: PlatformLayout,
   pluginBuildResults: List<PluginBuildResult>,
   context: BuildContext,
@@ -207,7 +207,7 @@ internal suspend fun generateCoreClasspathFromPlugins(
  * Provides a set of content modules ("embedded" ones) and the module of the plugin itself, if it uses `use-idea-classloader`.
  * These modules should be included in the core classpath, also their libraries should be treated as platform libraries.
  */
-internal suspend fun getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(
+internal fun getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(
   pluginMainModule: String,
   cacheContainer: ScopedCachedDescriptorContainer?,
   context: BuildContext,
@@ -384,7 +384,7 @@ internal fun mergePrepackedIntoAssetOrder(
 }
 
 @Suppress("BlockingMethodInNonBlockingContext")
-internal suspend fun generatePluginClassPath(
+internal fun generatePluginClassPath(
   pluginEntries: List<PluginBuildResult>,
   descriptorFileProvider: DescriptorCacheContainer,
   platformLayout: PlatformLayout,

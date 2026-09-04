@@ -1,6 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ReplacePutWithAssignment", "ReplaceGetOrSet")
-@file:OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
 
 package org.jetbrains.intellij.build.productLayout.dependency
 
@@ -11,7 +10,6 @@ import com.intellij.platform.pluginGraph.PluginId
 import com.intellij.platform.pluginGraph.PluginModuleId
 import com.intellij.platform.pluginGraph.TargetName
 import com.intellij.platform.pluginGraph.contentName
-import kotlinx.coroutines.GlobalScope
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
@@ -593,7 +591,7 @@ internal class PluginTestSetupContext(
 internal class StubPluginContentCache(
   private val knownPlugins: Map<String, PluginContentInfo>,
 ) : PluginContentProvider {
-  override suspend fun getOrExtract(pluginModule: TargetName): PluginContentInfo? {
+  override fun getOrExtract(pluginModule: TargetName): PluginContentInfo? {
     return knownPlugins.get(pluginModule.value)
   }
 
@@ -868,7 +866,6 @@ internal fun testGenerationModel(
     pluginContentCache = effectivePluginContentCache,
     fileUpdater = effectiveFileUpdater,
     generatedArtifactWritePolicy = GeneratedArtifactWritePolicy(generationMode, effectiveFileUpdater),
-    scope = GlobalScope,
     pluginGraph = pluginGraph,
     dslTestPluginsByProduct = dslTestPluginsByProduct,
     dslTestPluginDependencyChains = emptyMap(),
@@ -892,7 +889,7 @@ internal fun testGenerationModel(
  * Automatically initializes required slots with empty data for validation-only nodes.
  * Use slotOverrides to publish specific slot outputs instead of empty defaults.
  */
-internal suspend fun runValidationRule(
+internal fun runValidationRule(
   rule: PipelineNode,
   model: GenerationModel,
   slotOverrides: Map<DataSlot<*>, Any> = emptyMap(),
