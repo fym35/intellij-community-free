@@ -13,4 +13,9 @@ public class MockDumbUtil implements DumbUtil {
   public boolean mayUseIndices(@NotNull Project project) {
     return true;
   }
+
+  @Override
+  public String chooseDumbModeMessage(@NotNull String nonLightModeMessage, @NotNull String lightModeMessage) {
+    return nonLightModeMessage;
+  }
 }

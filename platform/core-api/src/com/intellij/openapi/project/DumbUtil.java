@@ -3,6 +3,7 @@ package com.intellij.openapi.project;
 
 import com.intellij.openapi.application.ApplicationManager;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 @ApiStatus.Internal
@@ -17,4 +18,28 @@ public interface DumbUtil {
    * {@link com.intellij.util.indexing.FileBasedIndex#ignoreDumbMode} was used
    */
   boolean mayUseIndices(@NotNull Project project);
+
+  /**
+   * Chooses a dumb mode message for the current product mode.
+   *
+   * @param nonLightModeMessage the message for modes other than Light mode
+   * @param lightModeMessage the message for Light mode
+   * @return the message for the current product mode
+   */
+  @Nls
+  String chooseDumbModeMessage(@NotNull @Nls String nonLightModeMessage,
+                               @NotNull @Nls String lightModeMessage);
+
+  /**
+   * Returns a dumb mode message for the current product mode.
+   *
+   * @param nonLightModeMessage the message for modes other than Light mode
+   * @param lightModeMessage the message for Light mode
+   * @return the message for the current product mode
+   * @see #chooseDumbModeMessage(String, String)
+   */
+  static @Nls String dumbModeMessage(@NotNull @Nls String nonLightModeMessage,
+                                     @NotNull @Nls String lightModeMessage) {
+    return getInstance().chooseDumbModeMessage(nonLightModeMessage, lightModeMessage);
+  }
 }
