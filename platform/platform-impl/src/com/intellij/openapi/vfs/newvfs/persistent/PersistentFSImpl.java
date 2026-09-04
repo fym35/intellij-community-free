@@ -2028,10 +2028,13 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
     if (attributes == null || !attributes.isDirectory()) {
       return null;
     }
-    // assume roots have the FS default case sensitivity (TODO RC: which may not be the case!)
-    attributes = attributes.withCaseSensitivity(
-      CaseSensitivity.fromBoolean(fs.isCaseSensitive())
-    );
+    // A root can report its actual case sensitivity in the attributes (e.g. a remote root, stat'ed over Eel).
+    // Keep the reported value: the FS default describes the local OS, not the machine the root lives on.
+    if (attributes.areChildrenCaseSensitive().isUnknown()) {
+      attributes = attributes.withCaseSensitivity(
+        CaseSensitivity.fromBoolean(fs.isCaseSensitive())
+      );
+    }
 
     FSRecordsImpl vfsPeer = this.vfsPeer;//local copy
     int rootId = vfsPeer.findOrCreateRootRecord(rootUrl);
