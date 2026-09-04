@@ -839,8 +839,8 @@
     <projectService serviceInterface="com.intellij.openapi.project.IncompleteDependenciesService"
                     serviceImplementation="com.intellij.openapi.project.IncompleteDependenciesServiceImpl"/>
     <statistics.counterUsagesCollector implementationClass="com.intellij.openapi.project.DumbModeBlockedFunctionalityCollector"/>
-    <projectService serviceInterface="com.intellij.openapi.project.DumbUtil"
-                    serviceImplementation="com.intellij.openapi.project.DumbUtilImpl"/>
+    <applicationService serviceInterface="com.intellij.openapi.project.DumbUtil"
+                        serviceImplementation="com.intellij.openapi.project.DumbUtilImpl"/>
     <projectService serviceInterface="com.intellij.openapi.project.ProjectReloadState"
                     serviceImplementation="com.intellij.openapi.project.impl.ProjectReloadStateImpl"/>
     <backgroundPostStartupActivity implementation="com.intellij.openapi.project.impl.ProjectRootsSynchronizer"/>

@@ -8,15 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 @ApiStatus.Internal
 public final class DumbUtilImpl implements DumbUtil {
-  private final Project myProject;
-
-  public DumbUtilImpl(@NotNull Project project) {
-    myProject = project;
-  }
 
   @Override
-  public boolean mayUseIndices() {
-    return !DumbService.getInstance(myProject).isDumb() || FileBasedIndex.getInstance().getCurrentDumbModeAccessType(myProject) != null;
+  public boolean mayUseIndices(@NotNull Project project) {
+    return !DumbService.getInstance(project).isDumb() || FileBasedIndex.getInstance().getCurrentDumbModeAccessType(project) != null;
   }
 
   public static void waitForSmartMode(@Nullable Project project) {
