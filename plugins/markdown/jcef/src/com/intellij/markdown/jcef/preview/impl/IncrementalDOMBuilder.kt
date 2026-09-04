@@ -25,6 +25,7 @@ class IncrementalDOMBuilder(
   html: String,
   private val sourceFile: VirtualFile?,
   private val imageResourceProvider: ResourceProvider? = null,
+  private val previewResourceProvider: ResourceProvider? = null,
 ) {
 
   private val document = Jsoup.parse(html, createSelfClosingSpanAwareParser())
@@ -105,6 +106,10 @@ class IncrementalDOMBuilder(
    * Points the `src` of an image node at [imageResourceProvider], which resolves it later.
    *
    * This needs no path of the document, and a Remote Development frontend has none.
+   *
+   * [previewResourceProvider] holds the images that the preview adds itself, such as an alert
+   * icon and a run icon. Their `src` names a resource of the preview, not a file beside the
+   * document, so it stays as it is.
    */
   private fun preprocessNode(node: Node): Node {
     stripReferrerPolicy(node)
@@ -114,6 +119,9 @@ class IncrementalDOMBuilder(
     }
     val source = node.attr("src")
     if (source.isEmpty() || MarkdownImagePathResolver.isBrowserOwned(source)) {
+      return node
+    }
+    if (previewResourceProvider?.canProvide(source) == true) {
       return node
     }
     try {

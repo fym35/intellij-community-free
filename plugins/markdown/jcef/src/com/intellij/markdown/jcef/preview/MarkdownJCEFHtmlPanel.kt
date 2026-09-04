@@ -55,12 +55,12 @@ import org.intellij.plugins.markdown.settings.MarkdownPreviewSettings
 import org.intellij.plugins.markdown.ui.preview.BrowserPipe
 import org.intellij.plugins.markdown.ui.preview.MarkdownHtmlPanel
 import org.intellij.plugins.markdown.ui.preview.MarkdownHtmlPanelEx
+import org.intellij.plugins.markdown.ui.preview.MarkdownImageResourceProvider
 import org.intellij.plugins.markdown.ui.preview.MarkdownPreviewBrowserActions
 import org.intellij.plugins.markdown.ui.preview.MarkdownUpdateHandler
 import org.intellij.plugins.markdown.ui.preview.MarkdownUpdateHandler.PreviewRequest
 import org.intellij.plugins.markdown.ui.preview.PreviewLAFThemeStyles
 import org.intellij.plugins.markdown.ui.preview.PreviewLAFThemeStyles.fontSizeOptions
-import org.intellij.plugins.markdown.ui.preview.MarkdownImageResourceProvider
 import org.intellij.plugins.markdown.ui.preview.PreviewStaticServer
 import org.intellij.plugins.markdown.ui.preview.ResourceProvider
 import org.intellij.plugins.markdown.util.MarkdownApplicationScope
@@ -179,7 +179,7 @@ class MarkdownJCEFHtmlPanel(private val project: Project?, private val virtualFi
             when (request) {
               is PreviewRequest.Update -> {
                 val (html, initialScrollOffset, document) = request
-                val builder = IncrementalDOMBuilder(html, document, imageResourceProvider)
+                val builder = IncrementalDOMBuilder(html, document, imageResourceProvider, resourceProvider)
                 val renderClosure = builder.generateRenderClosure()
                 updateDom(renderClosure, initialScrollOffset, previousRenderClosure.isEmpty())
               }
@@ -246,7 +246,7 @@ class MarkdownJCEFHtmlPanel(private val project: Project?, private val virtualFi
   suspend fun setHtmlAndWait(html: String, document: VirtualFile? = null, imageResourceProvider: ResourceProvider? = null) {
     initialization.await()
 
-    val builder = IncrementalDOMBuilder(html, document, imageResourceProvider)
+    val builder = IncrementalDOMBuilder(html, document, imageResourceProvider, resourceProvider)
     val renderClosure = readAction { builder.generateRenderClosure() }
     updateDom(renderClosure, 0, false)
   }
