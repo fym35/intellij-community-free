@@ -182,7 +182,9 @@ private class UvLowLevelImpl<P : PathHolder>(
   }
 
   override suspend fun listProjectStructureTree(): PyResult<String> {
-    val out = uvCli.runUv(cwd, venvPath, false, "tree", "--frozen", "--no-dedupe", "--all-groups")
+    // Deduplicated: uv prints a package's dependencies under the first parent that needs it. Asking
+    // it to expand every repeat instead does not finish on a large workspace (PY-90174).
+    val out = uvCli.runUv(cwd, venvPath, false, "tree", "--frozen", "--all-groups")
       .getOr { return it }
 
     return PyExecResult.success(out)

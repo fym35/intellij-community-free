@@ -1,12 +1,15 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.jetbrains.python.packaging.packageRequirements
 
+import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.packaging.PyPackageName
 import com.jetbrains.python.packaging.common.PyDependencyGroupName
 import com.jetbrains.python.packaging.common.PythonPackage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.ApiStatus
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /**
  * Base type for all package tree nodes.
@@ -16,14 +19,31 @@ sealed class PackageStructureNode
 
 /**
  * Represents a single package with its transitive dependencies.
+ *
+ * One node per package: [TreeParser] gives every parent that needs a package the same node, so the
+ * result is a graph, not a tree, and it can have a cycle. Equality is therefore identity, and
+ * [toString] does not print the children. A caller that walks the graph keeps its own set of
+ * visited nodes, by identity.
  */
 @ApiStatus.Internal
-data class PackageTreeNode(
+class PackageTreeNode(
   val name: PyPackageName,
   val children: MutableList<PackageTreeNode> = mutableListOf(),
   val group: String? = null,
   val version: String? = null,
-)
+  /**
+   * The extras the parent asked for, as written between the brackets, or `null` where it asked for
+   * none. `pkg` and `pkg[extra]` have different dependencies, so they are different nodes with the
+   * same [name], and only this tells them apart (PY-90174).
+   */
+  val extras: String? = null,
+) {
+  override fun equals(other: Any?): Boolean = this === other
+
+  override fun hashCode(): Int = System.identityHashCode(this)
+
+  override fun toString(): String = "PackageTreeNode(${name.name}, version=$version, children=${children.size})"
+}
 
 /**
  * Represents a workspace member with its sub-members and package dependency tree.
@@ -46,11 +66,13 @@ data class WorkspaceMemberPackageStructureNode(
  *
  * @property declaredPackages Packages explicitly declared in project dependencies
  * @property undeclaredPackages Packages installed but not declared (transitive or manual)
+ * @property projectPackageNames The project's own packages, which the view marks apart from a PyPI package
  */
 @ApiStatus.Internal
 data class PackageCollectionPackageStructureNode(
   val declaredPackages: List<PackageTreeNode>,
-  val undeclaredPackages: List<PackageTreeNode>
+  val undeclaredPackages: List<PackageTreeNode>,
+  val projectPackageNames: Set<String> = emptySet(),
 ) : PackageStructureNode()
 
 /**
@@ -62,20 +84,29 @@ data object FlatPackageStructureNode : PackageStructureNode()
 
 /**
  * Iteratively collects all package names from this node and its descendants.
+ *
+ * Tracks nodes, not names: a package requested through an extra is a second node with the same
+ * name, and stopping at the first of them would drop whatever hangs below the other.
  */
 @ApiStatus.Internal
 fun PackageTreeNode.collectAllNames(): Set<String> {
   val result = mutableSetOf<String>()
+  val visited = newNodeSet()
   val toVisit = ArrayDeque<PackageTreeNode>()
   toVisit.addLast(this)
   while (toVisit.isNotEmpty()) {
     val node = toVisit.removeLast()
-    if (result.add(node.name.name)) {
+    if (visited.add(node)) {
+      result.add(node.name.name)
       toVisit.addAll(node.children)
     }
   }
   return result
 }
+
+/** A set that holds nodes by identity, for a walk over a graph that shares nodes and can cycle. */
+@ApiStatus.Internal
+fun newNodeSet(): MutableSet<PackageTreeNode> = Collections.newSetFromMap(IdentityHashMap())
 
 @ApiStatus.Internal
 object TreeParser {
@@ -103,14 +134,22 @@ object TreeParser {
   private const val SPACE_DELIMITER = ' '
   private const val VERSION_DELIMITER = '['
 
+  /** Ends a line whose dependencies the tool printed under an earlier parent, or that closes a cycle. */
+  private const val DEDUPE_MARKER = "(*)"
+
+  /** The legend the tool adds once it deduplicated something, e.g. `(*) Package tree already displayed`. */
+  private val LEGEND_LINE_REGEX = Regex("""^\(\*+\)\s""")
+
   fun parseTrees(lines: List<String>): List<PackageTreeNode> {
-    val nonBlankLines = lines.withIndex().filterNot { it.value.isBlank() }
+    val nonBlankLines = lines.withIndex().filterNot { it.value.isBlank() || LEGEND_LINE_REGEX.containsMatchIn(it.value) }
     val result = mutableListOf<PackageTreeNode>()
+    // A package is parsed once. Every later line for it, the ones the tool marked, reuses that node.
+    val nodesByPackage = mutableMapOf<String, PackageTreeNode>()
     var currentIndex = 0
 
     while (currentIndex < nonBlankLines.size) {
       val (originalIndex, line) = nonBlankLines[currentIndex]
-      val (node, nextIndex) = parseLevel(lines, calculateIndentLevel(line), originalIndex)
+      val (node, nextIndex) = parseLevel(lines, calculateIndentLevel(line), originalIndex, nodesByPackage)
       result.add(node)
       currentIndex = nonBlankLines.indexOfFirst { it.index >= nextIndex }.takeIf { it != -1 } ?: nonBlankLines.size
     }
@@ -123,20 +162,43 @@ object TreeParser {
     return first !in INDENT_PREFIXES
   }
 
-  private fun parseLevel(lines: List<String>, startIndent: Int, index: Int): ParseResult {
+  private fun parseLevel(
+    lines: List<String>,
+    startIndent: Int,
+    index: Int,
+    nodesByPackage: MutableMap<String, PackageTreeNode>,
+  ): ParseResult {
     val line = lines[index]
-    val name = extractPackageName(line)
-    val group = extractGroup(line)
-    val version = extractVersion(line)
-    val node = PackageTreeNode(PyPackageName.from(name), mutableListOf(), group, version)
+    // The key keeps the extras: `pkg` and `pkg[extra]` need different dependencies, so the tool
+    // deduplicates them apart and so must this.
+    val key = extractPackageKey(line)
+    if (isDeduplicated(line)) {
+      nodesByPackage[key]?.let { return ParseResult(it, index + 1) }
+    }
+
+    val node = PackageTreeNode(PyPackageName.from(extractPackageName(line)), mutableListOf(),
+                               extractGroup(line), extractVersion(line), extractExtras(line))
+    nodesByPackage.putIfAbsent(key, node)
+
     var currentIndex = index + 1
     while (currentIndex < lines.size && calculateIndentLevel(lines[currentIndex]) > startIndent) {
-      val result = parseLevel(lines, calculateIndentLevel(lines[currentIndex]), currentIndex)
+      val result = parseLevel(lines, calculateIndentLevel(lines[currentIndex]), currentIndex, nodesByPackage)
       node.children.add(result.node)
       currentIndex = result.nextIndex
     }
     return ParseResult(node, currentIndex)
   }
+
+  private fun isDeduplicated(line: String): Boolean = line.trimEnd().endsWith(DEDUPE_MARKER)
+
+  private fun extractExtras(line: String): String? {
+    val key = extractPackageKey(line)
+    if (!key.contains(VERSION_DELIMITER)) return null
+    return key.substringAfter(VERSION_DELIMITER).substringBefore(']').takeIf { it.isNotBlank() }
+  }
+
+  private fun extractPackageKey(line: String): String =
+    line.replaceFirst(TREE_LINE_REGEX, "").trimStart().split(SPACE_DELIMITER, limit = 2)[0]
 
   private fun calculateIndentLevel(line: String): Int {
     val indentMatch = TREE_LINE_REGEX.find(line)?.value ?: ""
@@ -155,7 +217,8 @@ object TreeParser {
   }
 
   private fun extractVersion(line: String): String? {
-    val clean = line.replaceFirst(TREE_LINE_REGEX, "").trimStart()
+    val clean = line.trimEnd().removeSuffix(DEDUPE_MARKER).trimEnd()
+      .replaceFirst(TREE_LINE_REGEX, "").trimStart()
     // Skip the package name and optional bracketed extras (e.g., "pkg[cli, nats] v1.0")
     val afterName = clean.let {
       val bracketStart = it.indexOf(VERSION_DELIMITER)
@@ -194,28 +257,30 @@ fun extractDeclaredDependencies(trees: List<PackageTreeNode>): List<PythonPackag
 
 @ApiStatus.Internal
 interface DependencyTreeProvider {
-  suspend fun getDependencyTrees(): List<PackageTreeNode>
+  /**
+   * A failure means the tree is unknown, not that the project declares nothing. A caller that
+   * collapses the two reports every third-party import as undeclared (PY-90174).
+   */
+  suspend fun getDependencyTrees(): PyResult<List<PackageTreeNode>>
   fun invalidateCache()
 }
 
 @ApiStatus.Internal
 internal class CachedDependencyTreeProvider(
-  private val fetchOutput: suspend () -> String?,
+  private val fetchOutput: suspend () -> PyResult<String>,
   private val parse: (String) -> List<PackageTreeNode> = { TreeParser.parseTrees(it.lines()) },
 ) : DependencyTreeProvider {
   private val mutex = Mutex()
 
+  /** Only a successful fetch is cached, so the next read retries after a transient failure. */
   @Volatile
   private var cachedTrees: List<PackageTreeNode>? = null
 
-  override suspend fun getDependencyTrees(): List<PackageTreeNode> {
-    cachedTrees?.let { return it }
+  override suspend fun getDependencyTrees(): PyResult<List<PackageTreeNode>> {
+    cachedTrees?.let { return PyResult.success(it) }
     return mutex.withLock {
-      cachedTrees?.let { return it }
-      val output = fetchOutput()
-      val trees = if (output != null) parse(output) else emptyList()
-      cachedTrees = trees
-      trees
+      cachedTrees?.let { return PyResult.success(it) }
+      fetchOutput().mapSuccess { output -> parse(output).also { cachedTrees = it } }
     }
   }
 

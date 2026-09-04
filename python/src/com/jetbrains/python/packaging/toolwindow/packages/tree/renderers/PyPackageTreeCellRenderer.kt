@@ -181,6 +181,8 @@ internal class PyPackageTreeCellRenderer(
     val providerIcon = PyPackageInstalledIconProvider.EP_NAME.extensionList.firstNotNullOfOrNull { it.iconFor(instance) }
 
     icon = when {
+      // A workspace member keeps the member icon wherever it appears, so it stays apart from a PyPI package.
+      pkg.isProjectPackage -> PythonIcons.Python.PythonClosed
       providerIcon != null -> providerIcon
       !pkg.isDeclared || isUndeclaredChild -> PyPackageIcons.PackagePipInstalled
       else -> PyPackageIcons.Package
@@ -200,7 +202,7 @@ internal class PyPackageTreeCellRenderer(
       SimpleTextAttributes.REGULAR_ATTRIBUTES
     }
     val nameAttributes = if (isAncestorOnlyMatch(pkg)) greyAttributes(baseAttributes) else baseAttributes
-    append(pkg.name, nameAttributes)
+    append(pkg.nameWithExtras(), nameAttributes)
 
     @NlsSafe val version = pkg.instance.version
     if (version.isNotEmpty()) {
@@ -249,6 +251,8 @@ internal class PyPackageTreeCellRenderer(
     val providerIcon = PyPackageInstalledIconProvider.EP_NAME.extensionList.firstNotNullOfOrNull { it.iconFor(pkg.instance) }
 
     icon = when {
+      // A workspace member keeps the member icon wherever it appears, so it stays apart from a PyPI package.
+      pkg.isProjectPackage -> PythonIcons.Python.PythonClosed
       providerIcon != null -> providerIcon
       !pkg.isDeclared || isUndeclaredChild -> PyPackageIcons.PackagePipInstalled
       else -> PyPackageIcons.Package
@@ -261,13 +265,20 @@ internal class PyPackageTreeCellRenderer(
       SimpleTextAttributes.REGULAR_ATTRIBUTES
     }
     val nameAttributes = if (isAncestorOnlyMatch(pkg)) greyAttributes(baseAttributes) else baseAttributes
-    append(pkg.name, nameAttributes)
+    append(pkg.nameWithExtras(), nameAttributes)
 
     @NlsSafe val version = pkg.instance.version
     if (version.isNotEmpty()) {
       append(" $version", VERSION_ATTRIBUTES)
     }
   }
+
+  /** `pkg[extra]`, the way the tool prints it, so it does not read as a second row for `pkg`. */
+  @NlsSafe
+  private fun InstalledPackage.nameWithExtras(): String = extras?.let { "$name[$it]" } ?: name
+
+  @NlsSafe
+  private fun RequirementPackage.nameWithExtras(): String = extras?.let { "$name[$it]" } ?: name
 
   private fun renderInstallablePackage(pkg: InstallablePackage, depth: Int, showActions: Boolean) {
     icon = PyPackageIcons.PackageGray

@@ -267,15 +267,25 @@ internal class PyPackagesTree(
 
   private fun updateTreeModel() {
     rootNode.removeAllChildren()
-    items.forEach { pkg -> rootNode.add(createNodeRecursively(pkg)) }
+    items.forEach { pkg -> rootNode.add(createNodeRecursively(pkg, mutableSetOf())) }
     myTreeModel.reload()
   }
 
-  private fun createNodeRecursively(pkg: DisplayablePackage): DefaultMutableTreeNode {
+  /**
+   * [path] holds the packages between this row and the top of the tree. A package that repeats on
+   * its own path becomes a leaf, which ends the walk where the dependency graph has a cycle. A
+   * package that merely appears again elsewhere keeps its dependencies, or a row would lose the
+   * dependencies the tool listed for it.
+   *
+   * The set holds packages by identity, since [DisplayablePackage] does not define equality.
+   */
+  private fun createNodeRecursively(pkg: DisplayablePackage, path: MutableSet<DisplayablePackage>): DefaultMutableTreeNode {
     val node = DefaultMutableTreeNode(pkg)
+    if (!path.add(pkg)) return node
     pkg.getRequirements().forEach { requirement ->
-      node.add(createNodeRecursively(requirement))
+      node.add(createNodeRecursively(requirement, path))
     }
+    path.remove(pkg)
     return node
   }
 
@@ -537,8 +547,17 @@ internal class PyPackagesTree(
     }
   }
 
+  /**
+   * Expanding a row adds the rows below it, so the count has to be read again on every step. A
+   * fixed bound taken before the first expansion stops at the rows that were already visible, which
+   * leaves everything below the first few matches closed.
+   */
   fun expandAll() {
-    for (i in 0 until rowCount) expandRow(i)
+    var row = 0
+    while (row < rowCount) {
+      expandRow(row)
+      row++
+    }
   }
 
   fun selectedItems(): List<DisplayablePackage> =

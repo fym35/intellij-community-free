@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.jetbrains.python.sdk.poetry
 
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
@@ -34,7 +33,6 @@ import com.jetbrains.python.packaging.packageRequirements.PackageTreeNode
 import com.jetbrains.python.packaging.packageRequirements.TreeParser
 import com.jetbrains.python.packaging.packageRequirements.collectAllNames
 import com.jetbrains.python.packaging.pip.PipRepositoryManager
-import com.jetbrains.python.orLogException
 import com.jetbrains.python.poetry.POETRY_LOCK
 import com.jetbrains.python.sdk.add.v2.EelFileSystem
 import com.jetbrains.python.sdk.findModuleForSdk
@@ -58,7 +56,7 @@ internal class PoetryPackageManager(project: Project, sdk: Sdk) : PythonPackageM
     PythonManagerCliSpec("poetry", { PoetryPyTool.getInstance().resolveExecutable(EelFileSystem(localEel))?.path })
   )
   override val treeProvider = CachedDependencyTreeProvider(fetchOutput = {
-    runPoetryWithSdk(sdk, "show", "--tree").orLogException(thisLogger())
+    runPoetryWithSdk(sdk, "show", "--tree")
   })
   override val dependenciesFilesRelativePaths: List<Path>
     get() = listOf(
@@ -138,7 +136,8 @@ internal class PoetryPackageManager(project: Project, sdk: Sdk) : PythonPackageM
    * handled separately in [getPackageTree] as undeclared/standalone packages.
    */
   override suspend fun listDeclaredPackages(): PyResult<List<PythonPackage>> {
-    return declaredPackagesFromTrees(treeProvider.getDependencyTrees())
+    val trees = treeProvider.getDependencyTrees().getOr { return it }
+    return declaredPackagesFromTrees(trees)
   }
 
   private suspend fun declaredPackagesFromTrees(trees: List<PackageTreeNode>): PyResult<List<PythonPackage>> {
@@ -277,7 +276,7 @@ internal class PoetryPackageManager(project: Project, sdk: Sdk) : PythonPackageM
   }
 
   override suspend fun getPackageTree(): PackageStructureNode {
-    val allTrees = treeProvider.getDependencyTrees()
+    val allTrees = treeProvider.getDependencyTrees().getOrNull().orEmpty()
     if (allTrees.isEmpty()) return PackageCollectionPackageStructureNode(emptyList(), emptyList())
     val declaredPackageNames = declaredPackagesFromTrees(allTrees).getOrNull()
                                  ?.mapTo(mutableSetOf()) { it.name } ?: emptySet()

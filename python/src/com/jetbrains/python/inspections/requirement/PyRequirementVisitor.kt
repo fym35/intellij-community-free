@@ -57,6 +57,11 @@ internal class PyRequirementVisitor(
       return
     }
 
+    // The environment is still being built, so the declared dependencies are not final yet.
+    if (PyPackageManagerModuleHelpers.isRunningPackagingTasks(module)) {
+      return
+    }
+
     val sdk = module.pythonSdk ?: return
     val manager = PythonPackageManager.forSdk(module.project, sdk)
     val declared = manager.listDeclaredPackagesAsync() ?: return
