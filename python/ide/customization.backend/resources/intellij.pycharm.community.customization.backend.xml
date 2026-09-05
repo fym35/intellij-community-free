@@ -8,11 +8,11 @@
   </dependencies>
 
   <actions resource-bundle="messages.ActionsBundle">
-    <!-- The product customization owns the action id, text overrides, and placement.
-         The action implementation itself belongs to VCS, so it must be registered only from a
-         descriptor whose classloader can see intellij.platform.vcs.impl. -->
+    <!-- The product customization owns the action id and the placement. The Project-widget popup
+         text comes from GetFromVersionControlAction.update(). The action implementation belongs to
+         VCS, so it must be registered only from a descriptor whose classloader can see
+         intellij.platform.vcs.impl. -->
     <action id="ProjectFromVersionControl" class="com.intellij.openapi.wm.impl.welcomeScreen.GetFromVersionControlAction">
-      <override-text place="ProjectWidgetPopup"/>
       <add-to-group group-id="PlatformOpenProjectGroup" relative-to-action="NewProjectOrModuleGroup" anchor="after"/>
       <add-to-group group-id="ProjectWidget.Actions" anchor="after" relative-to-action="OpenFile"/>
     </action>

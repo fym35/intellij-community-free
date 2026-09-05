@@ -72,7 +72,6 @@
       itself lives in intellij.platform.vcs.impl, so the definition must be loaded only with Java VCS.
     -->
     <action id="ProjectFromVersionControl" class="com.intellij.openapi.wm.impl.welcomeScreen.GetFromVersionControlAction">
-      <override-text place="ProjectWidgetPopup"/>
       <add-to-group group-id="JavaNewProjectGroup" anchor="after" relative-to-action="ImportProject"/>
       <add-to-group group-id="ProjectWidget.Actions"/>
     </action>
