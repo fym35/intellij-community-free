@@ -1,7 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ui.win;
-
-import com.intellij.util.system.WindowsSystemLibraries;
+package com.intellij.util.system;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,21 +28,19 @@ public final class WindowsShell {
   public static final UUID FOLDERID_USER_PROGRAM_FILES = UUID.fromString("5CD7AEE2-2219-4A67-B85D-6C9CE15660CB");
   /** {@code FOLDERID_LocalAppData} */
   public static final UUID FOLDERID_LOCAL_APP_DATA = UUID.fromString("F1B32785-6FBA-4FCF-9D55-7B8E7F157091");
+  public static final UUID FOLDERID_DOWNLOADS = UUID.fromString("374DE290-123F-4565-9164-39C4925E467B");
 
   /** @return the path of the known folder for the current user, or {@code null} when the shell reports a failure */
   public static @Nullable String knownFolderPath(@NotNull UUID folderId) {
-    try (Arena arena = Arena.ofConfined()) {
-      MemorySegment path = arena.allocate(ADDRESS);
-      int hresult = (int)Handles.SH_GET_KNOWN_FOLDER_PATH.invokeExact(guid(arena, folderId), 0, MemorySegment.NULL, path);
-      if (hresult != 0) {
-        return null;
-      }
-      MemorySegment text = path.get(ADDRESS, 0);
+    try (var arena = Arena.ofConfined()) {
+      var path = arena.allocate(ADDRESS);
+      var hresult = (int)Handles.SH_GET_KNOWN_FOLDER_PATH.invokeExact(guid(arena, folderId), 0, MemorySegment.NULL, path);
+      var text = path.get(ADDRESS, 0);
       if (text.address() == 0) {
         return null;
       }
       try {
-        return text.reinterpret(Long.MAX_VALUE).getString(0, StandardCharsets.UTF_16LE);
+        return hresult == 0 ? text.reinterpret(Long.MAX_VALUE).getString(0, StandardCharsets.UTF_16LE) : null;
       }
       finally {
         Handles.CO_TASK_MEM_FREE.invokeExact(text);
@@ -57,12 +53,12 @@ public final class WindowsShell {
 
   /** A {@code GUID} in memory: {@code Data1}, {@code Data2} and {@code Data3} in native order, then the eight {@code Data4} bytes as written. */
   private static MemorySegment guid(Arena arena, UUID id) {
-    MemorySegment guid = arena.allocate(16);
-    long high = id.getMostSignificantBits();
+    var guid = arena.allocate(16);
+    var high = id.getMostSignificantBits();
     guid.set(JAVA_INT, 0, (int)(high >>> 32));
     guid.set(JAVA_SHORT, 4, (short)(high >>> 16));
     guid.set(JAVA_SHORT, 6, (short)high);
-    long low = id.getLeastSignificantBits();
+    var low = id.getLeastSignificantBits();
     for (int i = 0; i < 8; i++) {
       guid.set(JAVA_BYTE, 8 + i, (byte)(low >>> (56 - 8 * i)));
     }

@@ -16,12 +16,12 @@ import com.intellij.openapi.vfs.DiskQueryRelay;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.mac.foundation.Foundation;
-import com.intellij.ui.win.WindowsShell;
 import com.intellij.util.SlowOperations;
 import com.intellij.util.SystemProperties;
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.intellij.util.concurrency.annotations.RequiresReadLockAbsence;
 import com.intellij.util.system.OS;
+import com.intellij.util.system.WindowsShell;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
