@@ -646,6 +646,35 @@ class ElfDocumentTest {
   }
 
   @Test
+  fun `test range markers shift after real bulk multi replace at descending offsets`() = runOnEdt {
+    ElfFeatureFlag.withEnabled {
+      val document = DocumentImpl("xxxx mmmm yyyy nnnn zzzz tail")
+      val elfDocument = getElfDocument(document)
+      val markerA = document.createRangeMarker(5, 9)
+      val markerB = document.createRangeMarker(15, 19)
+      val markerC = document.createRangeMarker(25, 29)
+      runWriteCommandAction {
+        DocumentUtil.executeInBulk(document, true) {
+          document.replaceString(20, 24, "zzzzTT")
+          document.replaceString(10, 14, "yyyyTT")
+          document.replaceString(0, 4, "xxxxTT")
+        }
+      }
+      assertTextAndSnapshots(document, elfDocument, "xxxxTT mmmm yyyyTT nnnn zzzzTT tail")
+      fun assertValidMarker(marker: RangeMarker, start: Int, end: Int) {
+        assertTrue(marker.isValid)
+        assertEquals(start, marker.startOffset)
+        assertEquals(end, marker.endOffset)
+      }
+      assertValidMarker(markerA, 7, 11)
+      assertValidMarker(markerB, 19, 23)
+      assertValidMarker(markerC, 31, 35)
+      assertFalse(document.isInBulkUpdate)
+      assertFalse(elfDocument.isInBulkUpdate)
+    }
+  }
+
+  @Test
   fun `test rebased elf bulk replay restores real bulk mode when later change conflicts`() = runOnEdt {
     val document = DocumentImpl("abc")
     val realTextBulkModeLog = mutableListOf<Pair<String, Boolean>>()

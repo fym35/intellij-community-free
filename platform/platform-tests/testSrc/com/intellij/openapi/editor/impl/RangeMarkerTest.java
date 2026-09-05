@@ -51,6 +51,7 @@ import com.intellij.testFramework.Timings;
 import com.intellij.testFramework.VfsTestUtil;
 import com.intellij.tools.ide.metrics.benchmark.Benchmark;
 import com.intellij.util.CommonProcessors;
+import com.intellij.util.DocumentUtil;
 import com.intellij.util.TestTimeOut;
 import com.intellij.util.ref.GCUtil;
 import com.intellij.util.ui.EDT;
@@ -590,6 +591,25 @@ public class RangeMarkerTest extends LightPlatformTestCase {
 
     assertValidMarker(marker, 3, 8);
     });
+  }
+
+  public void testMarkersShiftAfterBulkMultiReplaceAtDescendingOffsets() {
+    RangeMarker markerA = createMarker("xxxx mmmm yyyy nnnn zzzz tail", 5, 9);
+    Document document = markerA.getDocument();
+    RangeMarker markerB = document.createRangeMarker(15, 19);
+    RangeMarker markerC = document.createRangeMarker(25, 29);
+
+    WriteCommandAction.runWriteCommandAction(getProject(), () ->
+      DocumentUtil.executeInBulk(document, () -> {
+        document.replaceString(20, 24, "zzzzTT");
+        document.replaceString(10, 14, "yyyyTT");
+        document.replaceString(0, 4, "xxxxTT");
+      }));
+
+    assertEquals("xxxxTT mmmm yyyyTT nnnn zzzzTT tail", document.getText());
+    assertValidMarker(markerA, 7, 11);
+    assertValidMarker(markerB, 19, 23);
+    assertValidMarker(markerC, 31, 35);
   }
 
   private static void assertValidMarker(@NotNull RangeMarker marker, int start, int end) {

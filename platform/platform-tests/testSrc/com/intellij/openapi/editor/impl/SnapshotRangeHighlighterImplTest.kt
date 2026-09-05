@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.impl.marker.UsePMarkerImplementation
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.testFramework.junit5.TestApplication
+import com.intellij.util.DocumentUtil
 import com.intellij.util.ref.GCUtil
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
@@ -188,6 +189,37 @@ class SnapshotRangeHighlighterImplTest {
     finally {
       model.dispose()
     }
+  }
+
+  @Test
+  fun `highlighters shift after bulk multi replace at descending offsets`() {
+    val document = DocumentImpl("xxxx mmmm yyyy nnnn zzzz tail", true)
+    val model = MarkupModelImpl(document)
+    try {
+      val highlighterA = model.addRangeHighlighter(5, 9, 1, null, HighlighterTargetArea.EXACT_RANGE)
+      val highlighterB = model.addRangeHighlighter(15, 19, 1, null, HighlighterTargetArea.EXACT_RANGE)
+      val highlighterC = model.addRangeHighlighter(25, 29, 1, null, HighlighterTargetArea.EXACT_RANGE)
+
+      DocumentUtil.executeInBulk(document) {
+        document.replaceString(20, 24, "zzzzTT")
+        document.replaceString(10, 14, "yyyyTT")
+        document.replaceString(0, 4, "xxxxTT")
+      }
+
+      Assertions.assertThat(document.text).isEqualTo("xxxxTT mmmm yyyyTT nnnn zzzzTT tail")
+      assertValidHighlighter(highlighterA, 7, 11)
+      assertValidHighlighter(highlighterB, 19, 23)
+      assertValidHighlighter(highlighterC, 31, 35)
+    }
+    finally {
+      model.dispose()
+    }
+  }
+
+  private fun assertValidHighlighter(highlighter: RangeHighlighter, start: Int, end: Int) {
+    Assertions.assertThat(highlighter.isValid).isTrue()
+    Assertions.assertThat(highlighter.startOffset).isEqualTo(start)
+    Assertions.assertThat(highlighter.endOffset).isEqualTo(end)
   }
 
   @Test
