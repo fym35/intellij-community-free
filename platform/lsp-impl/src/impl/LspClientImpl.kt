@@ -168,7 +168,7 @@ class LspClientImpl internal constructor(
     if (isFileOpened(file)) {
       // Re-apply the cached highlightings with the edit-adjusted ranges. Without this, highlightings
       // applied before the edit keep their pre-edit offsets until the next daemon pass.
-      LspHighlightingApplier.getInstance(project).scheduleHighlightingRefresh(file)
+      LspHighlightingApplier.getInstance(project).scheduleHighlightingRefreshDebounced(file)
     }
   }
 
