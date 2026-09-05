@@ -12,6 +12,8 @@ import org.jetbrains.intellij.build.impl.JpsModuleOutputProvider
 import org.jetbrains.intellij.build.impl.bazelOutputRoot
 import org.jetbrains.intellij.build.productLayout.discovery.GenerationResult
 import org.jetbrains.intellij.build.productLayout.discovery.ModuleSetGenerationConfig
+import org.jetbrains.intellij.build.productLayout.discovery.ModuleSetSourceLabels
+import org.jetbrains.intellij.build.productLayout.discovery.discoverModuleSets
 import org.jetbrains.intellij.build.productLayout.discovery.findProductPropertiesSourceFile
 import org.jetbrains.intellij.build.productLayout.json.buildPluginGraphForJson
 import org.jetbrains.intellij.build.productLayout.json.streamModuleAnalysisJson
@@ -36,6 +38,19 @@ data class DiscoveredModuleSetSource(
   @JvmField val moduleSets: List<ModuleSet>,
   @JvmField val sourceFile: String,
 )
+
+fun discoverCommunityModuleSetSources(): Map<String, DiscoveredModuleSetSource> {
+  return mapOf(
+    ModuleSetSourceLabels.COMMUNITY to DiscoveredModuleSetSource(
+      moduleSets = discoverModuleSets(CommunityModuleSets),
+      sourceFile = "community/platform/build-scripts/src/org/jetbrains/intellij/build/productLayout/CommunityModuleSets.kt",
+    ),
+    ModuleSetSourceLabels.CORE to DiscoveredModuleSetSource(
+      moduleSets = discoverModuleSets(CoreModuleSets),
+      sourceFile = "community/platform/build-scripts/src/org/jetbrains/intellij/build/productLayout/CoreModuleSets.kt",
+    ),
+  )
+}
 
 /**
  * Determines product category based on module sets included in the content spec.
