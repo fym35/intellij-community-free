@@ -18,7 +18,7 @@ import org.jetbrains.intellij.build.impl.consumeDataByPrefix
 import org.jetbrains.intellij.build.impl.createBuildContext
 import java.nio.file.Path
 
-abstract class KotlinPluginBuilder(val kind : KotlinPluginKind = System.getProperty("kotlin.plugin.kind")?.let(KotlinPluginKind::valueOf) ?: KotlinPluginKind.IJ) {
+abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProperty("kotlin.plugin.kind")?.let(KotlinPluginKind::valueOf) ?: KotlinPluginKind.IJ) {
   enum class KotlinPluginKind { IJ, AS, MI, Fleet }
 
   companion object {
@@ -96,10 +96,16 @@ abstract class KotlinPluginBuilder(val kind : KotlinPluginKind = System.getPrope
       spec.withCustomVersion(KotlinPluginVersion(kind))
 
       if (kind == KotlinPluginKind.AS) {
-        spec.withRawPluginXmlPatcher(DescriptorMarkerPatcher(listOf(DescriptorMarker(
-          literal = "<!-- IJ/AS-DEPENDENCY-PLACEHOLDER -->",
-          replacement = """<plugin id="com.intellij.modules.androidstudio"/>""",
-        ))))
+        spec.withRawPluginXmlPatcher(
+          DescriptorMarkerPatcher(
+            listOf(
+              DescriptorMarker(
+                literal = "<!-- IJ/AS-DEPENDENCY-PLACEHOLDER -->",
+                replacement = """<plugin id="com.intellij.modules.androidstudio"/>""",
+              )
+            )
+          )
+        )
       }
 
       addition?.invoke(spec)
@@ -139,13 +145,16 @@ abstract class KotlinPluginBuilder(val kind : KotlinPluginKind = System.getPrope
   }
 
   fun build(home: Path, properties: ProductProperties) {
-    val context = createBuildContext(
-      setupTracer = true,
-      projectHome = home,
-      productProperties = properties,
-      options = BuildOptions(enableEmbeddedFrontend = false)
-    )
-    createBuildTasks(context).buildNonBundledPlugins(listOf(MAIN_KOTLIN_PLUGIN_MODULE))
+    org.jetbrains.intellij.build.BuildLifetime().use { lifetime ->
+      val context = createBuildContext(
+        setupTracer = true,
+        projectHome = home,
+        productProperties = properties,
+        options = BuildOptions(enableEmbeddedFrontend = false),
+        lifetime = lifetime,
+      )
+      createBuildTasks(context).buildNonBundledPlugins(listOf(MAIN_KOTLIN_PLUGIN_MODULE))
+    }
   }
 
   /**

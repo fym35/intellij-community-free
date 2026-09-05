@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.validator
 
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import com.intellij.platform.buildScripts.licenses.LibraryLicense
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -31,6 +32,13 @@ import java.nio.file.Path
  */
 @ExtendWith(TestFailureLogger::class)
 class CommunityLibraryLicenseValidatorTest {
+  private val owner = SharedTaskOwner("CommunityLibraryLicenseValidatorTest")
+
+  @org.junit.jupiter.api.AfterEach
+  fun closeSharedTasks() {
+    owner.close()
+  }
+
   private val unrelatedLicense = LibraryLicense(libraryName = "unrelated-lib", license = "Apache 2.0")
   private val exampleLicense = LibraryLicense(libraryName = "example-lib", license = "Apache 2.0")
 
@@ -93,6 +101,7 @@ class CommunityLibraryLicenseValidatorTest {
         ModuleSetSourceLabels.CORE to listOf(coreSet),
         ModuleSetSourceLabels.ULTIMATE to listOf(ultimateSet),
       ),
+      owner = owner,
     )
     val errors = runValidationRule(CommunityLibraryLicenseValidator, model)
 
@@ -201,7 +210,7 @@ class CommunityLibraryLicenseValidatorTest {
       graph,
       outputProvider = outputProvider,
       communityLibraryLicenses = licenses,
-      moduleSetsByLabel = mapOf(label to listOf(set)),
+      moduleSetsByLabel = mapOf(label to listOf(set)), owner = owner,
     )
     return runValidationRule(CommunityLibraryLicenseValidator, model)
   }

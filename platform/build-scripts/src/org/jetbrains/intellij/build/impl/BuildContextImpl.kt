@@ -65,8 +65,7 @@ import kotlin.io.path.pathString
 import kotlin.time.Duration
 
 /**
- * Creates the context of a product build. [lifetime] owns the caches of the context, such as the module output archives;
- * `null` caches nothing.
+ * Creates the context of a product build. [lifetime] owns its shared tasks and caches, including the module output archives.
  */
 fun createBuildContext(
   projectHome: Path,
@@ -74,7 +73,7 @@ fun createBuildContext(
   setupTracer: Boolean = true,
   proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
   options: BuildOptions = BuildOptions(),
-  lifetime: BuildLifetime? = null,
+  lifetime: BuildLifetime,
 ): BuildContext {
   val context = createBuildContext(
     compilationContext = createCompilationContext(
@@ -103,10 +102,10 @@ fun createCompilationContext(
 ): CompilationContext {
   return normalizeCompilationContextForBuild(
     context = createCompilationContext(
-    projectHome = projectHome,
-    buildOutputRootEvaluator = createBuildOutputRootEvaluator(projectHome = projectHome, productProperties = productProperties, buildOptions = options),
-    options = options,
-    setupTracer = setupTracer,
+      projectHome = projectHome,
+      buildOutputRootEvaluator = createBuildOutputRootEvaluator(projectHome = projectHome, productProperties = productProperties, buildOptions = options),
+      options = options,
+      setupTracer = setupTracer,
     ),
     lifetime = lifetime,
   )
@@ -135,7 +134,7 @@ fun createBuildContext(
   projectHome: Path,
   productProperties: ProductProperties,
   proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
-  lifetime: BuildLifetime? = null,
+  lifetime: BuildLifetime,
 ): BuildContextImpl {
   val normalizedCompilationContext = normalizeCompilationContextForBuild(compilationContext, lifetime)
   val jarCacheManager = normalizedCompilationContext.options.jarCacheDir?.let {
@@ -147,18 +146,24 @@ fun createBuildContext(
   } ?: NonCachingJarCacheManager
   return BuildContextImpl(
     compilationContext = normalizedCompilationContext,
+    lifetime = lifetime,
     productProperties = productProperties,
     windowsDistributionCustomizer = productProperties.createWindowsCustomizer(projectHome),
     linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHome),
     macDistributionCustomizer = productProperties.createMacCustomizer(projectHome),
     proprietaryBuildTools = proprietaryBuildTools,
-    applicationInfo = ApplicationInfoPropertiesImpl(project = normalizedCompilationContext.project, productProperties = productProperties, buildOptions = normalizedCompilationContext.options),
+    applicationInfo = ApplicationInfoPropertiesImpl(
+      project = normalizedCompilationContext.project,
+      productProperties = productProperties,
+      buildOptions = normalizedCompilationContext.options
+    ),
     jarCacheManager = jarCacheManager,
   )
 }
 
 class BuildContextImpl internal constructor(
   internal val compilationContext: CompilationContext,
+  override val lifetime: BuildLifetime,
   override val productProperties: ProductProperties,
   override val windowsDistributionCustomizer: WindowsDistributionCustomizer?,
   override val linuxDistributionCustomizer: LinuxDistributionCustomizer?,
@@ -259,6 +264,7 @@ class BuildContextImpl internal constructor(
       setupTracer: Boolean = true,
       proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
       options: BuildOptions = BuildOptions(),
+      lifetime: BuildLifetime,
     ): BuildContext {
       return createBuildContext(
         projectHome = projectHome,
@@ -266,11 +272,12 @@ class BuildContextImpl internal constructor(
         setupTracer = setupTracer,
         proprietaryBuildTools = proprietaryBuildTools,
         options = options,
+        lifetime = lifetime,
       )
     }
   }
 
-  private val builtinModules = sharedLazy("provided module list") {
+  private val builtinModules = sharedLazy(lifetime, "provided module list") {
     if (isStepSkipped(BuildOptions.PROVIDED_MODULES_LIST_STEP) || !shouldBuildDistributions()) {
       null
     }
@@ -320,7 +327,7 @@ class BuildContextImpl internal constructor(
     compilationContext.notifyArtifactBuilt(artifactPath)
   }
 
-  private val _frontendModuleFilter = sharedLazy("frontend module filter") {
+  private val _frontendModuleFilter = sharedLazy(lifetime, "frontend module filter") {
     val rootModule = productProperties.embeddedFrontendRootModule
     if (rootModule != null && options.enableEmbeddedFrontend) {
       FrontendModuleFilterImpl.createFrontendModuleFilter(project = project)
@@ -332,7 +339,7 @@ class BuildContextImpl internal constructor(
 
   override fun getFrontendModuleFilter(): FrontendModuleFilter = _frontendModuleFilter.get()
 
-  private val embeddedFrontendProductContext = sharedLazy("embedded frontend product context") {
+  private val embeddedFrontendProductContext = sharedLazy(lifetime, "embedded frontend product context") {
     if (options.enableEmbeddedFrontend) {
       val factory = productProperties.embeddedFrontendProperties
       if (factory != null) {
@@ -344,7 +351,7 @@ class BuildContextImpl internal constructor(
 
   override fun getEmbeddedFrontendProductContext(): BuildContext? = embeddedFrontendProductContext.get()
 
-  private val layoutOfAdditionalFrontendOnlyPlugins = sharedLazy("layout of additional frontend only plugins") {
+  private val layoutOfAdditionalFrontendOnlyPlugins = sharedLazy(lifetime, "layout of additional frontend only plugins") {
     computeDescriptorsForAdditionalFrontendPlugins(this@BuildContextImpl, distributionState().platformLayout)
   }
 
@@ -404,6 +411,7 @@ class BuildContextImpl internal constructor(
     )
     val copy = BuildContextImpl(
       compilationContext = compilationContextCopy,
+      lifetime = lifetime,
       productProperties = productProperties,
       windowsDistributionCustomizer = productProperties.createWindowsCustomizer(projectHomeForCustomizers),
       linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHomeForCustomizers),
@@ -512,7 +520,7 @@ class BuildContextImpl internal constructor(
     computeAppInfoXml(appInfo = applicationInfo, context = this)
   }
 
-  private val devModeProductRunner = sharedLazy("dev mode product runner") {
+  private val devModeProductRunner = sharedLazy(lifetime, "dev mode product runner") {
     createDevModeProductRunner(this@BuildContextImpl)
   }
 
@@ -549,7 +557,7 @@ class BuildContextImpl internal constructor(
     PluginAutoPublishList(this)
   }
 
-  private val distributionState = sharedLazy("Creating distribution state") {
+  private val distributionState = sharedLazy(lifetime, "Creating distribution state") {
     createDistributionState(this@BuildContextImpl)
   }
 

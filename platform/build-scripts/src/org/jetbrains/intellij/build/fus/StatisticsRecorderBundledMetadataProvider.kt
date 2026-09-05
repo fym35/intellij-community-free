@@ -2,6 +2,8 @@
 package org.jetbrains.intellij.build.fus
 
 import com.google.gson.JsonParser
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.TaskScope
 import com.jetbrains.fus.reporting.FusJsonSerializer
 import com.jetbrains.fus.reporting.configuration.ConfigurationClient
 import com.jetbrains.fus.reporting.configuration.ConfigurationClientFactory
@@ -12,8 +14,6 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.StatusCode
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
-import org.jetbrains.intellij.build.Subtask
-import org.jetbrains.intellij.build.TaskScope
 import org.jetbrains.intellij.build.downloadAsBytes
 import org.jetbrains.intellij.build.impl.ModuleOutputPatcher
 import org.jetbrains.intellij.build.impl.createSkippableJob
@@ -123,7 +123,8 @@ private fun String.parseDate(): Long? {
   for (format in DATE_FORMATS) {
     try {
       return ZonedDateTime.parse(this, format).toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {
+    }
+    catch (_: DateTimeParseException) {
     }
   }
   return null
@@ -151,14 +152,14 @@ private fun serviceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsP
 
 private fun metadataServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext): String {
   val appInfo = context.applicationInfo
-  val metadataVersion = (appInfo.majorVersion.substring(2,4) + appInfo.minorVersionMainPart).toInt()
+  val metadataVersion = (appInfo.majorVersion.substring(2, 4) + appInfo.minorVersionMainPart).toInt()
   return serviceUri(featureUsageStatisticsProperties, context).provideMetadataProductUrl(metadataVersion)!!
 }
 
-private fun dictionaryServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext, fileName: String): String
-  = "${serviceUri(featureUsageStatisticsProperties, context).provideDictionaryEndpoint()!!}${featureUsageStatisticsProperties.recorderId}/$fileName"
+private fun dictionaryServiceUri(featureUsageStatisticsProperties: FeatureUsageStatisticsProperties, context: BuildContext, fileName: String): String =
+  "${serviceUri(featureUsageStatisticsProperties, context).provideDictionaryEndpoint()!!}${featureUsageStatisticsProperties.recorderId}/$fileName"
 
-class FusJacksonSerializer: FusJsonSerializer {
+class FusJacksonSerializer : FusJsonSerializer {
   private val SERIALIZATION_MAPPER: JsonMapper by lazy {
     JsonMapper
       .builder()
@@ -181,18 +182,21 @@ class FusJacksonSerializer: FusJsonSerializer {
     val serializer = if (prettyPrint) {
       SERIALIZATION_MAPPER
         .writerWithDefaultPrettyPrinter()
-    } else {
+    }
+    else {
       SERIALIZATION_MAPPER.writer()
     }
     serializer.writeValueAsString(data)
-  } catch (e: Exception) {
+  }
+  catch (e: Exception) {
     throw SerializationException(e)
   }
 
   override fun <T : Any> fromJson(json: String, clazz: KClass<T>): T = try {
     DESERIALIZATION_MAPPER
       .readValue(json, clazz.java)
-  } catch (e: Exception) {
+  }
+  catch (e: Exception) {
     throw SerializationException(e)
   }
 }

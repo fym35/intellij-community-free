@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.pipeline
 
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import com.intellij.platform.pluginGraph.TargetName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -23,6 +24,13 @@ import java.nio.file.Path
 
 @ExtendWith(TestFailureLogger::class)
 class ModelBuildingStageTest {
+  private val owner = SharedTaskOwner("ModelBuildingStageTest")
+
+  @org.junit.jupiter.api.AfterEach
+  fun closeSharedTasks() {
+    owner.close()
+  }
+
   @Test
   fun `execute reads build-declared module set wrapper from disk`(@TempDir tempDir: Path) {
     runBlocking(Dispatchers.Default) {
@@ -75,7 +83,7 @@ class ModelBuildingStageTest {
         updateSuppressions = false,
         commitChanges = false,
         errorSink = ErrorSink(),
-        phaseTimings = ArrayList(),
+        phaseTimings = ArrayList(), owner = owner,
       )
 
       val wrapperPlugin = model.pluginContentCache.getOrExtract(wrapperModule)

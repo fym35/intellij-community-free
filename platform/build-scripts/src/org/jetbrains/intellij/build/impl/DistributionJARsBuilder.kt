@@ -3,6 +3,9 @@
 
 package org.jetbrains.intellij.build.impl
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.TaskScope
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.ijent.community.buildConstants.isMultiRoutingFileSystemEnabledForProduct
 import com.intellij.util.io.Compressor
 import io.opentelemetry.api.trace.Span
@@ -23,8 +26,6 @@ import org.jetbrains.intellij.build.PluginBundlingRestrictions
 import org.jetbrains.intellij.build.PluginDistribution
 import org.jetbrains.intellij.build.ScrambleTool
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
-import org.jetbrains.intellij.build.TaskScope
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.buildSearchableOptions
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.classPath.generateClassPathByLayoutReport
@@ -54,7 +55,6 @@ import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
 import org.jetbrains.intellij.build.productLayout.createPluginLayoutSet
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.jps.util.JpsPathUtil
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -76,7 +76,7 @@ internal fun buildDistribution(
   context.productProperties.validateLayout(platformLayout, context)
   createBuildBrokenPluginListJob(context)
 
-  val productRunner = sharedLazy("distribution product runner") {
+  val productRunner = sharedLazy(context.lifetime, "distribution product runner") {
     context.createProductRunner()
   }
   if (context.productProperties.buildDocAuthoringAssets && !context.isStepSkipped(BuildOptions.DOC_AUTHORING_ASSETS_STEP)) {
@@ -106,7 +106,7 @@ internal fun buildDistribution(
     else {
       emptySet()
     }
-    if (coScramblePluginLayouts.isEmpty()) {
+    val scopeResult = if (coScramblePluginLayouts.isEmpty()) {
       val buildPlatformJob = fork("build platform lib") {
         spanBuilder("build platform lib").use {
           buildPlatform(
@@ -124,7 +124,7 @@ internal fun buildDistribution(
         buildNonBundledPlugins(
           pluginsToPublish = state.pluginsToPublish,
           compressPluginArchive = compressPluginArchive,
-          platformEntriesProvider = buildPlatformJob::join,
+          platformEntriesProvider = { buildPlatformJob.await() },
           state = state,
           searchableOptionSet = searchableOptionSet,
           isUpdateFromSources = isUpdateFromSources,
@@ -137,17 +137,17 @@ internal fun buildDistribution(
         state = state,
         pluginLayouts = pluginLayouts,
         isUpdateFromSources = isUpdateFromSources,
-        platformEntriesProvider = buildPlatformJob::join,
+        platformEntriesProvider = { buildPlatformJob.await() },
         searchableOptionSetDescriptor = searchableOptionSet,
         descriptorCacheContainer = platformLayout.descriptorCacheContainer,
         context = context,
       )
 
-      val platformItems = buildPlatformJob.join()
+      val platformItems = buildPlatformJob.await()
       val bundledPluginItems = bundledPluginsResult.descriptors
       context.bootClassPathJarNames = generateCoreClassPath(platformLayout, context, platformItems, bundledPluginItems)
 
-      ContentReport(platform = platformItems, bundledPlugins = bundledPluginItems, nonBundledPlugins = buildNonBundledPlugins.join())
+      ContentReport(platform = platformItems, bundledPlugins = bundledPluginItems, nonBundledPlugins = buildNonBundledPlugins.await())
     }
     else {
       val additionalPluginsJob = fork("build additional plugins") {
@@ -171,7 +171,7 @@ internal fun buildDistribution(
 
       val layoutsOfPluginsToScramble = collectLayoutsOfPluginsToScramble(pluginLayouts)
       val coScrambleEntriesJob = fork("collect co-scramble entries") {
-        collectCoScrambleEntries(coScramblePluginLayoutJob.join().descriptors, layoutsOfPluginsToScramble = layoutsOfPluginsToScramble)
+        collectCoScrambleEntries(coScramblePluginLayoutJob.await().descriptors, layoutsOfPluginsToScramble = layoutsOfPluginsToScramble)
       }
 
       val buildPlatformJob = fork("build platform lib") {
@@ -182,8 +182,8 @@ internal fun buildDistribution(
             searchableOptionSet = searchableOptionSet,
             context = context,
             isUpdateFromSources = isUpdateFromSources,
-            coScrambleEntriesProvider = { coScrambleEntriesJob.join() },
-            classpathDirsProvider = { collectAllPluginClasspathDirs(coScramblePluginLayoutJob.join().descriptors) },
+            coScrambleEntriesProvider = { coScrambleEntriesJob.await() },
+            classpathDirsProvider = { collectAllPluginClasspathDirs(coScramblePluginLayoutJob.await().descriptors) },
           )
         }
       }
@@ -193,7 +193,7 @@ internal fun buildDistribution(
         buildNonBundledPlugins(
           pluginsToPublish = state.pluginsToPublish,
           compressPluginArchive = compressPluginArchive,
-          platformEntriesProvider = buildPlatformJob::join,
+          platformEntriesProvider = { buildPlatformJob.await() },
           state = state,
           searchableOptionSet = searchableOptionSet,
           isUpdateFromSources = isUpdateFromSources,
@@ -202,8 +202,8 @@ internal fun buildDistribution(
         )
       }
 
-      val coScramblePluginsResult = coScramblePluginLayoutJob.join()
-      val platformItems = buildPlatformJob.join()
+      val coScramblePluginsResult = coScramblePluginLayoutJob.await()
+      val platformItems = buildPlatformJob.await()
       val remainingPluginLayouts = pluginLayouts.asSequence()
         .filter { !coScramblePluginLayouts.contains(it) }
         .toCollection(LinkedHashSet())
@@ -233,7 +233,7 @@ internal fun buildDistribution(
         state = state,
         isUpdateFromSources = false,
         descriptors = bundledPluginItems,
-        additionalPlugins = additionalPluginsJob.join(),
+        additionalPlugins = additionalPluginsJob.await(),
         layoutsOfPluginsToScramble = layoutsOfPluginsToScramble,
         descriptorCacheContainer = platformLayout.descriptorCacheContainer,
         context = context,
@@ -241,8 +241,9 @@ internal fun buildDistribution(
 
       context.bootClassPathJarNames = generateCoreClassPath(platformLayout, context, platformItems, bundledPluginItems)
 
-      ContentReport(platform = platformItems, bundledPlugins = bundledPluginItems, nonBundledPlugins = buildNonBundledPlugins.join())
+      ContentReport(platform = platformItems, bundledPlugins = bundledPluginItems, nonBundledPlugins = buildNonBundledPlugins.await())
     }
+    join { scopeResult }
   }
 
   taskScope {
@@ -264,8 +265,9 @@ internal fun buildDistribution(
         }
       }
     }
+    join()
   }
-  contentReport
+  join { contentReport }
 }
 
 private fun generateCoreClassPath(
@@ -342,11 +344,13 @@ fun collectCoScrambleEntries(plugins: List<PluginBuildResult>, layoutsOfPluginsT
     val layout = layoutsOfPluginsToScramble[plugin.mainModule]
     if (layout == null || !layout.scrambleWithPlatform) continue
     for (jarRelative in layout.pathsToScramble) {
-      result.add(ScrambleTool.CoScrambleEntry(
-        jarFile = plugin.dir.resolve(jarRelative),
-        pluginLayout = layout,
-        pluginDir = plugin.dir,
-      ))
+      result.add(
+        ScrambleTool.CoScrambleEntry(
+          jarFile = plugin.dir.resolve(jarRelative),
+          pluginLayout = layout,
+          pluginDir = plugin.dir,
+        )
+      )
     }
   }
   return result
@@ -656,6 +660,7 @@ internal fun layoutPlatformDistribution(
           }
         }
       }
+      join()
     }
   }
 
@@ -823,6 +828,7 @@ internal fun layoutDistribution(
           }
         }
       }
+      join()
     }
   }
 
@@ -862,8 +868,8 @@ internal fun layoutDistribution(
       })
     }
 
-    tasks
-  }.flatMap { it.join() }
+    join { tasks.flatMap { it.get() } }
+  }
 
   return entries to targetDir
 }

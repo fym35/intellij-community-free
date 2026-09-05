@@ -1,6 +1,8 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.buildScripts.testFramework
 
+import org.jetbrains.intellij.build.BuildLifetime
+
 import com.intellij.util.xml.dom.readXmlAsModel
 import org.assertj.core.api.SoftAssertions
 import org.jetbrains.intellij.build.BuildContext
@@ -14,32 +16,35 @@ fun runEssentialPluginsTest(
   homePath: Path,
   productProperties: ProductProperties,
   buildTools: ProprietaryBuildTools,
-): Unit = run {
-  val buildContext = createBuildContext(
-    projectHome = homePath,
-    productProperties = productProperties,
-    setupTracer = false,
-    proprietaryBuildTools = buildTools,
-    options = createBuildOptionsForTest(productProperties, homePath),
-  )
-  val essentialPlugins = readXmlAsModel(buildContext.appInfoXml.toByteArray()).children.filter { it.name == "essential-plugin" }.mapNotNull { it.content }
-  val softly = SoftAssertions()
-  println("Essential plugins: ${essentialPlugins.joinToString(", ")}")
-  val pluginById = getPluginByIdMap(buildContext)
-  for (essentialPlugin in essentialPlugins) {
-    val essentialPluginDescription = pluginById[essentialPlugin]
-    if (essentialPluginDescription == null) {
-      continue
-    }
+): Unit = BuildLifetime().use { lifetime ->
+  run {
+    val buildContext = createBuildContext(
+      lifetime = lifetime,
+      projectHome = homePath,
+      productProperties = productProperties,
+      setupTracer = false,
+      proprietaryBuildTools = buildTools,
+      options = createBuildOptionsForTest(productProperties, homePath),
+    )
+    val essentialPlugins = readXmlAsModel(buildContext.appInfoXml.toByteArray()).children.filter { it.name == "essential-plugin" }.mapNotNull { it.content }
+    val softly = SoftAssertions()
+    println("Essential plugins: ${essentialPlugins.joinToString(", ")}")
+    val pluginById = getPluginByIdMap(buildContext)
+    for (essentialPlugin in essentialPlugins) {
+      val essentialPluginDescription = pluginById[essentialPlugin]
+      if (essentialPluginDescription == null) {
+        continue
+      }
 
-    essentialPluginDescription.requiredDependencies.filter { it in pluginById }.forEach { requiredPlugin ->
-      println("$essentialPlugin depends on $requiredPlugin")
-      if (requiredPlugin !in essentialPlugins) {
-        softly.fail("$essentialPlugin depends on non-essential plugin $requiredPlugin")
+      essentialPluginDescription.requiredDependencies.filter { it in pluginById }.forEach { requiredPlugin ->
+        println("$essentialPlugin depends on $requiredPlugin")
+        if (requiredPlugin !in essentialPlugins) {
+          softly.fail("$essentialPlugin depends on non-essential plugin $requiredPlugin")
+        }
       }
     }
+    softly.assertAll()
   }
-  softly.assertAll()
 }
 
 private data class PluginDescription(

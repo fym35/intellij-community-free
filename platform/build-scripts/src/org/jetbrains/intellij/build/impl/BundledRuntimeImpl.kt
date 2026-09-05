@@ -3,6 +3,7 @@ package org.jetbrains.intellij.build.impl
 
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.NioFiles
+import com.intellij.platform.buildScripts.concurrency.withLockInterruptibly
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -38,7 +39,6 @@ import java.util.EnumSet
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.GZIPInputStream
-import kotlin.concurrent.withLock
 
 class BundledRuntimeImpl(
   private val options: BuildOptions,
@@ -72,9 +72,9 @@ class BundledRuntimeImpl(
   override fun getHomeForCurrentOsAndArch(): Path {
     val result = homeForCurrentOsAndArchValue.get()
     if (result != null) return result
-    homeForCurrentOsAndArchLock.withLock {
+    return homeForCurrentOsAndArchLock.withLockInterruptibly {
       val result = homeForCurrentOsAndArchValue.get()
-      if (result != null) return result
+      if (result != null) return@withLockInterruptibly result
       val os = OsFamily.currentOs
       val arch = JvmArchitecture.currentJvmArch
       val libc = LibcImpl.current(os)
@@ -85,7 +85,7 @@ class BundledRuntimeImpl(
         "Unable to find release file $releaseFile after extracting JBR at $path"
       }
       homeForCurrentOsAndArchValue.set(home)
-      return home
+      home
     }
   }
 
@@ -171,6 +171,7 @@ class BundledRuntimeImpl(
       }
     }
   }
+
   private fun getArchSuffix(arch: JvmArchitecture): String = when (arch) {
     JvmArchitecture.x64 -> "x64"
     JvmArchitecture.aarch64 -> "aarch64"

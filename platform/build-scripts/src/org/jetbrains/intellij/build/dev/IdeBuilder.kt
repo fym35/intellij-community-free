@@ -5,6 +5,8 @@ import com.dynatrace.hash4j.hashing.HashFunnel
 import com.dynatrace.hash4j.hashing.Hashing
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.util.io.NioFiles
+import com.intellij.platform.buildScripts.concurrency.Awaitable
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.ijent.community.buildConstants.isMultiRoutingFileSystemEnabledForProduct
 import com.intellij.util.lang.PathClassLoader
 import com.intellij.util.lang.UrlClassLoader
@@ -26,7 +28,6 @@ import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.ScrambleTool
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.classPath.contentModuleJarCoreClasspathEntries
@@ -62,7 +63,6 @@ import org.jetbrains.intellij.build.jarCache.NonCachingJarCacheManager
 import org.jetbrains.intellij.build.normalizeCompiledClassesOptions
 import org.jetbrains.intellij.build.productLayout.discovery.ProductConfiguration
 import org.jetbrains.intellij.build.readSearchableOptionIndex
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.io.ByteArrayOutputStream
@@ -304,16 +304,16 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
       }
       else null
 
-      val platformLayoutResultDeferred: Subtask<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
-        Subtask.completed(PlatformLayoutResult(distributionEntries = emptyList(), coreClassPath = emptySet()))
+      val platformLayoutResultDeferred: Awaitable<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
+        Awaitable.completed(PlatformLayoutResult(distributionEntries = emptyList(), coreClassPath = emptySet()))
       }
       else fork("platform distribution entries") {
-        val platformLayoutAwaited = checkNotNull(platformLayout).join()
+        val platformLayoutAwaited = checkNotNull(platformLayout).await()
         spanBuilder("layout platform").use {
           layoutPlatform(
             runDir = runDir,
             platformLayout = platformLayoutAwaited,
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
             context = context,
             moduleOutputPatcher = moduleOutputPatcher,
             request = request,
@@ -338,7 +338,7 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
           )
         }
       }
@@ -346,18 +346,18 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
         null
       }
 
-      val platformScrambleResultDeferred: Subtask<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
+      val platformScrambleResultDeferred: Awaitable<PlatformLayoutResult> = if (!request.fragment.ownsPlatformJars) {
         platformLayoutResultDeferred
       }
       else fork("scramble platform") {
-        val platformLayoutResult = platformLayoutResultDeferred.join()
+        val platformLayoutResult = platformLayoutResultDeferred.await()
         if (context.productProperties.scrambleMainJar) {
           request.scrambleTool?.let { scrambleTool ->
             spanBuilder("scramble platform").use {
-              val buildResults = pluginsBuildResultsDeferred?.join().orEmpty()
+              val buildResults = pluginsBuildResultsDeferred?.await().orEmpty()
               val coScrambleEntries = if (buildResults.isEmpty()) emptyList() else collectCoScrambleEntries(buildResults, layoutsOfPluginsToScramble = layoutsOfPluginsToScramble)
               scrambleTool.scramble(
-                platformLayout = checkNotNull(platformLayout).join(),
+                platformLayout = checkNotNull(platformLayout).await(),
                 platformContent = platformLayoutResult.distributionEntries,
                 coScrambleEntries = coScrambleEntries,
                 // Skip the per-plugin lib/ walk when nothing opts in — pure platform scramble doesn't
@@ -371,19 +371,19 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
         platformLayoutResult
       }
 
-      val pluginDistributionEntriesDeferred: Subtask<PluginsLayoutResult> = if (!request.fragment.ownsPlugins) {
-        Subtask.completed(PluginsLayoutResult(pluginEntries = emptyList(), additionalPlugins = null))
+      val pluginDistributionEntriesDeferred: Awaitable<PluginsLayoutResult> = if (!request.fragment.ownsPlugins) {
+        Awaitable.completed(PluginsLayoutResult(pluginEntries = emptyList(), additionalPlugins = null))
       }
       else fork("scramble plugins") {
         if (pluginBuildStrategy == DevModePluginBuildStrategy.LAYOUT_BEFORE_PLATFORM_SCRAMBLE) {
           scrambleAlreadyLaidOutPluginsForDevMode(
             request = request,
-            descriptors = checkNotNull(pluginsBuildResultsDeferred).join(),
+            descriptors = checkNotNull(pluginsBuildResultsDeferred).await(),
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
             layoutsOfPluginsToScramble = layoutsOfPluginsToScramble,
-            platformEntriesProvider = { platformScrambleResultDeferred.join().distributionEntries },
+            platformEntriesProvider = { platformScrambleResultDeferred.await().distributionEntries },
           )
         }
         else {
@@ -393,17 +393,17 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
             context = context,
             runDir = runDir,
             platformLayout = checkNotNull(platformLayout),
-            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).join(),
-          ) { platformScrambleResultDeferred.join().distributionEntries }
+            searchableOptionSet = checkNotNull(searchableOptionSetDeferred).await(),
+          ) { platformScrambleResultDeferred.await().distributionEntries }
         }
       }
 
       val coreClassPathDeferred = fork("compute core classpath") {
-        val platformClasspath = platformLayoutResultDeferred.join().coreClassPath
+        val platformClasspath = platformLayoutResultDeferred.await().coreClassPath
         val coreClasspathFromPlugins = if (request.fragment.ownsPlugins) {
           generateCoreClasspathFromPlugins(
-            platformLayout = checkNotNull(platformLayout).join(),
-            pluginBuildResults = pluginDistributionEntriesDeferred.join().pluginEntries,
+            platformLayout = checkNotNull(platformLayout).await(),
+            pluginBuildResults = pluginDistributionEntriesDeferred.await().pluginEntries,
             context = context,
           )
         }
@@ -413,7 +413,7 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
 
       // Write and publish the one classpath computation shared with the component manifest below.
       fork("publish core classpath") {
-        val classPath = coreClassPathDeferred.join()
+        val classPath = coreClassPathDeferred.await()
         if (request.writeCoreClasspath && request.fragment.isComplete) {
           val classPathString = formatCoreClasspath(classPath = classPath, runDir = runDir)
           Files.writeString(runDir.resolve("core-classpath.txt"), classPathString)
@@ -423,127 +423,130 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
       }
 
       val postProcessJob = fork("post-process distribution") {
-        // ensure platform dist files added to the list
-        val platformFileEntries = platformScrambleResultDeferred.join().distributionEntries
-        // ensure plugin dist files added to the list
-        val pluginDistributionEntries = pluginDistributionEntriesDeferred.join()
-        request.componentOutput?.prepackedPluginContentPlacementFile?.let { placementFile ->
-          writePrepackedPluginContentPlacement(
-            file = placementFile,
-            plugins = pluginDistributionEntries.pluginEntries,
-            runDir = runDir,
-          )
-        }
-        val platformLayoutAwaited = platformLayout?.join()
-
-        val pluginClasspathJob = if (request.fragment.ownsPlugins) fork("generate plugin classpath") {
-          val (pluginEntries, additionalEntries) = pluginDistributionEntries
-          val requiredPlatformLayout = checkNotNull(platformLayoutAwaited)
-          val cachedDescriptorContainer = requiredPlatformLayout.descriptorCacheContainer
-          spanBuilder("generate plugin classpath").use {
-            val mainData = generatePluginClassPath(
-              pluginEntries = pluginEntries,
-              descriptorFileProvider = cachedDescriptorContainer,
-              platformLayout = requiredPlatformLayout,
-              layoutsOfPluginsToScramble = layoutsOfPluginsToScramble,
-              context = context,
+        taskScope(name = "post-process distribution") {
+          // ensure platform dist files added to the list
+          val platformFileEntries = platformScrambleResultDeferred.await().distributionEntries
+          // ensure plugin dist files added to the list
+          val pluginDistributionEntries = pluginDistributionEntriesDeferred.await()
+          request.componentOutput?.prepackedPluginContentPlacementFile?.let { placementFile ->
+            writePrepackedPluginContentPlacement(
+              file = placementFile,
+              plugins = pluginDistributionEntries.pluginEntries,
+              runDir = runDir,
             )
-            val additionalData = additionalEntries?.let { generatePluginClassPathFromPrebuiltPluginFiles(it) }
-
-            val byteOut = ByteArrayOutputStream()
-            val out = DataOutputStream(byteOut)
-            if (request.fragment.isComplete) {
-              writePluginClassPathPrefix(
-                out = out,
-                isJarOnly = !request.isUnpackedDist,
-                platformLayout = requiredPlatformLayout,
-                descriptorCacheContainer = cachedDescriptorContainer,
-                context = context
-              )
-              writePluginClassPathCount(out = out, pluginCount = pluginEntries.size + (additionalEntries?.size ?: 0))
-            }
-            out.write(mainData)
-            additionalData?.let { out.write(it) }
-            out.close()
-            val target = if (request.fragment.isComplete) {
-              runDir.resolve(PLUGIN_CLASSPATH)
-            }
-            else {
-              checkNotNull(request.componentOutput).pluginClasspathPartFile!!
-            }
-            target.parent?.createDirectories()
-            Files.write(target, byteOut.toByteArray())
           }
-        }
-        else null
+          val platformLayoutAwaited = platformLayout?.await()
 
-        request.componentOutput?.pluginClasspathPrefixFile?.let { prefixFile ->
-          fork("write plugin classpath prefix") {
-            val requiredPlatformLayout = checkNotNull(platformLayoutAwaited) {
-              "The '${request.fragment}' fragment must lay out the platform to describe the product"
-            }
-            val byteOut = ByteArrayOutputStream()
-            DataOutputStream(byteOut).use { out ->
-              writePluginClassPathPrefix(
-                out = out,
-                isJarOnly = !request.isUnpackedDist,
+          val pluginClasspathJob = if (request.fragment.ownsPlugins) fork("generate plugin classpath") {
+            val (pluginEntries, additionalEntries) = pluginDistributionEntries
+            val requiredPlatformLayout = checkNotNull(platformLayoutAwaited)
+            val cachedDescriptorContainer = requiredPlatformLayout.descriptorCacheContainer
+            spanBuilder("generate plugin classpath").use {
+              val mainData = generatePluginClassPath(
+                pluginEntries = pluginEntries,
+                descriptorFileProvider = cachedDescriptorContainer,
                 platformLayout = requiredPlatformLayout,
-                descriptorCacheContainer = requiredPlatformLayout.descriptorCacheContainer,
+                layoutsOfPluginsToScramble = layoutsOfPluginsToScramble,
                 context = context,
               )
+              val additionalData = additionalEntries?.let { generatePluginClassPathFromPrebuiltPluginFiles(it) }
+
+              val byteOut = ByteArrayOutputStream()
+              val out = DataOutputStream(byteOut)
+              if (request.fragment.isComplete) {
+                writePluginClassPathPrefix(
+                  out = out,
+                  isJarOnly = !request.isUnpackedDist,
+                  platformLayout = requiredPlatformLayout,
+                  descriptorCacheContainer = cachedDescriptorContainer,
+                  context = context
+                )
+                writePluginClassPathCount(out = out, pluginCount = pluginEntries.size + (additionalEntries?.size ?: 0))
+              }
+              out.write(mainData)
+              additionalData?.let { out.write(it) }
+              out.close()
+              val target = if (request.fragment.isComplete) {
+                runDir.resolve(PLUGIN_CLASSPATH)
+              }
+              else {
+                checkNotNull(request.componentOutput).pluginClasspathPartFile!!
+              }
+              target.parent?.createDirectories()
+              Files.write(target, byteOut.toByteArray())
             }
-            prefixFile.parent?.createDirectories()
-            Files.write(prefixFile, byteOut.toByteArray())
           }
-        }
+          else null
 
-        if (context.generateRuntimeModuleRepository && request.fragment.isComplete) {
-          fork("generate runtime repository") {
-            val contentReport = ContentReport(
-              platform = platformFileEntries,
-              bundledPlugins = pluginDistributionEntries.pluginEntries,
-              nonBundledPlugins = emptyList()
-            )
-            checkNotNull(pluginClasspathJob).join() //this is necessary to have full data in DescriptorCacheContainer
+          request.componentOutput?.pluginClasspathPrefixFile?.let { prefixFile ->
+            fork("write plugin classpath prefix") {
+              val requiredPlatformLayout = checkNotNull(platformLayoutAwaited) {
+                "The '${request.fragment}' fragment must lay out the platform to describe the product"
+              }
+              val byteOut = ByteArrayOutputStream()
+              DataOutputStream(byteOut).use { out ->
+                writePluginClassPathPrefix(
+                  out = out,
+                  isJarOnly = !request.isUnpackedDist,
+                  platformLayout = requiredPlatformLayout,
+                  descriptorCacheContainer = requiredPlatformLayout.descriptorCacheContainer,
+                  context = context,
+                )
+              }
+              prefixFile.parent?.createDirectories()
+              Files.write(prefixFile, byteOut.toByteArray())
+            }
+          }
 
-            spanBuilder("generate runtime repository").use {
-              generateRuntimeModuleRepositoryForDevBuild(
-                contentReport = contentReport,
-                targetDirectory = runDir,
-                context = context,
-                platformLayout = checkNotNull(platformLayoutAwaited),
+          if (context.generateRuntimeModuleRepository && request.fragment.isComplete) {
+            fork("generate runtime repository") {
+              val contentReport = ContentReport(
+                platform = platformFileEntries,
+                bundledPlugins = pluginDistributionEntries.pluginEntries,
+                nonBundledPlugins = emptyList()
               )
+              checkNotNull(pluginClasspathJob).await() //this is necessary to have full data in DescriptorCacheContainer
+
+              spanBuilder("generate runtime repository").use {
+                generateRuntimeModuleRepositoryForDevBuild(
+                  contentReport = contentReport,
+                  targetDirectory = runDir,
+                  context = context,
+                  platformLayout = checkNotNull(platformLayoutAwaited),
+                )
+              }
             }
           }
-        }
 
-        if (request.fragment.platformResources) {
-          checkNotNull(platformResourcesJob).join()
-          context.productProperties.copyAdditionalOsSpecificFiles(
-            runDir = runDir,
+          if (request.fragment.platformResources) {
+            checkNotNull(platformResourcesJob).await()
+            context.productProperties.copyAdditionalOsSpecificFiles(
+              runDir = runDir,
+              os = request.os,
+              arch = request.arch,
+              context = context
+            )
+          }
+
+          // A platform layout registers IJent as DistFiles. Platform and plugin fragments need that layout for descriptor
+          // resolution, but the bytes have one owner: platform_resources, which creates the layout specifically to run
+          // platform specs and copy those files. Other DistFiles remain with the fragment that produced them.
+          copyDistFiles(
+            newDir = runDir,
             os = request.os,
             arch = request.arch,
-            context = context
+            libcImpl = LibcImpl.current(request.os),
+            context = context,
+            include = { shouldCopyDevBuildDistFile(fragment = request.fragment, relativePath = it.relativePath) },
           )
+          join()
         }
-
-        // A platform layout registers IJent as DistFiles. Platform and plugin fragments need that layout for descriptor
-        // resolution, but the bytes have one owner: platform_resources, which creates the layout specifically to run
-        // platform specs and copy those files. Other DistFiles remain with the fragment that produced them.
-        copyDistFiles(
-          newDir = runDir,
-          os = request.os,
-          arch = request.arch,
-          libcImpl = LibcImpl.current(request.os),
-          context = context,
-          include = { shouldCopyDevBuildDistFile(fragment = request.fragment, relativePath = it.relativePath) },
-        )
       }
 
       fork("compute IDE fingerprint") {
         // The component manifest inventories the finished tree, including DistFiles and semantic archive links. It
         // must therefore run after every post-processing child has completed, not merely after jars were laid out.
-        postProcessJob.join()
+        postProcessJob.await()
         if (request.fragment.isComplete) {
           computeIdeFingerprint(
             platformDistributionEntriesDeferred = platformLayoutResultDeferred,
@@ -553,7 +556,7 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
           )
         }
         else {
-          val pluginsResult = pluginDistributionEntriesDeferred.join()
+          val pluginsResult = pluginDistributionEntriesDeferred.await()
           writeDevBuildComponentManifest(
             file = checkNotNull(request.componentOutput).manifestFile,
             kind = request.fragment.name,
@@ -562,12 +565,13 @@ internal fun buildProduct(request: BuildRequest, createBuildContext: (buildDir: 
             arch = request.arch,
             additionalModules = if (request.fragment.ownsPlugins) request.additionalModules else emptyList(),
             mainClass = context.ideMainClassName,
-            coreClassPath = coreClassPathDeferred.join(),
+            coreClassPath = coreClassPathDeferred.await(),
             pluginCount = pluginsResult.pluginEntries.size + (pluginsResult.additionalPlugins?.size ?: 0),
             componentRoot = runDir,
           )
         }
       }
+      join()
     }
   }
   finally {
@@ -736,13 +740,13 @@ internal fun formatCoreClasspath(classPath: Collection<Path>, runDir: Path): Str
 }
 
 private fun computeIdeFingerprint(
-  platformDistributionEntriesDeferred: Subtask<PlatformLayoutResult>,
-  pluginDistributionEntriesDeferred: Subtask<PluginsLayoutResult>,
+  platformDistributionEntriesDeferred: Awaitable<PlatformLayoutResult>,
+  pluginDistributionEntriesDeferred: Awaitable<PluginsLayoutResult>,
   runDir: Path,
   projectDir: Path,
 ) {
-  val entries = platformDistributionEntriesDeferred.join().distributionEntries.asSequence() +
-                pluginDistributionEntriesDeferred.join().pluginEntries.asSequence().flatMap { it.distribution.asSequence() }
+  val entries = platformDistributionEntriesDeferred.await().distributionEntries.asSequence() +
+                pluginDistributionEntriesDeferred.await().pluginEntries.asSequence().flatMap { it.distribution.asSequence() }
   writeIdeFingerprint(entries = entries, runDir = runDir, projectDir = projectDir)
 }
 
@@ -790,6 +794,7 @@ private fun createBuildContextFromProject(
     compilationContext = compilationContext,
     productProperties = productProperties,
     request = request,
+    lifetime = lifetime,
   )
 }
 
@@ -894,9 +899,11 @@ internal fun createDevBuildContext(
   compilationContext: CompilationContext,
   productProperties: ProductProperties,
   request: BuildRequest,
+  lifetime: BuildLifetime,
 ): BuildContextImpl {
   return BuildContextImpl(
     compilationContext = compilationContext,
+    lifetime = lifetime,
     productProperties = productProperties,
     windowsDistributionCustomizer = object : WindowsDistributionCustomizer() {},
     linuxDistributionCustomizer = LinuxDistributionCustomizer(),

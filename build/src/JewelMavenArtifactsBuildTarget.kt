@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.BuildPaths.Companion.COMMUNITY_ROOT
 import org.jetbrains.intellij.build.IdeaCommunityProperties
 import org.jetbrains.intellij.build.JewelMavenArtifacts
@@ -12,16 +14,20 @@ import kotlin.io.path.name
 internal object JewelMavenArtifactsBuildTarget {
   @JvmStatic
   fun main(args: Array<String>) {
-    val communityRoot = COMMUNITY_ROOT.communityRoot
-    val context = createBuildContext(
-      projectHome = communityRoot,
-      productProperties = IdeaCommunityProperties(communityRoot),
-    )
-    context.compileModules(JewelMavenArtifacts.ALL_MODULES)
-    val builder = MavenArtifactsBuilder(context)
-    val outputDir = context.paths.artifactDir.resolve("maven-artifacts")
-    outputDir.deleteRecursively()
-    builder.generateMavenArtifacts(moduleNamesToPublish = JewelMavenArtifacts.ALL_MODULES, outputDir = outputDir.name, validate = true)
-    context.notifyArtifactBuilt(outputDir)
+    BuildLifetime().use { lifetime ->
+
+      val communityRoot = COMMUNITY_ROOT.communityRoot
+      val context = createBuildContext(
+        projectHome = communityRoot,
+        productProperties = IdeaCommunityProperties(communityRoot), lifetime = lifetime,
+      )
+      context.compileModules(JewelMavenArtifacts.ALL_MODULES)
+      val builder = MavenArtifactsBuilder(context)
+      val outputDir = context.paths.artifactDir.resolve("maven-artifacts")
+      outputDir.deleteRecursively()
+      builder.generateMavenArtifacts(moduleNamesToPublish = JewelMavenArtifacts.ALL_MODULES, outputDir = outputDir.name, validate = true)
+      context.notifyArtifactBuilt(outputDir)
+
+    }
   }
 }

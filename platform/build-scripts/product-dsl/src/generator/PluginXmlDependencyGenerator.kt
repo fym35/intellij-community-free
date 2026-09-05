@@ -4,6 +4,8 @@
 
 package org.jetbrains.intellij.build.productLayout.generator
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.DependencyClassification
 import com.intellij.platform.pluginGraph.PluginGraph
@@ -28,8 +30,6 @@ import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.xml.LegacyMigrationResult
 import org.jetbrains.intellij.build.productLayout.xml.extractDependenciesEntries
 import org.jetbrains.intellij.build.productLayout.xml.removeDuplicateLegacyDepends
-import org.jetbrains.intellij.build.taskScope
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.mapConcurrent
 
 /**
@@ -81,9 +81,10 @@ internal object PluginDependencyPlanner : PipelineNode {
           )
         })
       }
-      val plans = tasks.map { it.join() }.filterNotNull()
-
-      ctx.publish(Slots.PLUGIN_DEPENDENCY_PLAN, PluginDependencyPlanOutput(plans = plans))
+      join {
+        val plans = tasks.map { it.get() }.filterNotNull()
+        ctx.publish(Slots.PLUGIN_DEPENDENCY_PLAN, PluginDependencyPlanOutput(plans = plans))
+      }
     }
   }
 }
@@ -146,17 +147,19 @@ internal fun collectPluginGraphDeps(graph: PluginGraph): List<PluginGraphDeps> {
 
       if (!hasMainTarget) return@plugins
 
-      results.add(PluginGraphDeps(
-        pluginContentModuleName = pluginName,
-        isDslDefined = plugin.isDslDefined,
-        isTest = plugin.isTest,
-        contentModules = contentModules,
-        jpsModuleDependencies = moduleDeps,
-        jpsPluginDependencies = pluginDeps,
-        legacyConfigFilePluginDependencies = legacyConfigFilePluginDeps,
-        filteredModuleDependencies = filteredModuleDeps,
-        duplicateDeclarationPluginIds = duplicateDeclarations,
-      ))
+      results.add(
+        PluginGraphDeps(
+          pluginContentModuleName = pluginName,
+          isDslDefined = plugin.isDslDefined,
+          isTest = plugin.isTest,
+          contentModules = contentModules,
+          jpsModuleDependencies = moduleDeps,
+          jpsPluginDependencies = pluginDeps,
+          legacyConfigFilePluginDependencies = legacyConfigFilePluginDeps,
+          filteredModuleDependencies = filteredModuleDeps,
+          duplicateDeclarationPluginIds = duplicateDeclarations,
+        )
+      )
     }
   }
   return results
@@ -247,12 +250,14 @@ private fun buildPluginDependencyPlan(
   val info = pluginContentCache.getOrExtract(pluginTargetName) ?: return null
 
   if (info.pluginId == null && info.source != PluginSource.DISCOVERED) {
-    emitError(MissingPluginIdError(
-      context = pluginContentModuleName.value,
-      pluginName = pluginTargetName,
-      pluginXmlPath = info.pluginXmlPath,
-      pluginSource = info.source.name,
-    ))
+    emitError(
+      MissingPluginIdError(
+        context = pluginContentModuleName.value,
+        pluginName = pluginTargetName,
+        pluginXmlPath = info.pluginXmlPath,
+        pluginSource = info.source.name,
+      )
+    )
   }
 
   val existingXmlModuleDeps = info.moduleDependencies

@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import io.opentelemetry.api.common.AttributeKey
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -21,7 +22,7 @@ data class FileSource(
   @JvmField val relativePath: String,
   @JvmField val size: Int,
   @JvmField val hash: Long,
-  @JvmField  @Contextual val file: Path,
+  @JvmField @Contextual val file: Path,
 ) : Source {
   init {
     assert(Files.isRegularFile(file)) { "'$file' is not a file" }
@@ -83,6 +84,7 @@ internal fun buildSearchableOptions(
       fork("resolve maven telemetry dependencies") {
         BundledMavenDownloader.resolveMavenTelemetryDependencies(context.paths.communityHomeDirRoot)
       }
+      join()
     }
 
     // Start the product in headless mode using com.intellij.ide.ui.search.TraverseUIStarter.

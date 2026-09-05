@@ -6,6 +6,8 @@ package org.jetbrains.intellij.build.impl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.buildData.productInfo.ProductInfoLaunchData
+import com.intellij.platform.buildScripts.concurrency.Joiner
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.buildScripts.licenses.SoftwareBillOfMaterials
 import com.intellij.util.containers.CollectionFactory
 import com.intellij.util.system.CpuArch
@@ -33,7 +35,6 @@ import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.PluginBundlingRestrictions
 import org.jetbrains.intellij.build.PluginDistribution
-import org.jetbrains.intellij.build.TaskScopePolicy
 import org.jetbrains.intellij.build.VmProperties
 import org.jetbrains.intellij.build.WindowsLibcImpl
 import org.jetbrains.intellij.build.add64IfNeeded
@@ -65,7 +66,6 @@ import org.jetbrains.intellij.build.productRunner.IntellijProductRunner
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.block
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.zipSourcesOfModules
 import java.nio.file.FileSystems
 import java.nio.file.FileVisitResult
@@ -177,10 +177,16 @@ val SUPPORTED_DISTRIBUTIONS: List<SupportedDistribution> = listOf(
 )
 
 fun createIdeaPropertyFile(context: BuildContext): CharSequence {
-  val builder = StringBuilder(Files.readString(context.paths.communityHomeDir.resolve(when {
-    context.isLanguageServer -> "../language-server/build/idea.properties"
-    else -> "bin/idea.properties"
-  })))
+  val builder = StringBuilder(
+    Files.readString(
+      context.paths.communityHomeDir.resolve(
+        when {
+          context.isLanguageServer -> "../language-server/build/idea.properties"
+          else -> "bin/idea.properties"
+        }
+      )
+    )
+  )
   for (it in context.productProperties.additionalIDEPropertiesFilePaths) {
     builder.append('\n').append(Files.readString(it))
   }
@@ -308,6 +314,7 @@ private fun buildOsSpecificDistributions(context: BuildContext): List<Distributi
             recursivelySignMacBinaries(file, context)
           }
         }
+        join()
       }
     }
 
@@ -324,8 +331,8 @@ private fun buildOsSpecificDistributions(context: BuildContext): List<Distributi
       updateExecutablePermissions(context.paths.distAllDir, matchers)
     }
 
-    taskScope(TaskScopePolicy.RUN_ALL) {
-      SUPPORTED_DISTRIBUTIONS.mapNotNull { (os, arch, libcImpl) ->
+    taskScope(joiner = Joiner.awaitAllOrThrow()) {
+      val tasks = SUPPORTED_DISTRIBUTIONS.mapNotNull { (os, arch, libcImpl) ->
         if (!context.shouldBuildDistributionForOS(os, arch)) {
           return@mapNotNull null
         }
@@ -347,7 +354,8 @@ private fun buildOsSpecificDistributions(context: BuildContext): List<Distributi
           }
         }
       }
-    }.map { it.join() }
+      join { tasks.map { it.get() } }
+    }
   } ?: emptyList()
 }
 
@@ -428,12 +436,12 @@ internal fun buildProvidedModuleList(context: BuildContext): BuiltinModulesFileD
 }
 
 /**
- JDK17 falls back to `?` which is normal dir name. But JDK21 falls back to the `$HOME` which is `/` making all paths absolute causing permission
- problems. The script we start has a proper home directory passed via property, but it is not implicitly passed to the subprocesses, so we need to
- do this explicitly.
+JDK17 falls back to `?` which is normal dir name. But JDK21 falls back to the `$HOME` which is `/` making all paths absolute causing permission
+problems. The script we start has a proper home directory passed via property, but it is not implicitly passed to the subprocesses, so we need to
+do this explicitly.
 
- @see https://youtrack.jetbrains.com/issue/IJPL-203604
-**/
+@see https://youtrack.jetbrains.com/issue/IJPL-203604
+ **/
 internal fun additionalProperties(): VmProperties = VmProperties(mapOf("user.home" to System.getProperty("user.home")))
 
 fun buildDistributions(context: BuildContext): Unit = block("build distributions") {
@@ -443,6 +451,7 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
     fork("check product properties") { checkProductProperties(context) }
 
     fork("copy dependencies file") { copyDependenciesFile(context) }
+    join()
   }
 
   logFreeDiskSpace("before compilation", context)
@@ -474,6 +483,7 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
         descriptorCacheContainer = distributionState.platformLayout.descriptorCacheContainer,
         context = context,
       )
+      join()
       return@taskScope
     }
 
@@ -508,6 +518,7 @@ fun buildDistributions(context: BuildContext): Unit = block("build distributions
       }
     }
 
+    join()
     logFreeDiskSpace("after building distributions", context)
   }
 }
@@ -1139,6 +1150,7 @@ private fun lookForJunkFiles(context: BuildContext, paths: List<Path>) {
         }
       }
     }
+    join()
   }
 
   if (result.isNotEmpty()) {

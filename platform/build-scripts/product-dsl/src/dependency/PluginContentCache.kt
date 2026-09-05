@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.productLayout.dependency
 
+import com.intellij.platform.buildScripts.concurrency.SharedCache
 import com.intellij.platform.pluginGraph.TargetName
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.productLayout.discovery.PluginContentInfo
@@ -10,7 +11,6 @@ import org.jetbrains.intellij.build.productLayout.discovery.PluginSource
 import org.jetbrains.intellij.build.productLayout.discovery.PluginXmlOverride
 import org.jetbrains.intellij.build.productLayout.discovery.extractPluginContent
 import org.jetbrains.intellij.build.productLayout.model.ErrorSink
-import org.jetbrains.intellij.build.productLayout.util.AsyncCache
 
 /**
  * Interface for plugin content retrieval with on-demand discovery support.
@@ -44,13 +44,13 @@ internal interface PluginContentProvider {
  */
 internal class PluginContentCache(
   private val outputProvider: ModuleOutputProvider,
-  private val xIncludeCache: AsyncCache<String, ByteArray?>,
+  private val xIncludeCache: SharedCache<String, ByteArray?>,
   private val skipXIncludePaths: Set<String>,
   private val xIncludePrefixFilter: (String) -> String?,
   private val pluginXmlOverrides: Map<TargetName, PluginXmlOverride> = emptyMap(),
   private val errorSink: ErrorSink,
 ) : PluginContentProvider {
-  private val cache = AsyncCache<TargetName, PluginContentInfo?>()
+  private val cache = SharedCache<TargetName, PluginContentInfo?>(xIncludeCache.owner)
 
   /**
    * Extracts plugin content with explicit source type.

@@ -2,6 +2,7 @@
 package org.jetbrains.intellij.build
 
 import com.dynatrace.hash4j.hashing.Hashing
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -126,6 +127,7 @@ internal class StripedLockTest {
           }
         }
       }
+      join()
     }
     assertThat(counters.values).containsOnly(1000)
   }

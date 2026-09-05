@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.validator
 
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
@@ -27,6 +28,13 @@ import java.nio.file.Path
  */
 @ExtendWith(TestFailureLogger::class)
 class LibraryModuleValidatorTest {
+  private val owner = SharedTaskOwner("LibraryModuleValidatorTest")
+
+  @org.junit.jupiter.api.AfterEach
+  fun closeSharedTasks() {
+    owner.close()
+  }
+
 
   private val imlContentWithLibraryDep = """
     |<?xml version="1.0" encoding="UTF-8"?>
@@ -64,7 +72,7 @@ class LibraryModuleValidatorTest {
     }
 
     val strategy = DeferredFileUpdater(tempDir)
-    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy)
+    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy, owner = owner)
     runValidationRule(LibraryModuleValidator, model)
 
     assertThat(strategy.getDiffs())
@@ -99,7 +107,7 @@ class LibraryModuleValidatorTest {
       graph,
       outputProvider = jps.outputProvider,
       fileUpdater = strategy,
-      updateSuppressions = true,
+      updateSuppressions = true, owner = owner,
     )
 
     runValidationRule(LibraryModuleValidator, model)
@@ -134,7 +142,7 @@ class LibraryModuleValidatorTest {
     }
 
     val strategy = DeferredFileUpdater(tempDir)
-    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy)
+    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy, owner = owner)
     runValidationRule(LibraryModuleValidator, model)
 
     val diffs = strategy.getDiffs()
@@ -188,7 +196,7 @@ class LibraryModuleValidatorTest {
     }
 
     val strategy = DeferredFileUpdater(tempDir)
-    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy)
+    val model = testGenerationModel(graph, outputProvider = jps.outputProvider, fileUpdater = strategy, owner = owner)
     runValidationRule(LibraryModuleValidator, model)
 
     assertThat(strategy.getDiffs())

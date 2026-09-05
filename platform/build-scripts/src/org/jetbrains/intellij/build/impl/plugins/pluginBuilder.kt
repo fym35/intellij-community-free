@@ -4,6 +4,7 @@
 package org.jetbrains.intellij.build.impl.plugins
 
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
@@ -34,7 +35,6 @@ import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFil
 import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.taskScope
 import java.nio.file.Path
 
 private class ScrambleTask(@JvmField val descriptor: PluginBuildDescriptor)
@@ -107,6 +107,7 @@ internal fun buildPlugins(
           )
         }
       }
+      join()
     }
   }
   return results.map { it.first }
@@ -147,6 +148,7 @@ internal fun scrambleAlreadyLaidOutPlugins(
         )
       }
     }
+    join()
   }
 }
 
@@ -241,7 +243,7 @@ private fun buildPlugin(
     }
   }
 
-  buildResult to scrambleTask
+  join { buildResult to scrambleTask }
 }
 
 private fun checkOutputOfPluginModules(

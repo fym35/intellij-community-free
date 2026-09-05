@@ -4,12 +4,12 @@
 package org.jetbrains.intellij.build.impl.support
 
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.platform.buildScripts.concurrency.SharedCache
+import com.intellij.platform.buildScripts.concurrency.withLockInterruptibly
 import io.opentelemetry.api.trace.Span
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions.Companion.REPAIR_UTILITY_BUNDLE_STEP
-import org.jetbrains.intellij.build.checkRecursiveSingleFlightAwait
-import org.jetbrains.intellij.build.currentSingleFlightOwners
 import org.jetbrains.intellij.build.JvmArchitecture
 import org.jetbrains.intellij.build.JvmArchitecture.Companion.currentJvmArch
 import org.jetbrains.intellij.build.OsFamily
@@ -19,10 +19,8 @@ import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.Docker
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder
 import org.jetbrains.intellij.build.io.runProcess
-import org.jetbrains.intellij.build.joinShared
 import org.jetbrains.intellij.build.retryWithExponentialBackOff
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.withSingleFlightOwners
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
@@ -36,9 +34,9 @@ import java.nio.file.attribute.PosixFilePermission.OWNER_READ
 import java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
 import java.util.UUID
 import java.util.WeakHashMap
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import java.util.concurrent.CancellationException
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -183,7 +181,7 @@ private fun buildBinaries(context: BuildContext): Map<Binary, Path> {
       for ((envVar, url) in distributionUrls) {
         context.messages.info("$envVar=$url")
       }
-      buildLock.withLock {
+      buildLock.withLockInterruptibly {
         retryWithExponentialBackOff {
           runProcess(
             args = listOf("bash", "build.sh"), workingDir = projectHome,
@@ -193,6 +191,12 @@ private fun buildBinaries(context: BuildContext): Map<Binary, Path> {
           )
         }
       }
+    }
+    catch (e: CancellationException) {
+      throw e
+    }
+    catch (e: InterruptedException) {
+      throw e
     }
     catch (e: Throwable) {
       if (TeamCityHelper.isUnderTeamCity) {
@@ -230,50 +234,19 @@ private class Binary(
     }
 }
 
-/**
- * One value per build context, computed by the first caller on its own thread and shared with every other caller.
- *
- * `AsyncCache` is not a fit here: this process-level cache must not keep `BuildContext` instances alive across repeated
- * in-process builds, and the computation stays on the thread of the caller instead of a thread of its own.
- */
+/** Shares one value per build context. The context lifetime owns the load; this cache holds its context keys weakly. */
 @ApiStatus.Internal
 class BuildContextSingleFlightCache<V>(
   private val operationName: String,
   private val loader: (BuildContext) -> V,
 ) {
   private val lock = ReentrantLock()
-  private val cache = WeakHashMap<BuildContext, CacheEntry<V>>()
+  private val cache = WeakHashMap<BuildContext, SharedCache<String, V>>()
 
   fun getOrLoad(context: BuildContext): V {
-    val (entry, isOwner) = lock.withLock {
-      cache.get(context)?.let {
-        return@withLock it to false
-      }
-
-      val created = CacheEntry(
-        result = CompletableFuture<V>(),
-        owner = Any(),
-      )
-      cache.put(context, created)
-      created to true
+    val entry = lock.withLock {
+      cache.get(context) ?: SharedCache<String, V>(context.lifetime.sharedTasks).also { cache.put(context, it) }
     }
-
-    if (!isOwner) {
-      checkRecursiveSingleFlightAwait(entry.owner, operationName, completed = entry.result.isDone)
-      return entry.result.joinShared()
-    }
-
-    try {
-      entry.result.complete(withSingleFlightOwners(inherited = currentSingleFlightOwners(), owner = entry.owner) { loader(context) })
-    }
-    catch (t: Throwable) {
-      entry.result.completeExceptionally(t)
-    }
-    return entry.result.joinShared()
+    return entry.getOrPut(operationName) { loader(context) }
   }
-
-  private class CacheEntry<V>(
-    val result: CompletableFuture<V>,
-    val owner: Any,
-  )
 }

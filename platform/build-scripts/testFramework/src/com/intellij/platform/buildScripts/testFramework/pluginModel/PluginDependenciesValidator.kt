@@ -35,6 +35,7 @@ import com.intellij.ide.plugins.loadPluginSubDescriptors
 import com.intellij.ide.plugins.sequenceAllDescriptors
 import com.intellij.ide.plugins.sequenceDescriptorExclusionChain
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.platform.buildScripts.concurrency.withLockInterruptibly
 import com.intellij.platform.ide.bootstrap.ZipFilePoolImpl
 import com.intellij.platform.pluginSystem.parser.impl.LoadPathUtil
 import com.intellij.platform.pluginSystem.parser.impl.LoadedXIncludeReference
@@ -54,7 +55,6 @@ import com.intellij.util.SmartList
 import com.intellij.util.SystemProperties
 import com.intellij.util.lang.UrlClassLoader
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.java.JavaSourceRootType
@@ -93,7 +93,7 @@ class PluginDependenciesValidator private constructor(
     ): List<PluginModuleConfigurationError> {
       val validator = PluginDependenciesValidator(tempDir = tempDir, project = project, productMode = productMode, pluginLayoutProvider = pluginLayoutProvider, options = options)
       val pluginSetTestBuilder = validator.createPluginSet()
-      val pluginSet = pluginSetBuildLock.withLock { pluginSetTestBuilder.build() }
+      val pluginSet = pluginSetBuildLock.withLockInterruptibly { pluginSetTestBuilder.build() }
       validator.reportPluginLoadingErrors(pluginSet)
       validator.checkPluginSet(pluginSet)
       return validator.errors

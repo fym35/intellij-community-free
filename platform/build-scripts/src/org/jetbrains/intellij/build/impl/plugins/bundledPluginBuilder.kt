@@ -3,6 +3,8 @@
 
 package org.jetbrains.intellij.build.impl.plugins
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import io.opentelemetry.api.common.AttributeKey
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.DistFile
@@ -11,7 +13,6 @@ import org.jetbrains.intellij.build.JvmArchitecture
 import org.jetbrains.intellij.build.LibcImpl
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.classPath.generatePluginClassPath
 import org.jetbrains.intellij.build.classPath.generatePluginClassPathFromPrebuiltPluginFiles
@@ -36,7 +37,6 @@ import org.jetbrains.intellij.build.impl.satisfiesBundlingRequirements
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.block
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.taskScope
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.file.Path
@@ -128,7 +128,7 @@ internal fun buildBundledPluginsForAllPlatforms(
   if (!layoutOnly) {
     // the platform must be complete before the plugin info is written
     platformEntriesProvider()
-    additionalPlugins = additionalPluginsJob?.join()
+    additionalPlugins = additionalPluginsJob?.await()
     val layoutsOfPluginsToScramble = collectLayoutsOfPluginsToScramble(pluginLayouts)
     writePluginInfo(
       pluginDirs = pluginDirs,
@@ -143,9 +143,9 @@ internal fun buildBundledPluginsForAllPlatforms(
   }
   else {
     // Force the additional plugin copy to complete; plugin-info may be written separately by the caller after scramble.
-    additionalPlugins = additionalPluginsJob?.join()
+    additionalPlugins = additionalPluginsJob?.await()
   }
-  BundledPluginsBuildResult(descriptors = descriptors, additionalPlugins = additionalPlugins)
+  join { BundledPluginsBuildResult(descriptors = descriptors, additionalPlugins = additionalPlugins) }
 }
 
 /**
@@ -206,25 +206,25 @@ private fun buildOsSpecificBundledPlugins(
       tasks.indices.toList().forEachConcurrent(concurrency = minOf(OS_SPECIFIC_PLUGIN_BUILD_CONCURRENCY, tasks.size)) { index ->
         val task = tasks[index]
         results[index] = spanBuilder("build bundled plugins")
-            .setAttribute("os", task.dist.os.osName)
-            .setAttribute("arch", task.dist.arch.name)
-            .setAttribute("count", task.plugins.size.toLong())
-            .setAttribute("outDir", task.targetDir.toString())
-            .use {
-              buildPlugins(
-                plugins = task.plugins,
-                os = task.dist.os,
-                arch = task.dist.arch,
-                targetDir = task.targetDir,
-                state = state,
-                platformEntriesProvider = platformEntriesProvider,
-                searchableOptionSet = searchableOptionSet,
-                descriptorCacheContainer = descriptorCacheContainer,
-                context = context,
-                additionalScrambleDescriptorsProvider = { commonPlugins },
-                layoutOnly = layoutOnly,
-              )
-            }
+          .setAttribute("os", task.dist.os.osName)
+          .setAttribute("arch", task.dist.arch.name)
+          .setAttribute("count", task.plugins.size.toLong())
+          .setAttribute("outDir", task.targetDir.toString())
+          .use {
+            buildPlugins(
+              plugins = task.plugins,
+              os = task.dist.os,
+              arch = task.dist.arch,
+              targetDir = task.targetDir,
+              state = state,
+              platformEntriesProvider = platformEntriesProvider,
+              searchableOptionSet = searchableOptionSet,
+              descriptorCacheContainer = descriptorCacheContainer,
+              context = context,
+              additionalScrambleDescriptorsProvider = { commonPlugins },
+              layoutOnly = layoutOnly,
+            )
+          }
       }
 
       val orderedResults = LinkedHashMap<SupportedDistribution, List<PluginBuildResult>>(tasks.size)

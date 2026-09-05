@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
@@ -12,8 +13,7 @@ val BUILD_CONCURRENCY: Int = (Runtime.getRuntime().availableProcessors() * 2).co
 /**
  * Runs [action] with one permit of the semaphore, and returns the permit when [action] ends.
  *
- * `acquire` blocks the calling virtual thread. The permit is not bound to the thread, so [action] may end on another
- * thread. This is the twin of `kotlinx.coroutines.sync.Semaphore.withPermit` for `java.util.concurrent.Semaphore`.
+ * The calling thread waits for a permit before it runs [action].
  */
 @ApiStatus.Internal
 inline fun <T> Semaphore.withPermit(action: () -> T): T {
@@ -29,8 +29,7 @@ inline fun <T> Semaphore.withPermit(action: () -> T): T {
 /**
  * Runs [action] for every item on up to [concurrency] virtual threads, and blocks until all of them have ended.
  *
- * The first failure cancels the other workers and is rethrown. A worker is a virtual thread, so a blocking action
- * occupies no other thread. Build-scripts internal; not part of the public build API.
+ * The first failure cancels the other workers. The scope reports it as a task failure.
  */
 @ApiStatus.Internal
 fun <T> Collection<T>.forEachConcurrent(
@@ -43,7 +42,7 @@ fun <T> Collection<T>.forEachConcurrent(
 /**
  * Maps every item with [action] on up to [concurrency] virtual threads, and returns the results in the order of the items.
  *
- * The first failure cancels the other workers and is rethrown. See [forEachConcurrent].
+ * The first failure cancels the other workers. See [forEachConcurrent].
  */
 @ApiStatus.Internal
 fun <T, R> Collection<T>.mapConcurrent(
@@ -74,13 +73,16 @@ private fun <T> runOnVirtualThreads(items: List<T>, concurrency: Int, action: (I
     repeat(minOf(concurrency, items.size)) { worker ->
       fork("$name worker $worker") {
         while (true) {
+          checkCancelled()
           val index = nextIndex.getAndIncrement()
           if (index >= items.size) {
             break
           }
+          checkCancelled()
           action(index, items[index])
         }
       }
     }
+    join()
   }
 }

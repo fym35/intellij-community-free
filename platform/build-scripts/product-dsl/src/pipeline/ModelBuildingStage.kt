@@ -3,6 +3,8 @@
 
 package org.jetbrains.intellij.build.productLayout.pipeline
 
+import com.intellij.platform.buildScripts.concurrency.SharedCache
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.EDGE_ALLOWS_MISSING
 import com.intellij.platform.pluginGraph.EDGE_BUNDLES
@@ -47,7 +49,6 @@ import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.stats.recordGenerationTiming
 import org.jetbrains.intellij.build.productLayout.traversal.collectPluginContentModules
 import org.jetbrains.intellij.build.productLayout.traversal.collectProductModuleNames
-import org.jetbrains.intellij.build.productLayout.util.AsyncCache
 import org.jetbrains.intellij.build.productLayout.util.DeferredFileUpdater
 import org.jetbrains.intellij.build.productLayout.util.GeneratedArtifactWritePolicy
 import org.jetbrains.intellij.build.productLayout.util.resolveXIncludeBytes
@@ -110,6 +111,7 @@ internal object ModelBuildingStage {
   fun execute(
     discovery: DiscoveryResult,
     config: ModuleSetGenerationConfig,
+    owner: SharedTaskOwner,
     updateSuppressions: Boolean,
     commitChanges: Boolean,
     errorSink: ErrorSink,
@@ -144,7 +146,7 @@ internal object ModelBuildingStage {
     val generatedArtifactWritePolicy = GeneratedArtifactWritePolicy(generationMode, fileUpdater)
 
     // Create xi:include cache (shared across plugin content extraction)
-    val xIncludeCache = AsyncCache<String, ByteArray?>()
+    val xIncludeCache = SharedCache<String, ByteArray?>(owner)
 
     // Create plugin content cache
     // ErrorSink is used to emit xi:include errors during plugin content extraction
@@ -192,7 +194,7 @@ internal object ModelBuildingStage {
       .toSet()
 
     // Create descriptor cache
-    val descriptorCache = ModuleDescriptorCache(outputProvider = outputProvider)
+    val descriptorCache = ModuleDescriptorCache(outputProvider = outputProvider, owner = owner)
 
     // Build unified graph model for plugin/module/product relationships
     // Graph is the single source of truth - built DURING extraction
@@ -247,8 +249,8 @@ internal object ModelBuildingStage {
       )
     }
 
-    val includeAliasCache = AsyncCache<String, Set<PluginId>>()
-    val moduleDescriptorAliasCache = AsyncCache<ContentModuleName, Set<PluginId>>()
+    val includeAliasCache = SharedCache<String, Set<PluginId>>(owner)
+    val moduleDescriptorAliasCache = SharedCache<ContentModuleName, Set<PluginId>>(owner)
     recordGenerationTiming("linkProductsAndBundledPlugins", phaseTimings) { linkProductsAndBundledPlugins(discovery, builder) }
     recordGenerationTiming("linkTestPluginsByProduct", phaseTimings) { linkTestPluginsByProduct(config, builder) }
     recordGenerationTiming("addModuleSets", phaseTimings) { addModuleSets(discovery, builder) }
@@ -306,7 +308,7 @@ internal object ModelBuildingStage {
     val productAllowedMissing = (
       discovery.products.mapNotNull { d -> d.spec?.allowedMissingDependencies?.let { d.name to it } } +
       discovery.testProductSpecs.mapNotNull { (name, spec) -> spec.allowedMissingDependencies.takeIf { it.isNotEmpty() }?.let { name to it } }
-    )
+                                )
       .toMap()
 
     return GenerationModel(
@@ -602,10 +604,14 @@ internal object ModelBuildingStage {
 
   /** Counts what one run of the descriptor pre-check spends, for the `timings` debug tag. */
   internal class XIncludeProbeStats {
-    @JvmField var resolveRequests: Int = 0
-    @JvmField var resolveMisses: Int = 0
-    @JvmField var parseCalls: Int = 0
-    @JvmField var resolveNano: Long = 0
+    @JvmField
+    var resolveRequests: Int = 0
+    @JvmField
+    var resolveMisses: Int = 0
+    @JvmField
+    var parseCalls: Int = 0
+    @JvmField
+    var resolveNano: Long = 0
   }
 
   /** What a product's on-disk descriptor gets wrong, or nothing at all when it is healthy. */
@@ -794,8 +800,8 @@ internal object ModelBuildingStage {
     graphView: PluginGraph,
     outputProvider: ModuleOutputProvider,
     descriptorCache: ModuleDescriptorCache,
-    includeAliasCache: AsyncCache<String, Set<PluginId>>,
-    moduleDescriptorAliasCache: AsyncCache<ContentModuleName, Set<PluginId>>,
+    includeAliasCache: SharedCache<String, Set<PluginId>>,
+    moduleDescriptorAliasCache: SharedCache<ContentModuleName, Set<PluginId>>,
     pluginInfos: Map<TargetName, PluginContentInfo>,
   ) {
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -818,45 +824,45 @@ internal object ModelBuildingStage {
     )
 
     val aliasResults = discovery.products.mapConcurrent { product ->
-        run {
-          val spec = product.spec ?: return@mapConcurrent null
+      run {
+        val spec = product.spec ?: return@mapConcurrent null
 
-          val aliasIds = LinkedHashSet<PluginId>()
-          aliasIds.addAll(OS_MODULE_ALIASES)
-          val moduleSetAliases = buildContentBlocksAndChainMapping(spec, collectModuleSetAliases = true).aliasToSource
-          aliasIds.addAll(collectAndValidateAliases(spec, moduleSetAliases))
-          aliasIds.addAll(
-            collectAliasesFromDeprecatedIncludes(
-              spec,
-              outputProvider,
-              includeAliasCache,
-              config.xIncludePrefixFilter,
-              config.skipXIncludePaths,
-            )
+        val aliasIds = LinkedHashSet<PluginId>()
+        aliasIds.addAll(OS_MODULE_ALIASES)
+        val moduleSetAliases = buildContentBlocksAndChainMapping(spec, collectModuleSetAliases = true).aliasToSource
+        aliasIds.addAll(collectAndValidateAliases(spec, moduleSetAliases))
+        aliasIds.addAll(
+          collectAliasesFromDeprecatedIncludes(
+            spec,
+            outputProvider,
+            includeAliasCache,
+            config.xIncludePrefixFilter,
+            config.skipXIncludePaths,
           )
+        )
 
-          val productModuleNames = collectProductModuleNames(graphView, product.name)
-            .toCollection(LinkedHashSet())
-          aliasIds.addAll(collectAliasesFromModuleDescriptors(productModuleNames, descriptorCache, moduleDescriptorAliasCache))
+        val productModuleNames = collectProductModuleNames(graphView, product.name)
+          .toCollection(LinkedHashSet())
+        aliasIds.addAll(collectAliasesFromModuleDescriptors(productModuleNames, descriptorCache, moduleDescriptorAliasCache))
 
-          for (pluginModule in spec.bundledPlugins) {
-            val info = pluginInfos[pluginModule]
-            if (info != null) {
-              if (info.pluginAliases.isNotEmpty()) {
-                aliasIds.addAll(info.pluginAliases)
-              }
-              if (info.contentModules.isNotEmpty()) {
-                val pluginModuleNames = info.contentModules.mapTo(LinkedHashSet()) { it.moduleId.contentName() }
-                aliasIds.addAll(collectAliasesFromModuleDescriptors(pluginModuleNames, descriptorCache, moduleDescriptorAliasCache))
-              }
+        for (pluginModule in spec.bundledPlugins) {
+          val info = pluginInfos[pluginModule]
+          if (info != null) {
+            if (info.pluginAliases.isNotEmpty()) {
+              aliasIds.addAll(info.pluginAliases)
+            }
+            if (info.contentModules.isNotEmpty()) {
+              val pluginModuleNames = info.contentModules.mapTo(LinkedHashSet()) { it.moduleId.contentName() }
+              aliasIds.addAll(collectAliasesFromModuleDescriptors(pluginModuleNames, descriptorCache, moduleDescriptorAliasCache))
             }
           }
-          if (aliasIds.isNotEmpty()) {
-            debug("aliasGraph") { "product=${product.name} aliases=${aliasIds.joinToString { it.value }}" }
-          }
-          ProductAliasResult(product.name, aliasIds)
         }
-      }.filterNotNull()
+        if (aliasIds.isNotEmpty()) {
+          debug("aliasGraph") { "product=${product.name} aliases=${aliasIds.joinToString { it.value }}" }
+        }
+        ProductAliasResult(product.name, aliasIds)
+      }
+    }.filterNotNull()
 
     for (result in aliasResults) {
       for (alias in result.aliases) {
@@ -1259,7 +1265,7 @@ internal object ModelBuildingStage {
   private fun collectAliasesFromDeprecatedIncludes(
     spec: ProductModulesContentSpec,
     outputProvider: ModuleOutputProvider,
-    includeAliasCache: AsyncCache<String, Set<PluginId>>,
+    includeAliasCache: SharedCache<String, Set<PluginId>>,
     prefixFilter: (String) -> String?,
     skipXIncludePaths: Set<String>,
   ): Set<PluginId> {
@@ -1288,7 +1294,7 @@ internal object ModelBuildingStage {
   private fun collectAliasesFromModuleDescriptors(
     moduleNames: Set<ContentModuleName>,
     descriptorCache: ModuleDescriptorCache,
-    aliasCache: AsyncCache<ContentModuleName, Set<PluginId>>,
+    aliasCache: SharedCache<ContentModuleName, Set<PluginId>>,
   ): Set<PluginId> {
     if (moduleNames.isEmpty()) {
       return emptySet()

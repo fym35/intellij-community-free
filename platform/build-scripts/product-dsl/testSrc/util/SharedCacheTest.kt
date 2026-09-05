@@ -1,14 +1,15 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.util
 
+import com.intellij.platform.buildScripts.concurrency.SharedCache
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.util.ref.GCUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.jetbrains.intellij.build.taskScope
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.lang.ref.WeakReference
-import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -18,11 +19,18 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @ExtendWith(org.jetbrains.intellij.build.productLayout.TestFailureLogger::class)
-class AsyncCacheTest {
+class SharedCacheTest {
+  private val owner = SharedTaskOwner("SharedCacheTest")
+
+  @org.junit.jupiter.api.AfterEach
+  fun closeSharedTasks() {
+    owner.close()
+  }
+
   @Test
   fun `basic caching - value is loaded once and cached`() {
     val loadCount = AtomicInteger(0)
-    val cache = AsyncCache<String, String>()
+    val cache = SharedCache<String, String>(owner = owner)
 
     val result1 = cache.getOrPut("key") {
       loadCount.incrementAndGet()
@@ -42,7 +50,7 @@ class AsyncCacheTest {
   fun `concurrent requests for same key share computation`() {
     taskScope {
       val loadCount = AtomicInteger(0)
-      val cache = AsyncCache<String, String>()
+      val cache = SharedCache<String, String>(owner = owner)
 
       val deferreds = (1..10).map {
         fork("cache access") {
@@ -54,19 +62,20 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.map { it.join() }
+      val results = deferreds.map { it.await() }
 
       // All should get the same result
       assertThat(results).allMatch { it == "computed-value" }
       // But loader should only be called once
-      assertThat(loadCount.get()).isEqualTo(1)
+      val scopeResult = assertThat(loadCount.get()).isEqualTo(1)
+      join { scopeResult }
     }
   }
 
   @Test
   fun `null values are cached correctly`() {
     val loadCount = AtomicInteger(0)
-    val cache = AsyncCache<String, String?>()
+    val cache = SharedCache<String, String?>(owner = owner)
 
     val result1 = cache.getOrPut("nullable-key") {
       loadCount.incrementAndGet()
@@ -85,7 +94,7 @@ class AsyncCacheTest {
   @Test
   fun `exceptions ARE cached - subsequent calls get same exception`() {
     val loadCount = AtomicInteger(0)
-    val cache = AsyncCache<String, String>()
+    val cache = SharedCache<String, String>(owner = owner)
 
     // First call fails
     assertThatThrownBy {
@@ -112,7 +121,7 @@ class AsyncCacheTest {
 
   @Test
   fun `different keys are cached independently`() {
-    val cache = AsyncCache<String, Int>()
+    val cache = SharedCache<String, Int>(owner = owner)
 
     val result1 = cache.getOrPut("key1") { 1 }
     val result2 = cache.getOrPut("key2") { 2 }
@@ -126,7 +135,7 @@ class AsyncCacheTest {
   @Test
   fun `concurrent access with different keys works correctly`() {
     taskScope {
-      val cache = AsyncCache<Int, String>()
+      val cache = SharedCache<Int, String>(owner = owner)
 
       val deferreds = (1..100).map { key ->
         fork("cache access") {
@@ -137,12 +146,13 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.map { it.join() }
+      val results = deferreds.map { it.await() }
 
       // Each key should have its own value
-      results.forEachIndexed { index, value ->
+      val scopeResult = results.forEachIndexed { index, value ->
         assertThat(value).isEqualTo("value-${index + 1}")
       }
+      join { scopeResult }
     }
   }
 
@@ -150,7 +160,7 @@ class AsyncCacheTest {
   fun `failed computation with concurrent waiters - all see exception`() {
     taskScope {
       val loadCount = AtomicInteger(0)
-      val cache = AsyncCache<String, String>()
+      val cache = SharedCache<String, String>(owner = owner)
 
       val deferreds = (1..5).map {
         fork("cache access") {
@@ -167,7 +177,7 @@ class AsyncCacheTest {
         }
       }
 
-      val results = deferreds.map { it.join() }
+      val results = deferreds.map { it.await() }
 
       // All concurrent requests should see the exception
       assertThat(results).allMatch { it == "caught-exception" }
@@ -182,14 +192,15 @@ class AsyncCacheTest {
       }
         .isInstanceOf(IllegalStateException::class.java)
         .hasMessageStartingWith("Failed attempt")
-      assertThat(loadCount.get()).isEqualTo(1) // Still 1 - failure is cached
+      val scopeResult = assertThat(loadCount.get()).isEqualTo(1)
+      join { scopeResult } // Still 1 - failure is cached
     }
   }
 
   @Test
   fun `rapid sequential access uses cache`() {
     val loadCount = AtomicInteger(0)
-    val cache = AsyncCache<String, Int>()
+    val cache = SharedCache<String, Int>(owner = owner)
 
     repeat(1000) {
       val result = cache.getOrPut("rapid-key") {
@@ -204,7 +215,7 @@ class AsyncCacheTest {
 
   @Test
   fun `complex value types are cached correctly`() {
-    val cache = AsyncCache<String, List<String>>()
+    val cache = SharedCache<String, List<String>>(owner = owner)
     val expected = listOf("a", "b", "c")
 
     val result1 = cache.getOrPut("complex") { expected }
@@ -216,7 +227,7 @@ class AsyncCacheTest {
 
   @Test
   fun `fails fast on direct recursive await for same key`() {
-    val cache = AsyncCache<String, Int>()
+    val cache = SharedCache<String, Int>(owner = owner)
 
     assertFailsFast {
       // the timeout bounds the test: a guard that does not fire would deadlock on the entry of the caller
@@ -228,15 +239,16 @@ class AsyncCacheTest {
 
   @Test
   fun `fails fast on a fork's recursive await for same key`() {
-    val cache = AsyncCache<String, Int>()
+    val cache = SharedCache<String, Int>(owner = owner)
 
     assertFailsFast {
       cache.getOrPut("loop", timeout = 10.seconds) {
         // the guard travels into the fork, see `TaskScope.fork`
         taskScope {
-          fork("recursive load") {
+          val scopeResult = fork("recursive load") {
             cache.getOrPut("loop", timeout = 10.seconds) { 42 }
-          }.join()
+          }.await()
+          join { scopeResult }
         }
       }
     }
@@ -244,7 +256,8 @@ class AsyncCacheTest {
 
   @Test
   fun `close cancels pending computations and processes completed values`() {
-    val cache = AsyncCache<String, String>()
+    val completed = ArrayList<String>()
+    val cache = SharedCache<String, String>(owner = owner, dispose = { completed.add(it) })
     val started = CountDownLatch(1)
     val release = CountDownLatch(1)
     val failure = arrayOfNulls<Throwable>(1)
@@ -264,13 +277,12 @@ class AsyncCacheTest {
     assertThat(started.await(5, TimeUnit.SECONDS)).isTrue()
     assertThat(cache.getOrPut("completed") { "completed" }).isEqualTo("completed")
 
-    val completed = ArrayList<String>()
-    cache.close { completed.add(it) }
+    cache.close()
     release.countDown()
     pending.join()
 
     assertThat(completed).containsExactly("completed")
-    assertThat(failure[0]).isInstanceOf(CancellationException::class.java)
+    assertThat(failure[0]).isInstanceOf(InterruptedException::class.java)
   }
 
   /**
@@ -279,7 +291,7 @@ class AsyncCacheTest {
    */
   @Test
   fun `a caller that times out leaves the computation for the others`() {
-    val cache = AsyncCache<String, String>()
+    val cache = SharedCache<String, String>(owner = owner)
     val loadCount = AtomicInteger(0)
     val started = CountDownLatch(1)
     val release = CountDownLatch(1)
@@ -317,7 +329,7 @@ class AsyncCacheTest {
   /** The payload is reachable only from the loader, so only the dead thread can keep it. */
   private fun loadWithAPayload(loaderThread: AtomicReference<Thread>): WeakReference<Any> {
     val payload = Any()
-    val cache = AsyncCache<String, Int>()
+    val cache = SharedCache<String, Int>(owner = owner)
     cache.getOrPut("key") {
       loaderThread.set(Thread.currentThread())
       payload.hashCode()
@@ -327,8 +339,10 @@ class AsyncCacheTest {
 
   private fun assertFailsFast(block: () -> Unit) {
     assertThatThrownBy { block() }
-      .isInstanceOf(IllegalStateException::class.java)
-      .hasMessageContaining("Recursive await")
+      .satisfies({ failure ->
+                   val cause = if (failure is com.intellij.platform.buildScripts.concurrency.TaskFailedException) failure.cause!! else failure
+                   assertThat(cause).isInstanceOf(IllegalStateException::class.java).hasMessageContaining("Recursive await")
+                 })
       .hasMessageContaining("loop")
   }
 }

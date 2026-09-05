@@ -2,6 +2,8 @@
 package org.jetbrains.intellij.build
 
 import com.intellij.platform.buildData.productInfo.ProductInfoLayoutItem
+import com.intellij.platform.buildScripts.concurrency.TaskScope
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanBuilder
 import kotlinx.collections.immutable.PersistentMap
@@ -21,6 +23,8 @@ import java.util.concurrent.CancellationException
 import kotlin.time.Duration
 
 interface BuildContext : CompilationContext {
+  val lifetime: BuildLifetime
+
   val productProperties: ProductProperties
   val windowsDistributionCustomizer: WindowsDistributionCustomizer?
   val macDistributionCustomizer: MacDistributionCustomizer?
@@ -231,7 +235,10 @@ inline fun <T> CompilationContext.executeStep(
         null
       }
       else {
-        taskScope { step(span) }
+        taskScope {
+          val scopeResult = step(span)
+          join { scopeResult }
+        }
       }
     }
     catch (e: CancellationException) {

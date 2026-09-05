@@ -85,6 +85,7 @@ private fun createBuildContextFromExistingContext(
     compilationContext = compilationContext,
     productProperties = baseContext.productProperties,
     request = request,
+    lifetime = lifetime,
   )
 }
 

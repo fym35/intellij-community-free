@@ -74,7 +74,7 @@ internal class ModuleOutputZipFilePoolTest {
       val loader = loaderThread[0]!!
       assertThat(loader).isNotSameAs(callerThread)
       assertThat(loader.isVirtual).isTrue()
-      assertThat(loader.name).startsWith("AsyncCache: ")
+      assertThat(loader.name).startsWith("build: ")
     }
   }
 

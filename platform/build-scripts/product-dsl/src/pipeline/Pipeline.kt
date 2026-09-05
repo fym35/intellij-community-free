@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.productLayout.pipeline
 
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import org.jetbrains.intellij.build.productLayout.cleanupOrphanedModuleSetFiles
 import org.jetbrains.intellij.build.productLayout.discovery.GenerationResult
 import org.jetbrains.intellij.build.productLayout.discovery.ModuleSetGenerationConfig
@@ -153,7 +154,7 @@ internal class GenerationPipeline(
     val stageTimings = ArrayList<GenerationTiming>(5)
     // The steps of the BUILD_MODEL stage. They nest inside the `build model` stage, so they travel in their own list.
     val phaseTimings = ArrayList<GenerationTiming>(23)
-    return run {
+    return SharedTaskOwner("product model").use { owner ->
       // Stage 1: DISCOVER - Scan DSL definitions
       val discovery = recordGenerationTiming("discover", stageTimings) { discover(config) }
 
@@ -162,6 +163,7 @@ internal class GenerationPipeline(
       val modelBuildingErrorSink = ErrorSink()
       val model = recordGenerationTiming("build model", stageTimings) {
         ModelBuildingStage.execute(
+          owner = owner,
           discovery = discovery,
           config = config,
           updateSuppressions = updateSuppressions,
@@ -246,11 +248,13 @@ internal class GenerationPipeline(
             }
             finally {
               // in a `finally`, so a node that throws still reports how long it took before it did
-              ctx.nodeTimings.add(GenerationTiming(
-                name = node.id.name,
-                startEpochMs = startEpochMs,
-                durationMs = (System.nanoTime() - startNano) / 1_000_000,
-              ))
+              ctx.nodeTimings.add(
+                GenerationTiming(
+                  name = node.id.name,
+                  startEpochMs = startEpochMs,
+                  durationMs = (System.nanoTime() - startNano) / 1_000_000,
+                )
+              )
             }
             ctx.finalizeNodeErrors(node.id)
           }
@@ -447,10 +451,10 @@ internal class GenerationPipeline(
     // Get errors for specific nodes
     val productModuleDepErrors = ctx.getNodeErrors(NodeIds.PRODUCT_MODULE_DEPS)
     val pluginValidationErrors = ctx.getNodeErrors(NodeIds.PLUGIN_VALIDATION) +
-      ctx.getNodeErrors(NodeIds.PLUGIN_CONTENT_STRUCTURE_VALIDATION) +
-      ctx.getNodeErrors(NodeIds.CONTENT_MODULE_PLUGIN_DEPENDENCY_VALIDATION) +
-      ctx.getNodeErrors(NodeIds.PLUGIN_PLUGIN_VALIDATION) +
-      ctx.getNodeErrors(NodeIds.PLUGIN_DEPENDENCY_DECLARATION_VALIDATION)
+                                 ctx.getNodeErrors(NodeIds.PLUGIN_CONTENT_STRUCTURE_VALIDATION) +
+                                 ctx.getNodeErrors(NodeIds.CONTENT_MODULE_PLUGIN_DEPENDENCY_VALIDATION) +
+                                 ctx.getNodeErrors(NodeIds.PLUGIN_PLUGIN_VALIDATION) +
+                                 ctx.getNodeErrors(NodeIds.PLUGIN_DEPENDENCY_DECLARATION_VALIDATION)
 
     // Build module set results grouped by label
     val moduleSetResults = moduleSetsOutput?.let { output ->

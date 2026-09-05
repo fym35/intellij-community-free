@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Test
 class PluginDistributionJARsBuilderTest {
   @Test
   @Suppress("DEPRECATION")
-  fun verifyStableClasspathOrder(): Unit = runBlocking(Dispatchers.Default) {
-    val context = createBuildContext(COMMUNITY_ROOT.communityRoot, IdeaCommunityProperties(COMMUNITY_ROOT.communityRoot))
-    val ideClasspath1 = createIdeClassPath(createPlatformLayout(context = context), context)
-    val ideClasspath2 = createIdeClassPath(createPlatformLayout(context = context), context)
-    assertThat(ideClasspath1).isEqualTo(ideClasspath2)
+  fun verifyStableClasspathOrder(): Unit = BuildLifetime().use { lifetime ->
+    runBlocking(Dispatchers.Default) {
+      val context = createBuildContext(COMMUNITY_ROOT.communityRoot, IdeaCommunityProperties(COMMUNITY_ROOT.communityRoot), lifetime = lifetime)
+      val ideClasspath1 = createIdeClassPath(createPlatformLayout(context = context), context)
+      val ideClasspath2 = createIdeClassPath(createPlatformLayout(context = context), context)
+      assertThat(ideClasspath1).isEqualTo(ideClasspath2)
+    }
   }
 }

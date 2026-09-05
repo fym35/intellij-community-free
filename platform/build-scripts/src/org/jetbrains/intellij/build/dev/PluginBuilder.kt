@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.dev
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
 import io.opentelemetry.api.common.AttributeKey
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -11,7 +12,6 @@ import org.jetbrains.intellij.build.LibcImpl
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.PluginBundlingRestrictions
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.intellij.build.classPath.PluginBuildResult
 import org.jetbrains.intellij.build.impl.DistributionBuilderState
 import org.jetbrains.intellij.build.impl.PlatformLayout
@@ -125,7 +125,7 @@ private fun buildPluginDescriptorsForDevMode(
   if (plugins.isEmpty()) return emptyList()
   val pluginRootDir = runDir.resolve("plugins")
   Files.createDirectories(pluginRootDir)
-  val platform = platformLayout.join()
+  val platform = platformLayout.await()
   val spanName = if (layoutOnly) "lay out plugins" else "build plugins"
   return spanBuilder(spanName).setAttribute(AttributeKey.longKey("count"), plugins.size.toLong()).use {
     val targetPlatform = SupportedDistribution(os = os, arch = arch, libcImpl = LibcImpl.current(os))
@@ -162,7 +162,7 @@ internal fun scrambleAlreadyLaidOutPluginsForDevMode(
   layoutsOfPluginsToScramble: Map<String, PluginLayout>,
   platformEntriesProvider: () -> List<DistributionFileEntry>,
 ): PluginsLayoutResult {
-  val platform = platformLayout.join()
+  val platform = platformLayout.await()
   val state = DistributionBuilderState(platformLayout = platform, pluginsToPublish = emptySet(), context = context)
   // wait for platform scramble before running per-plugin scramble (it needs the scrambled platform jars on classpath)
   val platformEntries = platformEntriesProvider()

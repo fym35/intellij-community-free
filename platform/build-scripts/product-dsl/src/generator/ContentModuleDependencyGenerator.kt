@@ -4,6 +4,8 @@
 
 package org.jetbrains.intellij.build.productLayout.generator
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.DependencyClassification
 import com.intellij.platform.pluginGraph.EDGE_CONTENT_MODULE_DEPENDS_ON
@@ -29,8 +31,6 @@ import org.jetbrains.intellij.build.productLayout.pipeline.Slots
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionType
 import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.util.isProductionRuntimeDependency
-import org.jetbrains.intellij.build.taskScope
-import org.jetbrains.intellij.build.Subtask
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModuleDependency
@@ -128,11 +128,12 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
         }
       }
 
-      val mainOutputs = mainDescriptorJobs.map { it.join() }
+      join()
+      val mainOutputs = mainDescriptorJobs.map { it.get() }
       val mainPlans = mainOutputs.mapNotNull { it.plan }
       val mainErrors = mainOutputs.mapNotNull { it.suppressibleError }
 
-      val testOutputs = testDescriptorJobs.map { it.join() }
+      val testOutputs = testDescriptorJobs.map { it.get() }
       val testDescriptorPlans = testOutputs.mapNotNull { it.plan }
       val testErrors = testOutputs.mapNotNull { it.suppressibleError }
 
@@ -223,7 +224,7 @@ internal fun planContentModuleDependenciesWithBothSets(
 
 /**
  * Core implementation that computes BOTH production and test dependencies.
- * 
+ *
  * - Production deps: Written to XML, used for [EDGE_CONTENT_MODULE_DEPENDS_ON]
  * - Test deps: Stored in result.testDependencies, used for [EDGE_CONTENT_MODULE_DEPENDS_ON_TEST]
  *

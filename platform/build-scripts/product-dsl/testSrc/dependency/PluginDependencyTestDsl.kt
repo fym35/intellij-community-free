@@ -3,6 +3,8 @@
 
 package org.jetbrains.intellij.build.productLayout.dependency
 
+import com.intellij.platform.buildScripts.concurrency.SharedCache
+import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import com.intellij.platform.buildScripts.licenses.LibraryLicense
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.PluginGraph
@@ -37,7 +39,6 @@ import org.jetbrains.intellij.build.productLayout.pipeline.Slots
 import org.jetbrains.intellij.build.productLayout.pipeline.SuppressionConfigOutput
 import org.jetbrains.intellij.build.productLayout.pipeline.TestPluginDependencyPlanOutput
 import org.jetbrains.intellij.build.productLayout.pipeline.TestPluginsOutput
-import org.jetbrains.intellij.build.productLayout.util.AsyncCache
 import org.jetbrains.intellij.build.productLayout.util.DeferredFileUpdater
 import org.jetbrains.intellij.build.productLayout.util.GeneratedArtifactWritePolicy
 import org.jetbrains.jps.model.JpsElementFactory
@@ -403,14 +404,16 @@ class PluginTestSetupBuilder(private val tempDir: Path) {
           loadingMode = spec.contentLoadings.get(moduleName),
         )
       }
-      pluginContentInfos.put(spec.name, PluginContentInfo(
-        pluginXmlPath = pluginXmlPath,
-        pluginXmlContent = pluginXmlContent,
-        pluginId = spec.pluginId?.let { PluginId(it) },
-        contentModules = contentModuleInfos,
-        moduleDependencies = spec.moduleDependencies.mapTo(HashSet()) { ContentModuleName(it) },
-        source = if (spec.isTestPlugin) PluginSource.TEST else PluginSource.BUNDLED,
-      ))
+      pluginContentInfos.put(
+        spec.name, PluginContentInfo(
+          pluginXmlPath = pluginXmlPath,
+          pluginXmlContent = pluginXmlContent,
+          pluginId = spec.pluginId?.let { PluginId(it) },
+          contentModules = contentModuleInfos,
+          moduleDependencies = spec.moduleDependencies.mapTo(HashSet()) { ContentModuleName(it) },
+          source = if (spec.isTestPlugin) PluginSource.TEST else PluginSource.BUNDLED,
+        )
+      )
 
     }
 
@@ -523,7 +526,10 @@ class TestProductBuilder(private val name: String) {
     bundledPlugins.add(pluginName)
   }
 
-  fun content(moduleName: String, loading: com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue = com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue.REQUIRED) {
+  fun content(
+    moduleName: String,
+    loading: com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue = com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue.REQUIRED,
+  ) {
     contentModules.put(moduleName, loading)
   }
 
@@ -557,6 +563,7 @@ internal data class TestContentModuleSpec(
   @JvmField val descriptorInTestResources: Boolean = false,
   @JvmField val resourceFiles: Map<String, String> = emptyMap(),
 )
+
 internal data class TestProductSpec(
   @JvmField val name: String,
   @JvmField val moduleSets: List<TestModuleSetSpec>,
@@ -836,10 +843,11 @@ internal fun testGenerationModel(
   libraryLicenses: List<LibraryLicense> = emptyList(),
   communityLibraryLicenses: List<LibraryLicense> = emptyList(),
   moduleSetsByLabel: Map<String, List<org.jetbrains.intellij.build.productLayout.ModuleSet>> = emptyMap(),
+  owner: SharedTaskOwner,
 ): GenerationModel {
   val effectiveOutputProvider = outputProvider ?: stubModuleOutputProvider()
   val effectiveFileUpdater = fileUpdater ?: DeferredFileUpdater(Path.of("."))
-  val effectivePluginContentCache = pluginContentCache ?: stubPluginContentCache()
+  val effectivePluginContentCache = pluginContentCache ?: stubPluginContentCache(owner)
   val generationMode = if (updateSuppressions) GenerationMode.UPDATE_SUPPRESSIONS else GenerationMode.NORMAL
   return GenerationModel(
     discovery = DiscoveryResult(
@@ -862,7 +870,7 @@ internal fun testGenerationModel(
     ),
     projectRoot = Path.of("."),
     outputProvider = effectiveOutputProvider,
-    descriptorCache = ModuleDescriptorCache(effectiveOutputProvider),
+    descriptorCache = ModuleDescriptorCache(effectiveOutputProvider, owner),
     pluginContentCache = effectivePluginContentCache,
     fileUpdater = effectiveFileUpdater,
     generatedArtifactWritePolicy = GeneratedArtifactWritePolicy(generationMode, effectiveFileUpdater),
@@ -1023,10 +1031,10 @@ private fun stubModuleOutputProvider(): ModuleOutputProvider {
   }
 }
 
-private fun stubPluginContentCache(): PluginContentCache {
+private fun stubPluginContentCache(owner: SharedTaskOwner): PluginContentCache {
   return PluginContentCache(
     outputProvider = stubModuleOutputProvider(),
-    xIncludeCache = AsyncCache(),
+    xIncludeCache = SharedCache(owner),
     skipXIncludePaths = emptySet(),
     xIncludePrefixFilter = { null },
     errorSink = ErrorSink(),

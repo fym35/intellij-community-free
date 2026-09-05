@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.productLayout.validator
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.PluginGraph
 import com.intellij.platform.pluginGraph.PluginId
@@ -21,7 +22,6 @@ import org.jetbrains.intellij.build.productLayout.pipeline.GenerationModel
 import org.jetbrains.intellij.build.productLayout.pipeline.NodeIds
 import org.jetbrains.intellij.build.productLayout.pipeline.PipelineNode
 import org.jetbrains.intellij.build.productLayout.pipeline.Slots
-import org.jetbrains.intellij.build.taskScope
 import java.nio.file.Path
 
 /** `com.intellij.modules.java` is the old alias of the Java plugin. */
@@ -88,12 +88,14 @@ internal object ContentModuleDependencyDeclarationValidator : PipelineNode {
     }
 
     val descriptorData = readDescriptors(model = model, facts = facts)
-    ctx.emitErrors(validateDescriptorDependencies(
-      facts = facts,
-      descriptorData = descriptorData,
-      suppressionConfig = model.suppressionConfig,
-      projectRoot = model.projectRoot,
-    ))
+    ctx.emitErrors(
+      validateDescriptorDependencies(
+        facts = facts,
+        descriptorData = descriptorData,
+        suppressionConfig = model.suppressionConfig,
+        projectRoot = model.projectRoot,
+      )
+    )
   }
 }
 
@@ -179,17 +181,17 @@ private fun readDescriptors(model: GenerationModel, facts: GraphFacts): Descript
     val aliasIds = HashSet<PluginId>()
     val descriptors = HashMap<ContentModuleName, ModuleDescriptorCache.DescriptorInfo>(moduleNames.size)
     for ((index, task) in descriptorTasks.withIndex()) {
-      val descriptor = task.join() ?: continue
+      val descriptor = task.await() ?: continue
       descriptors.put(moduleNames[index], descriptor)
       for (alias in descriptor.pluginAliases) {
         aliasIds.add(PluginId(alias))
       }
     }
     for (task in pluginTasks) {
-      aliasIds.addAll(task.join()?.pluginAliases ?: emptyList())
+      aliasIds.addAll(task.await()?.pluginAliases ?: emptyList())
     }
 
-    DescriptorData(descriptors = descriptors, aliasIds = aliasIds)
+    join { DescriptorData(descriptors = descriptors, aliasIds = aliasIds) }
   }
 }
 
@@ -223,12 +225,14 @@ private fun validateDescriptorDependencies(
       continue
     }
 
-    errors.add(ContentModuleDependencyDeclarationError(
-      context = moduleName.value,
-      contentModuleName = moduleName,
-      descriptorPath = relativizePath(projectRoot, descriptor.descriptorPath),
-      problems = problems,
-    ))
+    errors.add(
+      ContentModuleDependencyDeclarationError(
+        context = moduleName.value,
+        contentModuleName = moduleName,
+        descriptorPath = relativizePath(projectRoot, descriptor.descriptorPath),
+        problems = problems,
+      )
+    )
   }
 
   errors.sortBy { it.context }
@@ -254,11 +258,13 @@ private fun checkPluginDependencies(
 
   for (rawId in descriptor.existingPluginDependencies) {
     if (rawId == JAVA_MODULE_ID) {
-      problems.add(ContentModuleDependencyProblem(
-        kind = ContentModuleDependencyProblemKind.JAVA_MODULE_ALIAS,
-        message = "the plugin dependency '$JAVA_MODULE_ID' uses the old alias of the Java plugin",
-        fix = "<plugin id=\"com.intellij.java\"/>",
-      ))
+      problems.add(
+        ContentModuleDependencyProblem(
+          kind = ContentModuleDependencyProblemKind.JAVA_MODULE_ALIAS,
+          message = "the plugin dependency '$JAVA_MODULE_ID' uses the old alias of the Java plugin",
+          fix = "<plugin id=\"com.intellij.java\"/>",
+        )
+      )
       continue
     }
     if (rawId == K1_MODULE_ID) {
@@ -267,11 +273,13 @@ private fun checkPluginDependencies(
     if (rawId == PLATFORM_MODULE_ID) {
       // todo: remove this check when MP-7413 is fixed in the plugin verifier version that the Marketplace uses
       if (moduleDependencyCount > 1) {
-        problems.add(ContentModuleDependencyProblem(
-          kind = ContentModuleDependencyProblemKind.REDUNDANT_PLATFORM_DEPENDENCY,
-          message = "the plugin dependency '$PLATFORM_MODULE_ID' is redundant next to another module dependency",
-          fix = "remove the '$PLATFORM_MODULE_ID' element",
-        ))
+        problems.add(
+          ContentModuleDependencyProblem(
+            kind = ContentModuleDependencyProblemKind.REDUNDANT_PLATFORM_DEPENDENCY,
+            message = "the plugin dependency '$PLATFORM_MODULE_ID' is redundant next to another module dependency",
+            fix = "remove the '$PLATFORM_MODULE_ID' element",
+          )
+        )
       }
       continue
     }
@@ -284,20 +292,24 @@ private fun checkPluginDependencies(
     }
 
     if (!isPluginIdResolved(pluginId = pluginId, facts = facts, descriptorData = descriptorData, allowedMissing = allowedMissing)) {
-      problems.add(ContentModuleDependencyProblem(
-        kind = ContentModuleDependencyProblemKind.UNRESOLVED_PLUGIN,
-        message = "no plugin defines the plugin id '$rawId'",
-        fix = "fix the id, or add it to validationExceptions of '${moduleName.value}' in suppressions.json",
-      ))
+      problems.add(
+        ContentModuleDependencyProblem(
+          kind = ContentModuleDependencyProblemKind.UNRESOLVED_PLUGIN,
+          message = "no plugin defines the plugin id '$rawId'",
+          fix = "fix the id, or add it to validationExceptions of '${moduleName.value}' in suppressions.json",
+        )
+      )
       continue
     }
 
     if (!declared.add(pluginId)) {
-      problems.add(ContentModuleDependencyProblem(
-        kind = ContentModuleDependencyProblemKind.DUPLICATE_PLUGIN,
-        message = "the descriptor declares the plugin dependency '$rawId' two times",
-        fix = "remove the second '$rawId' element",
-      ))
+      problems.add(
+        ContentModuleDependencyProblem(
+          kind = ContentModuleDependencyProblemKind.DUPLICATE_PLUGIN,
+          message = "the descriptor declares the plugin dependency '$rawId' two times",
+          fix = "remove the second '$rawId' element",
+        )
+      )
     }
   }
 }
@@ -330,11 +342,13 @@ private fun checkModuleDependencies(
       // Only the plugin main module gets a report here, because the fix is a change of the element.
       if (facts.mainModuleToPluginId.containsKey(dependencyName)) {
         val pluginId = facts.mainModuleToPluginId.get(dependencyName)
-        problems.add(ContentModuleDependencyProblem(
-          kind = ContentModuleDependencyProblemKind.PLUGIN_AS_MODULE,
-          message = "the module dependency '$rawName' names the main module of a plugin",
-          fix = if (pluginId == null) "use a plugin element instead of a module element" else "<plugin id=\"${pluginId.value}\"/>",
-        ))
+        problems.add(
+          ContentModuleDependencyProblem(
+            kind = ContentModuleDependencyProblemKind.PLUGIN_AS_MODULE,
+            message = "the module dependency '$rawName' names the main module of a plugin",
+            fix = if (pluginId == null) "use a plugin element instead of a module element" else "<plugin id=\"${pluginId.value}\"/>",
+          )
+        )
       }
       continue
     }
@@ -352,12 +366,14 @@ private fun checkModuleDependencies(
     // referencing module gets one report.
     for (owner in owners.distinctBy { it.namespace }) {
       val conflicting = dependencyOwners.firstOrNull { it.namespace != owner.namespace } ?: continue
-      problems.add(ContentModuleDependencyProblem(
-        kind = ContentModuleDependencyProblemKind.INTERNAL_FROM_OTHER_NAMESPACE,
-        message = "the module dependency '$rawName' is internal ${describeNamespace(conflicting.namespace)}" +
-                  " in the plugin '${describePlugin(conflicting.pluginId)}', and this module is ${describeNamespace(owner.namespace)}",
-        fix = "use the 'public' visibility in '$rawName.xml', or use one namespace in both plugins",
-      ))
+      problems.add(
+        ContentModuleDependencyProblem(
+          kind = ContentModuleDependencyProblemKind.INTERNAL_FROM_OTHER_NAMESPACE,
+          message = "the module dependency '$rawName' is internal ${describeNamespace(conflicting.namespace)}" +
+                    " in the plugin '${describePlugin(conflicting.pluginId)}', and this module is ${describeNamespace(owner.namespace)}",
+          fix = "use the 'public' visibility in '$rawName.xml', or use one namespace in both plugins",
+        )
+      )
     }
   }
 }

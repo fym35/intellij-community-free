@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.productLayout.validator
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.ModuleSetNode
 import com.intellij.platform.pluginGraph.PluginGraph
@@ -12,7 +13,6 @@ import org.jetbrains.intellij.build.productLayout.pipeline.DataSlot
 import org.jetbrains.intellij.build.productLayout.pipeline.NodeIds
 import org.jetbrains.intellij.build.productLayout.pipeline.PipelineNode
 import org.jetbrains.intellij.build.productLayout.pipeline.Slots
-import org.jetbrains.intellij.build.taskScope
 
 /**
  * Self-contained module set validation.
@@ -45,6 +45,7 @@ internal object SelfContainedModuleSetValidator : PipelineNode {
           }
         }
       }
+      join()
     }
   }
 }

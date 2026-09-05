@@ -3,6 +3,7 @@
 
 package org.jetbrains.intellij.build.productLayout.discovery
 
+import com.intellij.platform.buildScripts.concurrency.SharedCache
 import com.intellij.platform.pluginGraph.ContentModuleName
 import com.intellij.platform.pluginGraph.PluginId
 import com.intellij.platform.pluginGraph.PluginModuleId
@@ -18,7 +19,6 @@ import org.jetbrains.intellij.build.productLayout.ModuleSet
 import org.jetbrains.intellij.build.productLayout.contentName
 import org.jetbrains.intellij.build.productLayout.model.ErrorSink
 import org.jetbrains.intellij.build.productLayout.model.error.XIncludeResolutionError
-import org.jetbrains.intellij.build.productLayout.util.AsyncCache
 import org.jetbrains.intellij.build.resolveDescriptor
 import org.jetbrains.jps.model.module.JpsModule
 import java.nio.file.Files
@@ -139,6 +139,7 @@ internal data class PluginXmlOverride(
 
 private val PLUGIN_ID_PATTERN = Regex("""<id>([^<]+)</id>""")
 private val XML_COMMENT_PATTERN = Regex("<!--.*?-->", setOf(RegexOption.DOT_MATCHES_ALL))
+
 /** Extracts plugin ID from plugin.xml content */
 private fun extractPluginId(content: String): PluginId? {
   return PLUGIN_ID_PATTERN.find(content)?.groupValues?.get(1)?.trim()?.let { PluginId(it) }
@@ -177,7 +178,7 @@ internal fun extractLegacyDepends(content: String): List<LegacyDepends> {
 internal fun extractPluginContent(
   pluginName: String,
   outputProvider: ModuleOutputProvider,
-  xIncludeCache: AsyncCache<String, ByteArray?>,
+  xIncludeCache: SharedCache<String, ByteArray?>,
   skipXIncludePaths: Set<String> = emptySet(),
   prefixFilter: (moduleName: String) -> String? = { null },
   onlyProductionSources: Boolean = true,
@@ -207,12 +208,14 @@ internal fun extractPluginContent(
         is XIncludeResult.Success -> result.data
         is XIncludeResult.Failure -> {
           // Emit error immediately to errorSink
-          errorSink.emit(XIncludeResolutionError(
-            context = "Plugin content extraction",
-            pluginName = pluginName,
-            xIncludePath = result.path,
-            debugInfo = result.debugInfo,
-          ))
+          errorSink.emit(
+            XIncludeResolutionError(
+              context = "Plugin content extraction",
+              pluginName = pluginName,
+              xIncludePath = result.path,
+              debugInfo = result.debugInfo,
+            )
+          )
           null
         }
       }

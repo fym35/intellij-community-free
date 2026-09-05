@@ -1,11 +1,11 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.validator
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.PluginGraph
 import com.intellij.platform.pluginGraph.ProductNode
 import org.jetbrains.intellij.build.productLayout.model.error.ValidationError
 import org.jetbrains.intellij.build.productLayout.pipeline.ComputeContext
-import org.jetbrains.intellij.build.taskScope
 
 internal inline fun PluginGraph.forEachProductParallel(crossinline action: (ProductNode) -> Unit) {
   taskScope {
@@ -14,6 +14,7 @@ internal inline fun PluginGraph.forEachProductParallel(crossinline action: (Prod
         fork("validate product ${product.name()}") { action(product) }
       }
     }
+    join()
   }
 }
 

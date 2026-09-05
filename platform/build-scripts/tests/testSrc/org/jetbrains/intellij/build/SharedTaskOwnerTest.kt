@@ -3,6 +3,13 @@ package org.jetbrains.intellij.build
 import com.intellij.platform.buildScripts.concurrency.SharedCache
 import com.intellij.platform.buildScripts.concurrency.SharedTaskOwner
 import com.intellij.platform.buildScripts.concurrency.taskScope
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withTimeout
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -11,9 +18,40 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.seconds
 
 @Timeout(20)
 class SharedTaskOwnerTest {
+  @Test
+  fun `cancelling a coroutine waits for the complete build lifetime`() {
+    runBlocking {
+      val entered = CompletableDeferred<Thread>()
+      val disposed = AtomicInteger()
+      val build = launch(Dispatchers.Default) {
+        runInterruptible(Dispatchers.IO) {
+          BuildLifetime().use { lifetime ->
+            val cache = SharedCache<String, Int>(lifetime.sharedTasks) { disposed.addAndGet(it) }
+            cache.getOrPut("value") {
+              entered.complete(Thread.currentThread())
+              try {
+                CountDownLatch(1).await()
+              }
+              catch (_: InterruptedException) {
+              }
+              42
+            }
+          }
+        }
+      }
+      withTimeout(5.seconds) {
+        val worker = entered.await()
+        build.cancelAndJoin()
+        assertThat(worker.isAlive).isFalse()
+        assertThat(disposed.get()).isEqualTo(42)
+      }
+    }
+  }
+
   @Test
   fun `new loads retire terminated workers without retaining their threads`() {
     val owner = SharedTaskOwner("retirement")

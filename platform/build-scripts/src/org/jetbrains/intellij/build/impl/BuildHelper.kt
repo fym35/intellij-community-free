@@ -1,18 +1,18 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
+import com.intellij.platform.buildScripts.concurrency.SharedLazy
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.TaskScope
 import com.intellij.util.JavaModuleOptions
 import com.intellij.util.system.OS
 import io.opentelemetry.api.trace.SpanBuilder
-import io.opentelemetry.context.Context
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.CompilationContext
 import org.jetbrains.intellij.build.OsFamily
-import org.jetbrains.intellij.build.Subtask
-import org.jetbrains.intellij.build.TaskScope
 import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.io.copyDir
-import org.jetbrains.intellij.build.productLayout.util.AsyncCache
+import org.jetbrains.intellij.build.BuildLifetime
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Path
@@ -63,44 +63,7 @@ internal fun getCommandLineArgumentsForOpenPackages(context: CompilationContext,
   return JavaModuleOptions.readOptions(file, os)
 }
 
-/**
- * A value that the first caller computes and every caller shares.
- */
-interface SharedLazy<T> {
-  /** Returns the value, and blocks the calling virtual thread while the first caller computes it. */
-  fun get(): T
-}
-
-/**
- * Computes a value on the first [SharedLazy.get] and shares the result with all concurrent callers.
- *
- * The initializer runs on a virtual thread of its own, under the telemetry context of the caller that started it.
- * A caller blocks only its own virtual thread. A recursive `get` from inside the initializer fails fast. Successful
- * values and ordinary failures are reused. [name] names the computation.
- */
-fun <T> sharedLazy(name: String, initializer: () -> T): SharedLazy<T> {
-  return AsyncCacheBackedSharedLazy(name = name, initializer = initializer)
-}
-
-private class AsyncCacheBackedSharedLazy<T>(
-  name: String,
-  private val initializer: () -> T,
-) : SharedLazy<T> {
-  private val key = NamedLazyKey(name)
-
-  /**
-   * The cache gives the single flight, the reuse of a failure, and the fail-fast on a recursive call. The key carries
-   * the name of the lazy, so the computation also names its thread.
-   */
-  private val cache = AsyncCache<NamedLazyKey, T>()
-
-  override fun get(): T {
-    // the computation runs on a thread of its own, so a span of the initializer gets its parent from here
-    val telemetryContext = Context.current()
-    return cache.getOrPut(key) { telemetryContext.makeCurrent().use { initializer() } }
-  }
-}
-
-private class NamedLazyKey(private val name: String) {
-  override fun toString(): String = name
+/** Creates a shared value owned by the build lifetime. */
+fun <T> sharedLazy(lifetime: BuildLifetime, name: String, initializer: () -> T): SharedLazy<T> {
+  return SharedLazy(lifetime.sharedTasks, name, initializer)
 }

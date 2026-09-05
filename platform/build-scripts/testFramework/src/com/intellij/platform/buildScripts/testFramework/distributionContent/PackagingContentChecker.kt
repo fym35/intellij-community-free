@@ -3,10 +3,10 @@
 
 package com.intellij.platform.buildScripts.testFramework.distributionContent
 
-import com.intellij.diagnostic.ThreadDumper
-import com.intellij.diagnostic.dumpCoroutines
-import com.intellij.diagnostic.enableCoroutineDump
 import com.intellij.openapi.util.io.NioFiles
+import com.intellij.platform.buildScripts.concurrency.Joiner
+import com.intellij.platform.buildScripts.concurrency.TaskScope
+import com.intellij.platform.buildScripts.concurrency.TaskSignal
 import com.intellij.platform.buildScripts.testFramework.createBuildOptionsForTest
 import com.intellij.platform.buildScripts.testFramework.customizeBuildOptionsForPackagingContentTest
 import com.intellij.platform.buildScripts.testFramework.doRunTestBuild
@@ -16,29 +16,10 @@ import com.intellij.testFramework.TestLoggerFactory
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.TracerProvider
 import io.opentelemetry.context.Context
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.future.asCompletableFuture
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.selects.select
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildLifetime
+import java.util.concurrent.CancellationException
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationContext
 import org.jetbrains.intellij.build.JvmArchitecture
@@ -56,31 +37,20 @@ import org.jetbrains.intellij.build.impl.getOsAndArchSpecificDistDirectory
 import org.jetbrains.intellij.build.impl.logging.BuildMessagesImpl
 import org.jetbrains.intellij.build.impl.toArchivedIfNeeded
 import org.jetbrains.intellij.build.impl.toBazelIfNeeded
-import org.jetbrains.intellij.build.joinShared
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.telemetry.useSuspending
 import org.jetbrains.jps.model.JpsProject
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
 import org.opentest4j.MultipleFailuresError
 import org.opentest4j.TestAbortedException
-import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executor
-import kotlin.coroutines.CoroutineContext
-import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.nanoseconds
 
 internal data class PackageResult(
   @JvmField val projectHome: Path,
@@ -102,26 +72,26 @@ private data class TaskResult<T>(
 
 private data class ValidationTask(
   @JvmField val spec: PackagingSuiteValidationSpec,
-  @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
+  @JvmField val resultDeferred: PackagingTaskHandle<TaskResult<List<PackagingCheckFailure>>>,
 )
 
 private data class TargetValidationTask(
   @JvmField val spec: PackagingTargetValidationSpec,
   @JvmField val packagingTask: PackagingTask,
-  @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
+  @JvmField val resultDeferred: PackagingTaskHandle<TaskResult<List<PackagingCheckFailure>>>,
 )
 
 private data class PackagingTask(
   @JvmField val spec: PackagingTargetSpec,
-  @JvmField val startSignal: CompletableDeferred<Unit>?,
+  @JvmField val startSignal: TaskSignal<Unit>?,
   /**
    * The layout of the target, which the build computes before it packs a jar.
    *
    * A packaging task that fails before it computes the layout completes this exceptionally, so a `LAYOUT` validation
    * aborts instead of waiting for a result that never comes.
    */
-  @JvmField val layoutDeferred: CompletableDeferred<PackagedLayout>,
-  @JvmField val resultDeferred: Deferred<TaskResult<PackageResult>>,
+  @JvmField val layoutDeferred: TaskSignal<PackagedLayout>,
+  @JvmField val resultDeferred: PackagingTaskHandle<TaskResult<PackageResult>>,
 ) {
   fun start() {
     val startSignal = startSignal
@@ -136,10 +106,10 @@ private data class PackagingTask(
 
 private data class PluginCheckTask(
   @JvmField val packagingTask: PackagingTask,
-  @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
+  @JvmField val resultDeferred: PackagingTaskHandle<TaskResult<List<PackagingCheckFailure>>>,
 )
 
-private inline fun <T> Iterable<T>.startAllDeferreds(getDeferred: (T) -> Deferred<*>?) {
+private inline fun <T> Iterable<T>.startAllDeferreds(getDeferred: (T) -> PackagingTaskHandle<*>?) {
   for (item in this) {
     getDeferred(item)?.start()
   }
@@ -165,6 +135,7 @@ data class PackagingSuiteContext(
   @JvmField val projectHome: Path,
   @JvmField val tempDir: Path,
   @JvmField val compilationContext: CompilationContext,
+  @JvmField val lifetime: BuildLifetime,
 ) {
   val project: JpsProject
     get() = compilationContext.project
@@ -268,22 +239,19 @@ private val packagingSuiteNoopTracer = TracerProvider.noop().get("packaging-suit
 @Internal
 class PackagingSuiteFixture private constructor(
   private val spec: PackagingSuiteSpec,
-  private val scopeJob: Job,
-  private val packagingDispatcher: ExecutorCoroutineDispatcher,
+  private val supervisor: Thread,
   private val lifetime: BuildLifetime,
   private val diagnostics: PackagingSuiteHangDiagnostics,
   private val tempDir: Path,
   private val telemetry: PackagingSuiteTelemetry?,
   private val tracerOverride: AutoCloseable?,
-  private val suiteContextDeferred: Deferred<PackagingSuiteContext>,
+  private val suiteContextDeferred: PackagingTaskHandle<PackagingSuiteContext>,
   private val validationTasks: List<ValidationTask>,
   private val packagingTasks: List<PackagingTask>,
   private val pluginCheckTasks: List<PluginCheckTask>,
   private val targetValidationTasks: List<TargetValidationTask>,
 ) : AutoCloseable {
-  /** The report of the first frozen wait. It stays null while the fixture works. */
-  @Volatile
-  private var hangReport: String? = null
+  private var closed = false
 
   companion object {
     fun create(spec: PackagingSuiteSpec): PackagingSuiteFixture {
@@ -293,30 +261,58 @@ class PackagingSuiteFixture private constructor(
       ensureUniqueNames(kind = "target validation", names = spec.targetValidations.map { "${it.targetId}:${it.name}" })
       ensureTargetValidationsReferenceExistingTargets(spec)
 
-      return createSharedFixture(spec)
+      val ready = TaskSignal<PackagingSuiteFixture>("create packaging fixture")
+      val created = java.util.concurrent.atomic.AtomicReference<PackagingSuiteFixture>()
+      val supervisor = Thread.ofVirtual().name("${spec.name} supervisor").unstarted {
+        try {
+          TaskScope.open(name = spec.name, joiner = Joiner.awaitAll()).use { tasks ->
+            val fixture = createSharedFixture(spec, tasks, Thread.currentThread())
+            created.set(fixture)
+            ready.complete(fixture)
+            tasks.join()
+          }
+        }
+        catch (failure: Throwable) {
+          ready.fail(failure)
+        }
+      }
+      supervisor.start()
+      try {
+        return ready.await()
+      }
+      catch (failure: Throwable) {
+        supervisor.interrupt()
+        awaitThreadTermination(supervisor)
+        try {
+          created.get()?.close()
+        }
+        catch (cleanupFailure: Throwable) {
+          if (cleanupFailure !== failure) failure.addSuppressed(cleanupFailure)
+        }
+        if (failure is InterruptedException) Thread.currentThread().interrupt()
+        throw failure
+      }
     }
 
-    private fun createSharedFixture(spec: PackagingSuiteSpec): PackagingSuiteFixture {
-      installCoroutineDebugProbes()
+    private fun createSharedFixture(spec: PackagingSuiteSpec, tasks: TaskScope, supervisor: Thread): PackagingSuiteFixture {
       val traceSettings = resolvePackagingSuiteTraceSettings(spec)
       val telemetry = createSuiteTelemetry(spec = spec, traceSettings = traceSettings)
       val tracerOverride = traceSettings.takeUnless { it.enabled }?.let { TraceManager.pushTracer(packagingSuiteNoopTracer) }
 
-      val scopeJob = SupervisorJob()
       val diagnostics = PackagingSuiteHangDiagnostics()
-      val packagingDispatcher = createPackagingSuiteDispatcher()
-      val scope = createPackagingSuiteScope(job = scopeJob, diagnostics = diagnostics, dispatcher = packagingDispatcher)
+      val scope = PackagingTasks(tasks, diagnostics)
       // the module output caches of the shared compilation context live as long as the fixture
       val lifetime = BuildLifetime()
       var tempDirForCleanup: Path? = null
       try {
         val tempDir = Files.createTempDirectory("${spec.name}-packaging-suite-").also { tempDirForCleanup = it }
-        val suiteContextDeferred = scope.async(start = CoroutineStart.LAZY) {
+        val suiteContextDeferred = scope.task(name = "create compilation context") {
           withTelemetrySpan(telemetry = telemetry, name = "create shared compilation context") {
-            runPackagingBuildTask {
+            run {
               PackagingSuiteContext(
                 projectHome = spec.homePath,
                 tempDir = tempDir,
+                lifetime = lifetime,
                 compilationContext = createSharedCompilationContext(projectHome = spec.homePath, tempDir = tempDir, lifetime = lifetime),
               )
             }
@@ -325,7 +321,7 @@ class PackagingSuiteFixture private constructor(
         // The gate compiles nothing. Under Bazel `compileModules` has an empty body, and a JPS run reuses the
         // project output, so the call resolves the project dependencies and marks the output as available. The
         // suite does it once, and every derived context shares the result through `JpsCompilationData`.
-        val moduleOutputDeferred = scope.async(start = CoroutineStart.LAZY) {
+        val moduleOutputDeferred = scope.task(name = "prepare module output") {
           withTelemetrySpan(
             telemetry = telemetry,
             name = "prepare shared module output",
@@ -334,7 +330,7 @@ class PackagingSuiteFixture private constructor(
             },
           ) {
             val context = suiteContextDeferred.await().compilationContext
-            runPackagingBuildTask { context.compileProductionModules() }
+            run { context.compileProductionModules() }
           }
         }
 
@@ -375,8 +371,7 @@ class PackagingSuiteFixture private constructor(
 
         return PackagingSuiteFixture(
           spec = spec,
-          scopeJob = scopeJob,
-          packagingDispatcher = packagingDispatcher,
+          supervisor = supervisor,
           lifetime = lifetime,
           diagnostics = diagnostics,
           tempDir = tempDir,
@@ -390,12 +385,11 @@ class PackagingSuiteFixture private constructor(
         )
       }
       catch (t: Throwable) {
-        runCatching { runBlocking { scopeJob.cancelAndJoin() } }
+        runCatching { tasks.close() }
         runCatching { lifetime.close() }
-        runCatching { packagingDispatcher.close() }
         runCatching { tracerOverride?.close() }
         telemetry?.rootSpan?.end()
-        runCatching { runBlocking { TraceManager.flush() } }
+        runCatching { TraceManager.flush() }
         tempDirForCleanup?.also(NioFiles::deleteRecursively)
         throw t
       }
@@ -493,7 +487,7 @@ class PackagingSuiteFixture private constructor(
 
     val tests = ArrayList<DynamicTest>(packagingTasks.size)
     val resolvedCheckResults = awaitTask("plugin content checks") {
-      pluginCheckTasks.map { it.resultDeferred }.awaitAll()
+      pluginCheckTasks.map { it.resultDeferred.await() }
     }
     for ((task, checkResult) in pluginCheckTasks.zip(resolvedCheckResults)) {
       val packagingTask = task.packagingTask
@@ -548,46 +542,47 @@ class PackagingSuiteFixture private constructor(
 
   private fun isOptimizedFullSuiteScheduling(): Boolean = spec.taskScheduling == PackagingSuiteTaskScheduling.FULL_SUITE_OPTIMIZED
 
-  /**
-   * Waits for [block], and fails at once when an earlier wait found the fixture scope frozen.
-   *
-   * A frozen scope cannot finish any later task, so every remaining test factory would wait its own [HANG_DUMP_DELAY].
-   */
-  private fun <T> awaitTask(what: String, block: suspend () -> T): T {
-    hangReport?.let {
-      throw PackagingSuiteHangException("Packaging suite: $what cannot run, because the fixture scope is frozen. The first report:\n$it")
-    }
-    return awaitOnTestThread(what = what, diagnostics = diagnostics, report = { hangReport = it }, block = block)
+  private fun <T> awaitTask(what: String, block: () -> T): T {
+    return awaitOnTestThread(what = what, diagnostics = diagnostics, block = block)
   }
 
+  @Synchronized
   override fun close() {
-    val hangReport = hangReport
-    if (hangReport == null) {
-      awaitTask("cancellation of the fixture scope") { scopeJob.cancelAndJoin() }
-    }
-    else {
-      // the scope cannot run a coroutine any more, so the join, the build messages and the trace flush would never end
-      scopeJob.cancel()
-      System.err.println("Packaging suite: the fixture scope is frozen, so the close skips the trace and the build messages.")
-    }
-
-    try {
-      if (hangReport == null) {
-        if (suiteContextDeferred.isCompleted) {
-          runCatching { runBlocking { suiteContextDeferred.await().compilationContext.messages.close() } }
-        }
-        telemetry?.let {
-          it.rootSpan.end()
-          runCatching { runBlocking { TraceManager.flush() } }
-          println("Packaging suite trace is written to ${it.traceFile}")
-        }
+    if (closed) return
+    closed = true
+    var interrupted = Thread.interrupted()
+    var failure: Throwable? = null
+    fun clean(action: () -> Unit) {
+      try {
+        action()
       }
-      NioFiles.deleteRecursively(tempDir)
+      catch (error: Throwable) {
+        val previous = failure
+        if (previous == null) failure = error else if (previous !== error) previous.addSuppressed(error)
+      }
+      finally {
+        interrupted = Thread.interrupted() || interrupted
+      }
+    }
+    try {
+      supervisor.interrupt()
+      clean { awaitTask("termination of the fixture") { awaitThreadTermination(supervisor) } }
+      clean { lifetime.close() }
+      if (suiteContextDeferred.isDone) {
+        val context = runCatching { suiteContextDeferred.await() }.getOrNull()
+        if (context != null) clean { context.compilationContext.messages.close() }
+      }
+      telemetry?.let {
+        clean { it.rootSpan.end() }
+        clean { TraceManager.flush() }
+        println("Packaging suite trace is written to ${it.traceFile}")
+      }
+      clean { tracerOverride?.close() }
+      clean { NioFiles.deleteRecursively(tempDir) }
+      failure?.let { throw it }
     }
     finally {
-      runCatching { tracerOverride?.close() }
-      runCatching { lifetime.close() }
-      runCatching { packagingDispatcher.close() }
+      if (interrupted) Thread.currentThread().interrupt()
     }
   }
 }
@@ -600,314 +595,8 @@ private fun startBlockingValidationTasks(validationTasks: List<ValidationTask>) 
   }
 }
 
-private val HANG_DUMP_DELAY = 10.minutes
-private val HANG_PROBE_INTERVAL = 1.minutes
-/** The CPU time that a frozen JVM can still use in one probe interval. */
-private val HANG_IDLE_CPU_FLOOR = 200.milliseconds
-private const val HANG_IDLE_CPU_FRACTION = 0.05
-private const val SCHEDULER_WORKER_THREAD_PREFIX = "DefaultDispatcher-worker"
-private const val SCHEDULER_WORKER_CLASS = $$"kotlinx.coroutines.scheduling.CoroutineScheduler$Worker"
-private const val RUNNING_COROUTINE_MARKER = "state: RUNNING"
-
-/**
- * Installs the coroutine debug probes, so that [dumpCoroutines] sees the coroutines of the fixture.
- *
- * Call it before the fixture scope creates a coroutine. The probes ignore a coroutine that was created before the install.
- * A test JVM loads the no-op `DebugProbesKt` of the Kotlin stdlib, so the install redefines that class with ByteBuddy.
- * This module therefore has `byte-buddy` and `byte-buddy-agent` on its runtime classpath. Without them the install
- * reports success and captures nothing.
- */
-internal fun installCoroutineDebugProbes() {
-  enableCoroutineDump().onFailure {
-    System.err.println("Packaging suite: cannot install the coroutine debug probes, so a hang dump will be empty: $it")
-  }
-}
-
-/** A wait on the fixture scope stopped to make progress. */
-internal class PackagingSuiteHangException(message: String) : IllegalStateException(message)
-
-/**
- * Keeps the evidence for a hang report, and catches an exception that the coroutine machinery loses.
- *
- * `DispatchedTask.run` gives every throwable of a resume to `handleCoroutineException`, which asks the
- * [CoroutineExceptionHandler] of the context first. Without the handler such an exception reaches
- * `UnhandledCoroutineExceptionHandlerService`, which has an empty body, and then the handler of the test framework,
- * which prints only when the test ends. A hang never ends, so the exception stays invisible, and the coroutine that
- * the resume belongs to stays suspended forever.
- */
-internal class PackagingSuiteHangDiagnostics {
-  private val escapedExceptions = CopyOnWriteArrayList<String>()
-
-  val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { context, e ->
-    val name = context[CoroutineName]?.name ?: "an unnamed coroutine"
-    val text = "Packaging suite: an exception escaped the coroutine machinery in $name:\n${e.stackTraceToString()}"
-    escapedExceptions.add(text)
-    System.err.println(text)
-  }
-
-  fun describeEscapedExceptions(): String = escapedExceptions.joinToString(separator = "\n").ifEmpty { "none" }
-}
-
-/**
- * Creates a scope that runs on [dispatcher] and reports an exception of the coroutine machinery to [diagnostics].
- *
- * The fixture and its test use it, so both report such an exception the same way.
- */
-internal fun createPackagingSuiteScope(
-  job: Job,
-  diagnostics: PackagingSuiteHangDiagnostics,
-  dispatcher: CoroutineDispatcher = Dispatchers.Default,
-): CoroutineScope {
-  @Suppress("RAW_SCOPE_CREATION")
-  return CoroutineScope(job + dispatcher + diagnostics.exceptionHandler)
-}
-
-/**
- * Creates the dispatcher of a fixture scope. Every resume runs on a new virtual thread, so no task waits in a worker queue.
- *
- * The caller closes it when the fixture closes.
- */
-internal fun createPackagingSuiteDispatcher(): ExecutorCoroutineDispatcher = VirtualThreadPerResumeDispatcher("packaging-suite-")
-
-/** Runs a blocking build on the fixture thread. Coroutine cancellation interrupts the build and waits for its cleanup. */
-internal suspend fun <T> runPackagingBuildTask(block: () -> T): T = runInterruptible(block = block)
-
-/**
- * A dispatcher with one virtual thread per resume. `close` releases nothing, because no thread outlives its resume.
- *
- * A thread drops its task before it runs the task. A dead virtual thread keeps its task through its continuation, and
- * a debug probe or a logger can hold the thread, so the task must not keep what it captured alive.
- */
-private class VirtualThreadPerResumeDispatcher(threadNamePrefix: String) : ExecutorCoroutineDispatcher() {
-  private val threadFactory = Thread.ofVirtual().name(threadNamePrefix, 0).factory()
-
-  override val executor: Executor = Executor { task -> threadFactory.newThread(ForgetfulTask(task)).start() }
-
-  override fun dispatch(context: CoroutineContext, block: Runnable) {
-    executor.execute(block)
-  }
-
-  override fun close() {
-  }
-}
-
-private class ForgetfulTask(task: Runnable) : Runnable {
-  private var task: Runnable? = task
-
-  override fun run() {
-    val task = task ?: return
-    this.task = null
-    task.run()
-  }
-}
-
-/**
- * Runs [block] on the test thread and waits for it.
- *
- * A test factory waits here for work on the fixture scope. A suspension that never resumes is invisible in a thread dump,
- * because every dispatcher thread is idle. So after [dumpDelay] a watchdog looks for a freeze every [probeInterval].
- * A slow suite keeps waiting, and a frozen one fails with a report that names the suspension. The fixture calls
- * [installCoroutineDebugProbes] when it is created.
- */
-internal fun <T> awaitOnTestThread(
-  what: String,
-  diagnostics: PackagingSuiteHangDiagnostics = PackagingSuiteHangDiagnostics(),
-  dumpDelay: Duration = HANG_DUMP_DELAY,
-  probeInterval: Duration = HANG_PROBE_INTERVAL,
-  report: (String) -> Unit = System.err::println,
-  block: suspend () -> T,
-): T {
-  return runBlocking {
-    val hang = CompletableDeferred<Nothing>()
-    val watchdog = PackagingSuiteHangWatchdog(
-      what = what,
-      diagnostics = diagnostics,
-      dumpDelay = dumpDelay,
-      probeInterval = probeInterval,
-      report = report,
-      hang = hang,
-    )
-    watchdog.start()
-    val task = async { block() }
-    try {
-      select {
-        task.onAwait { it }
-        hang.onAwait { it }
-      }
-    }
-    finally {
-      watchdog.stop()
-    }
-  }
-}
-
-/**
- * Watches one wait of [awaitOnTestThread] for a freeze.
- *
- * It runs on a plain thread, and not on a coroutine, for two reasons. A frozen dispatcher cannot stop it. It also puts
- * no coroutine of its own into the dump that it compares.
- */
-private class PackagingSuiteHangWatchdog(
-  private val what: String,
-  private val diagnostics: PackagingSuiteHangDiagnostics,
-  private val dumpDelay: Duration,
-  private val probeInterval: Duration,
-  private val report: (String) -> Unit,
-  private val hang: CompletableDeferred<Nothing>,
-) {
-  private val startNanos = System.nanoTime()
-
-  @Volatile
-  private var stopped = false
-
-  private val thread = thread(start = false, isDaemon = true, name = "packaging suite hang watchdog") { watch() }
-
-  fun start() {
-    thread.start()
-  }
-
-  fun stop() {
-    stopped = true
-    thread.interrupt()
-  }
-
-  private fun watch() {
-    try {
-      Thread.sleep(dumpDelay.inWholeMilliseconds)
-      var previous = takeHangSample()
-      var lastProgressNanos = 0L
-      while (!stopped) {
-        Thread.sleep(probeInterval.inWholeMilliseconds)
-        val current = takeHangSample()
-        if (stopped) {
-          return
-        }
-        if (isFrozen(previous = previous, current = current, probeInterval = probeInterval)) {
-          val text = describeHang(what = what, elapsed = elapsed(), probeInterval = probeInterval, diagnostics = diagnostics, sample = current)
-          report(text)
-          hang.completeExceptionally(PackagingSuiteHangException(text))
-          return
-        }
-
-        val now = System.nanoTime()
-        if (lastProgressNanos == 0L || (now - lastProgressNanos).nanoseconds >= dumpDelay) {
-          lastProgressNanos = now
-          System.err.println("Packaging suite: $what is still running after ${elapsed()}, and the fixture scope makes progress.")
-        }
-        previous = current
-      }
-    }
-    catch (_: InterruptedException) {
-    }
-  }
-
-  private fun elapsed(): Duration = (System.nanoTime() - startNanos).nanoseconds.inWholeMilliseconds.milliseconds
-}
-
-private class HangSample(
-  val javaThreadCpuTime: Duration?,
-  @JvmField val schedulerWorkersAreParked: Boolean,
-  @JvmField val coroutineDump: String,
-)
-
-private fun takeHangSample(): HangSample {
-  return HangSample(
-    javaThreadCpuTime = javaThreadCpuTime(),
-    schedulerWorkersAreParked = schedulerWorkersAreParked(),
-    coroutineDump = dumpCoroutines() ?: "the coroutine debug probes are not installed",
-  )
-}
-
-/**
- * Tells whether the scope is frozen and not slow.
- *
- * A frozen scope has an unchanged coroutine dump, no coroutine that runs, a parked worker for every worker of the
- * scheduler, and almost no CPU time. A slow suite fails at least one of these tests, because it runs a coroutine, or it
- * starts one, or it uses the CPU on some thread.
- *
- * One state looks frozen and is not. A scope where every coroutine waits for a timer, and no thread works, gives the
- * same picture. The suite has no such wait, and the watchdog looks only after [HANG_DUMP_DELAY].
- */
-private fun isFrozen(previous: HangSample, current: HangSample, probeInterval: Duration): Boolean {
-  if (previous.coroutineDump != current.coroutineDump) {
-    return false
-  }
-  if (current.coroutineDump.contains(RUNNING_COROUTINE_MARKER)) {
-    return false
-  }
-  if (!previous.schedulerWorkersAreParked || !current.schedulerWorkersAreParked) {
-    return false
-  }
-
-  val previousCpu = previous.javaThreadCpuTime ?: return true
-  val currentCpu = current.javaThreadCpuTime ?: return true
-  val used = currentCpu - previousCpu
-  return used >= Duration.ZERO && used <= maxOf(HANG_IDLE_CPU_FLOOR, probeInterval * HANG_IDLE_CPU_FRACTION)
-}
-
-/**
- * Sums the CPU time of every Java thread except the caller.
- *
- * The garbage collector and the JIT compiler have no Java thread, so their CPU time does not count. The result is null
- * when the JVM does not measure the CPU time of a thread.
- */
-private fun javaThreadCpuTime(): Duration? {
-  val threads = ManagementFactory.getThreadMXBean()
-  if (!threads.isThreadCpuTimeSupported || !threads.isThreadCpuTimeEnabled) {
-    return null
-  }
-
-  val self = Thread.currentThread().threadId()
-  var total = 0L
-  for (id in threads.allThreadIds) {
-    if (id == self) {
-      continue
-    }
-    val cpuTime = threads.getThreadCpuTime(id)
-    if (cpuTime > 0) {
-      total += cpuTime
-    }
-  }
-  return total.nanoseconds
-}
-
-private fun schedulerWorkersAreParked(): Boolean {
-  return ManagementFactory.getThreadMXBean().dumpAllThreads(false, false)
-    .asSequence()
-    .filter { it.threadName.startsWith(SCHEDULER_WORKER_THREAD_PREFIX) }
-    .all { info ->
-      info.stackTrace.any { it.className == SCHEDULER_WORKER_CLASS && (it.methodName == "park" || it.methodName == "tryPark") }
-    }
-}
-
-private fun describeHang(
-  what: String,
-  elapsed: Duration,
-  probeInterval: Duration,
-  diagnostics: PackagingSuiteHangDiagnostics,
-  sample: HangSample,
-): String {
-  return buildString {
-    appendLine("Packaging suite: $what made no progress for $probeInterval after $elapsed, so the wait aborts.")
-    appendLine("The coroutine dump did not change, no coroutine runs, and every worker of the scheduler is parked.")
-    appendLine("kotlinx scheduler, used by Dispatchers.IO: ${describeDefaultDispatcher()}")
-    appendLine("Exceptions that escaped the coroutine machinery: ${diagnostics.describeEscapedExceptions()}")
-    appendLine("Coroutine dump:")
-    appendLine(sample.coroutineDump)
-    appendLine("Thread dump:")
-    append(ThreadDumper.dumpThreadsToString())
-  }
-}
-
-private fun describeDefaultDispatcher(): String {
-  // `Dispatchers.Default.toString()` is a constant. The scheduler behind it prints the worker states, the queue sizes
-  // and the CPU permits that it gave out.
-  return runCatching { (Dispatchers.Default as ExecutorCoroutineDispatcher).executor.toString() }
-    .getOrElse { "cannot read the state of the scheduler: $it" }
-}
-
 private fun scheduleFullSuiteWork(
-  scope: CoroutineScope,
+  scope: PackagingTasks,
   validationTasks: List<ValidationTask>,
   packagingTasks: List<PackagingTask>,
   pluginCheckTasks: List<PluginCheckTask>,
@@ -924,7 +613,7 @@ private fun scheduleFullSuiteWork(
   val remainingPackagingTasks = packagingTasks.filter { it !in targetValidationPackagingTasks }
   val pluginCheckTasksByPackagingTask = pluginCheckTasks.associateBy { it.packagingTask }
 
-  scope.launch {
+  scope.task(name = "schedule packaging", startImmediately = true) {
     startRemainingTasksWithRollingReplenishment(
       startedTasks = targetValidationPackagingTasks,
       remainingTasks = remainingPackagingTasks,
@@ -936,46 +625,6 @@ private fun scheduleFullSuiteWork(
         }
       },
     )
-  }
-}
-
-internal suspend fun <T> startRemainingTasksWithRollingReplenishment(
-  startedTasks: Collection<T>,
-  remainingTasks: Collection<T>,
-  getCompletion: (T) -> Deferred<*>,
-  startTask: (T) -> Unit,
-) {
-  val maxParallelTasks = maxOf(startedTasks.size, remainingTasks.size)
-  if (maxParallelTasks == 0) {
-    return
-  }
-
-  val activeTasks = LinkedHashSet<T>(maxParallelTasks)
-  activeTasks.addAll(startedTasks)
-  val tasksToStart = ArrayDeque<T>(remainingTasks.size)
-  tasksToStart.addAll(remainingTasks)
-
-  fun fillAvailableSlots() {
-    while (activeTasks.size < maxParallelTasks && tasksToStart.isNotEmpty()) {
-      val task = tasksToStart.removeFirst()
-      activeTasks.add(task)
-      startTask(task)
-    }
-  }
-
-  if (activeTasks.isEmpty()) {
-    fillAvailableSlots()
-    return
-  }
-
-  while (tasksToStart.isNotEmpty()) {
-    val completedTask = select {
-      for (task in activeTasks) {
-        getCompletion(task).onAwait { task }
-      }
-    }
-    activeTasks.remove(completedTask)
-    fillAvailableSlots()
   }
 }
 
@@ -1001,16 +650,16 @@ abstract class PackagingSuiteTestBase {
 }
 
 private fun createValidationTasks(
-  scope: CoroutineScope,
+  scope: PackagingTasks,
   spec: PackagingSuiteSpec,
-  suiteContextDeferred: Deferred<PackagingSuiteContext>,
-  moduleOutputDeferred: Deferred<Unit>,
+  suiteContextDeferred: PackagingTaskHandle<PackagingSuiteContext>,
+  moduleOutputDeferred: PackagingTaskHandle<Unit>,
   telemetry: PackagingSuiteTelemetry?,
 ): List<ValidationTask> {
   return spec.validations.map { validation ->
     ValidationTask(
       spec = validation,
-      resultDeferred = scope.async(start = CoroutineStart.LAZY) {
+      resultDeferred = scope.task(startImmediately = false) {
         captureTaskResult {
           withTelemetrySpan(
             telemetry = telemetry,
@@ -1021,7 +670,7 @@ private fun createValidationTasks(
           ) {
             moduleOutputDeferred.await()
             val context = suiteContextDeferred.await()
-            runPackagingBuildTask { validation.validator(context) }
+            run { validation.validator(context) }
           }
         }
       },
@@ -1030,10 +679,10 @@ private fun createValidationTasks(
 }
 
 private fun createPackagingTasks(
-  scope: CoroutineScope,
+  scope: PackagingTasks,
   spec: PackagingSuiteSpec,
-  suiteContextDeferred: Deferred<PackagingSuiteContext>,
-  moduleOutputDeferred: Deferred<Unit>,
+  suiteContextDeferred: PackagingTaskHandle<PackagingSuiteContext>,
+  moduleOutputDeferred: PackagingTaskHandle<Unit>,
   validationTasks: List<ValidationTask>,
   telemetry: PackagingSuiteTelemetry?,
   waitForScheduledStart: Boolean,
@@ -1041,15 +690,14 @@ private fun createPackagingTasks(
   val blockingTasks = validationTasks.filter { it.spec.isBlocking }
   val result = ArrayList<PackagingTask>(spec.targets.size)
   for (target in spec.targets) {
-    val startSignal = if (waitForScheduledStart) CompletableDeferred<Unit>() else null
-    val coroutineStart = if (waitForScheduledStart) CoroutineStart.DEFAULT else CoroutineStart.LAZY
-    val layoutDeferred = CompletableDeferred<PackagedLayout>()
+    val startSignal = if (waitForScheduledStart) TaskSignal<Unit>() else null
+    val layoutDeferred = TaskSignal<PackagedLayout>()
     result.add(
       PackagingTask(
         spec = target,
         startSignal = startSignal,
         layoutDeferred = layoutDeferred,
-        resultDeferred = scope.async(start = coroutineStart) {
+        resultDeferred = scope.task(name = "package ${target.id}", startImmediately = waitForScheduledStart) {
           try {
             startSignal?.await()
             val taskResult = captureTaskResult {
@@ -1063,9 +711,10 @@ private fun createPackagingTasks(
                 ensureBlockingValidationsSucceededOrAbort(blockingTasks)
                 moduleOutputDeferred.await()
                 val suiteContext = suiteContextDeferred.await()
-                runPackagingBuildTask {
+                run {
                   val context = createDerivedBuildContext(
                     sharedCompilationContext = suiteContext.compilationContext,
+                    lifetime = suiteContext.lifetime,
                     target = target,
                     projectHome = spec.homePath,
                     buildOutputRoot = suiteContext.tempDir.resolve(target.id),
@@ -1076,14 +725,14 @@ private fun createPackagingTasks(
             }
             // the task can fail before it computes the layout, and a LAYOUT validation waits for the layout alone.
             // `completeExceptionally` does nothing when the layout is there already.
-            taskResult.failure?.let { layoutDeferred.completeExceptionally(it) }
+            taskResult.failure?.let { layoutDeferred.fail(it) }
             taskResult
           }
           finally {
             // `captureTaskResult` rethrows a cancellation, so a cancelled task reaches no line above that completes the
             // layout. A LAYOUT validation must abort then, not wait for a layout that never comes.
-            if (!layoutDeferred.isCompleted) {
-              layoutDeferred.completeExceptionally(IllegalStateException("Packaging of '${target.id}' was cancelled before it computed the layout"))
+            if (!layoutDeferred.isDone) {
+              layoutDeferred.fail(IllegalStateException("Packaging of '${target.id}' was cancelled before it computed the layout"))
             }
           }
         },
@@ -1094,16 +743,16 @@ private fun createPackagingTasks(
 }
 
 private fun createPluginCheckTasks(
-  scope: CoroutineScope,
+  scope: PackagingTasks,
   packagingTasks: List<PackagingTask>,
   telemetry: PackagingSuiteTelemetry?,
 ): List<PluginCheckTask> {
   return packagingTasks.map { task ->
     PluginCheckTask(
       packagingTask = task,
-      resultDeferred = scope.async(start = CoroutineStart.LAZY) {
+      resultDeferred = scope.task(startImmediately = false) {
         if (!task.spec.checkPlugins) {
-          return@async TaskResult(value = emptyList())
+          return@task TaskResult(value = emptyList())
         }
 
         captureTaskResult {
@@ -1115,7 +764,7 @@ private fun createPluginCheckTasks(
             },
           ) {
             val packageResult = task.resultDeferred.await().getOrAbort("Plugin content check for ${task.spec.id} skipped because packaging failed")
-            runPackagingBuildTask {
+            run {
               collectPluginContentFailures(
                 content = packageResult.content,
                 project = packageResult.jpsProject,
@@ -1132,9 +781,9 @@ private fun createPluginCheckTasks(
 }
 
 private fun createTargetValidationTasks(
-  scope: CoroutineScope,
+  scope: PackagingTasks,
   spec: PackagingSuiteSpec,
-  suiteContextDeferred: Deferred<PackagingSuiteContext>,
+  suiteContextDeferred: PackagingTaskHandle<PackagingSuiteContext>,
   packagingTasks: List<PackagingTask>,
   telemetry: PackagingSuiteTelemetry?,
 ): List<TargetValidationTask> {
@@ -1148,7 +797,7 @@ private fun createTargetValidationTasks(
       TargetValidationTask(
         spec = validation,
         packagingTask = packagingTask,
-        resultDeferred = scope.async(start = CoroutineStart.LAZY) {
+        resultDeferred = scope.task(startImmediately = false) {
           captureTaskResult {
             withTelemetrySpan(
               telemetry = telemetry,
@@ -1162,14 +811,13 @@ private fun createTargetValidationTasks(
               val abortMessage = "Target validation '${validation.name}' for ${validation.targetId} skipped because packaging failed"
               val suiteContext = suiteContextDeferred.await()
               val layout = packagingTask.layoutDeferred.awaitOrAbort(abortMessage)
-              val packageResultFuture = packagingTask.resultDeferred.asCompletableFuture()
               val packageResultProvider: () -> PackageResult = {
-                packageResultFuture.joinShared().getOrAbort(abortMessage)
+                packagingTask.resultDeferred.await().getOrAbort(abortMessage)
               }
               if (validation.stage == PackagingTargetValidationStage.CONTENT) {
                 packagingTask.resultDeferred.await().getOrAbort(abortMessage)
               }
-              runPackagingBuildTask {
+              run {
                 spanBuilder("run target validation: ${validation.targetId} ${validation.name}").use {
                   val validationTempDir = suiteContext.tempDir
                     .resolve("target-validation")
@@ -1256,9 +904,12 @@ private fun <T> TaskResult<T>.getOrThrow(): T {
  *
  * It mirrors [getOrAbort], which does the same for the packaged result.
  */
-private suspend fun CompletableDeferred<PackagedLayout>.awaitOrAbort(message: String): PackagedLayout {
+private fun TaskSignal<PackagedLayout>.awaitOrAbort(message: String): PackagedLayout {
   try {
     return await()
+  }
+  catch (e: InterruptedException) {
+    throw e
   }
   catch (e: CancellationException) {
     throw e
@@ -1282,9 +933,12 @@ private fun <T> TaskResult<T>.getOrAbort(message: String): T {
   return requireNotNull(value)
 }
 
-private suspend fun <T> captureTaskResult(block: suspend () -> T): TaskResult<T> {
+private fun <T> captureTaskResult(block: () -> T): TaskResult<T> {
   return try {
     TaskResult(value = block())
+  }
+  catch (e: InterruptedException) {
+    throw e
   }
   catch (e: CancellationException) {
     throw e
@@ -1294,7 +948,7 @@ private suspend fun <T> captureTaskResult(block: suspend () -> T): TaskResult<T>
   }
 }
 
-private suspend fun ensureBlockingValidationsSucceededOrAbort(blockingTasks: List<ValidationTask>) {
+private fun ensureBlockingValidationsSucceededOrAbort(blockingTasks: List<ValidationTask>) {
   for (task in blockingTasks) {
     val result = task.resultDeferred.await()
     val failure = result.failure
@@ -1339,6 +993,7 @@ private fun createPackagingBuildOptions(projectHome: Path, buildOutputRoot: Path
 
 private fun createDerivedBuildContext(
   sharedCompilationContext: CompilationContext,
+  lifetime: BuildLifetime,
   target: PackagingTargetSpec,
   projectHome: Path,
   buildOutputRoot: Path,
@@ -1361,12 +1016,14 @@ private fun createDerivedBuildContext(
     projectHome = projectHome,
     productProperties = productProperties,
     proprietaryBuildTools = target.buildTools,
+    lifetime = lifetime,
   )
 }
 
-private fun computePackageResult(context: BuildContext, layoutDeferred: CompletableDeferred<PackagedLayout>): PackageResult {
+private fun computePackageResult(context: BuildContext, layoutDeferred: TaskSignal<PackagedLayout>): PackageResult {
   return doRunTestBuild(
     context = context,
+    closeLifetime = false,
     writeTelemetry = false,
     checkIntegrityOfEmbeddedFrontend = false,
     checkThatBundledPluginInFrontendArePresent = false,
@@ -1435,9 +1092,7 @@ private fun createSuiteTelemetry(spec: PackagingSuiteSpec, traceSettings: Packag
   }
 
   val traceFile = requireNotNull(traceSettings.traceFile)
-  runBlocking {
-    JaegerJsonSpanExporterManager.setOutput(file = traceFile, addShutDownHook = false)
-  }
+  JaegerJsonSpanExporterManager.setOutput(file = traceFile, addShutDownHook = false)
   val rootSpan = spanBuilder("packaging suite: ${spec.name}").startSpan().also { span ->
     span.setAttribute("packaging.suite.name", spec.name)
     span.setAttribute("packaging.target.count", spec.targets.size.toLong())
@@ -1451,17 +1106,17 @@ private fun createSuiteTelemetry(spec: PackagingSuiteSpec, traceSettings: Packag
   )
 }
 
-private suspend fun <T> withTelemetrySpan(
+private fun <T> withTelemetrySpan(
   telemetry: PackagingSuiteTelemetry?,
   name: String,
   configure: (Span) -> Unit = {},
-  block: suspend () -> T,
+  block: () -> T,
 ): T {
   if (telemetry == null) {
     return block()
   }
 
-  return spanBuilder(name).setParent(telemetry.parentContext).useSuspending { span ->
+  return spanBuilder(name).setParent(telemetry.parentContext).use { span ->
     configure(span)
     block()
   }

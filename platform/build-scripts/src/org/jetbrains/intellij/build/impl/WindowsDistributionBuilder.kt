@@ -180,7 +180,14 @@ internal class WindowsDistributionBuilder(
           createChecksumAndGpgSignFiles(
             context = context,
             buildArtifact = {
-              createBuildWinZipTask(runtimeDir = null, zipNameSuffix = zipNameSuffix, winDistPath = osAndArchSpecificDistPath, arch = arch, customizer = customizer, context = context)
+              createBuildWinZipTask(
+                runtimeDir = null,
+                zipNameSuffix = zipNameSuffix,
+                winDistPath = osAndArchSpecificDistPath,
+                arch = arch,
+                customizer = customizer,
+                context = context
+              )
             }
           )
         }
@@ -211,7 +218,7 @@ internal class WindowsDistributionBuilder(
       }
 
       // the forks end inside the step, so both paths are known here
-      zipWithJbrJob?.join() to exeJob?.join()
+      zipWithJbrJob?.await() to exeJob?.await()
     } ?: (null to null)
 
     if (zipWithJbrPath != null && exePath != null) {

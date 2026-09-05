@@ -8,6 +8,8 @@ import com.intellij.diagnostic.dumpCoroutines
 import com.intellij.diagnostic.enableCoroutineDump
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.openapi.util.text.StringUtilRt
+import com.intellij.platform.buildScripts.concurrency.taskScope
+import com.intellij.platform.buildScripts.concurrency.withLockInterruptibly
 import com.intellij.util.BazelEnvironmentUtil.isBazelTestRun
 import com.intellij.util.io.URLUtil
 import com.jetbrains.JBR
@@ -38,7 +40,6 @@ import org.jetbrains.intellij.build.telemetry.ConsoleSpanExporter
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.jps.model.JpsDummyElement
 import org.jetbrains.jps.model.JpsElementFactory
 import org.jetbrains.jps.model.JpsGlobal
@@ -61,7 +62,6 @@ import java.util.Properties
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.locks.ReentrantLock
 import java.util.stream.Stream
-import kotlin.concurrent.withLock
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.relativeToOrNull
@@ -190,7 +190,12 @@ private fun doCreateCompilationContext(
     isBazelBacked -> getMavenRepositoryPath() + "-do-not-use-maven-repository-with-bazel"
     else -> getMavenRepositoryPath()
   }
-  val model = loadProject(projectHome = projectHome, kotlinBinaries = KotlinBinaries(COMMUNITY_ROOT), isCompilationRequired = isCompilationRequired, mavenRepositoryPath = mavenRepositoryPath)
+  val model = loadProject(
+    projectHome = projectHome,
+    kotlinBinaries = KotlinBinaries(COMMUNITY_ROOT),
+    isCompilationRequired = isCompilationRequired,
+    mavenRepositoryPath = mavenRepositoryPath
+  )
 
   val buildPaths = customBuildPaths ?: computeBuildPaths(options, options.outRootDir ?: buildOutputRootEvaluator(model.project), projectHome)
 
@@ -339,12 +344,12 @@ class CompilationContextImpl internal constructor(
   private val compileLock = ReentrantLock()
 
   override fun withCompilationLock(block: () -> Unit) {
-    compileLock.withLock(block)
+    compileLock.withLockInterruptibly(block)
   }
 
   override fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
     spanBuilder("resolve dependencies and compile modules").use { span ->
-      compileLock.withLock {
+      compileLock.withLockInterruptibly {
         resolveProjectDependencies(this@CompilationContextImpl)
         reuseOrCompile(moduleNames = moduleNames, includingTestsInModules = includingTestsInModules, span = span, context = this@CompilationContextImpl)
       }
@@ -456,6 +461,7 @@ private fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinaries, isCom
         // one end marker per worker, so every worker ends
         repeat(BUILD_CONCURRENCY) { tasks.add(endOfTasks) }
       }
+      join()
     }
     span.setAllAttributes(
       Attributes.of(

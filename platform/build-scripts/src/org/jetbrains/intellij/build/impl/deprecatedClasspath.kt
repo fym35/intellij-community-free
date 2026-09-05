@@ -2,6 +2,7 @@
 package org.jetbrains.intellij.build.impl
 
 import com.intellij.openapi.util.JDOMUtil
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.MAVEN_REPO
 import org.jetbrains.intellij.build.PLUGIN_XML_RELATIVE_PATH
@@ -11,7 +12,6 @@ import org.jetbrains.intellij.build.classPath.XIncludeElementResolverImpl
 import org.jetbrains.intellij.build.classPath.descriptorResolveContext
 import org.jetbrains.intellij.build.classPath.resolveIncludes
 import org.jetbrains.intellij.build.getUnprocessedPluginXmlContent
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.impl.projectStructureMapping.CustomAssetEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.LibraryFileEntry
@@ -97,18 +97,20 @@ private fun generateProjectStructureMapping(
 ): Pair<List<DistributionFileEntry>, List<PluginBuildResult>> = taskScope {
   val moduleOutputPatcher = ModuleOutputPatcher()
   val libDirLayout = fork("layout platform distribution") {
-    sortEntries(JarPackager.pack(
-      includedModules = platformLayout.includedModules,
-      outputDir = context.paths.distAllDir.resolve(LIB_DIRECTORY),
-      isRootDir = true,
-      layout = platformLayout,
-      platformLayout = platformLayout,
-      moduleOutputPatcher = moduleOutputPatcher,
-      searchableOptionSet = null,
-      dryRun = true,
-      descriptorCache = null,
-      context = context,
-    ))
+    sortEntries(
+      JarPackager.pack(
+        includedModules = platformLayout.includedModules,
+        outputDir = context.paths.distAllDir.resolve(LIB_DIRECTORY),
+        isRootDir = true,
+        layout = platformLayout,
+        platformLayout = platformLayout,
+        moduleOutputPatcher = moduleOutputPatcher,
+        searchableOptionSet = null,
+        dryRun = true,
+        descriptorCache = null,
+        context = context,
+      )
+    )
   }
 
   val descriptorCacheContainer = DescriptorCacheContainer()
@@ -158,5 +160,5 @@ private fun generateProjectStructureMapping(
     )
     entries.add(PluginBuildResult(mainModule = pluginLayout.mainModule, dir = targetDir, os = null, arch = null, distribution = pluginEntries))
   }
-  libDirLayout.join() to entries
+  join { libDirLayout.get() to entries }
 }

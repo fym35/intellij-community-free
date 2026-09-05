@@ -124,7 +124,6 @@ internal object TestLibraryScopeValidator : PipelineNode {
       if (active.isNotEmpty()) {
         val module = outputProvider.findModule(contentModuleName.value) ?: continue
         val imlFile = outputProvider.getModuleImlFile(module)
-        @Suppress("BlockingMethodInNonBlockingContext") // the build runs on virtual threads
         val current = Files.readString(imlFile)
         val fixed = applyTestLibraryScopeFixes(current, active)
         model.fileUpdater.writeIfChanged(imlFile, current, fixed)

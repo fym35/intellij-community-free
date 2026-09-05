@@ -1,21 +1,30 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
+import com.intellij.platform.buildScripts.concurrency.SharedLazy
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Test
+import org.jetbrains.intellij.build.BuildLifetime
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class SharedLazyTest {
+  private val lifetime = BuildLifetime()
+
+  @org.junit.After
+  fun closeLifetime() {
+    lifetime.close()
+  }
+
   @Test
   fun computesValueOnceForConcurrentGetters() {
     val invocationCount = AtomicInteger()
-    val lazyValue = sharedLazy("test value") {
+    val lazyValue = sharedLazy(lifetime, "test value") {
       invocationCount.incrementAndGet()
       Thread.sleep(20)
       42
@@ -34,7 +43,7 @@ class SharedLazyTest {
   @Test
   fun reusesInitializerFailure() {
     val invocationCount = AtomicInteger()
-    val lazyValue = sharedLazy<Int>("failing value") {
+    val lazyValue = sharedLazy<Int>(lifetime, "failing value") {
       invocationCount.incrementAndGet()
       error("boom")
     }
@@ -52,7 +61,7 @@ class SharedLazyTest {
   @Test
   fun failsFastOnRecursiveGet() {
     lateinit var lazyValue: SharedLazy<Int>
-    lazyValue = sharedLazy("recursive value") {
+    lazyValue = sharedLazy(lifetime, "recursive value") {
       lazyValue.get()
     }
 
@@ -67,7 +76,7 @@ class SharedLazyTest {
   @Test
   fun initializerSeesTheSpanOfTheFirstGetter() {
     val tracer = SdkTracerProvider.builder().build().get("SharedLazyTest")
-    val lazyValue = sharedLazy("traced value") {
+    val lazyValue = sharedLazy(lifetime, "traced value") {
       val child = tracer.spanBuilder("child").startSpan()
       child.end()
       (child as ReadableSpan).parentSpanContext

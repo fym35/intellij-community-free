@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
+import com.intellij.platform.buildScripts.concurrency.withLockInterruptibly
 import io.opentelemetry.api.trace.Span
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.CompilationContext
@@ -13,7 +14,6 @@ import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.io.path.exists
 
 internal const val BUILT_IN_HELP_MODULE_NAME = "intellij.builtInHelp"
@@ -108,7 +108,7 @@ private val supportedLanguages = mapOf(
 
 private fun buildResourcesForHelpPlugin(resourceRoot: Path, classPath: Collection<Path>, assetJar: Path, context: CompilationContext) {
   spanBuilder("index help topics").use {
-    helpIndexerLock.withLock {
+    helpIndexerLock.withLockInterruptibly {
       supportedLanguages.forEach { (lang, descriptor) ->
         val topicPath = resourceRoot.resolve("${descriptor.resPath}topics")
         if (topicPath.exists())
@@ -147,4 +147,3 @@ private fun buildResourcesForHelpPlugin(resourceRoot: Path, classPath: Collectio
     }
   }
 }
-

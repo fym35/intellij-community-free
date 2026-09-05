@@ -1,9 +1,11 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build
 
+import com.intellij.platform.buildScripts.concurrency.TaskFailedException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -60,9 +62,11 @@ class ConcurrencyTest {
   @Test
   fun mapConcurrentPropagatesTheFirstFailureAndInterruptsTheOtherWorkers() {
     val siblingInterrupted = CompletableFuture<Unit>()
+    val siblingStarted = CountDownLatch(1)
     assertThatThrownBy {
       listOf(1, 2).mapConcurrent(concurrency = 2) { item ->
         if (item == 1) {
+          siblingStarted.countDown()
           try {
             Thread.sleep(10_000)
           }
@@ -71,11 +75,12 @@ class ConcurrencyTest {
             throw e
           }
         }
+        siblingStarted.await()
         check(item != 2) { "boom" }
         item
       }
     }
-      .isInstanceOf(IllegalStateException::class.java)
+      .isInstanceOf(TaskFailedException::class.java)
       .hasMessageContaining("boom")
 
     assertThat(siblingInterrupted.orTimeout(5, TimeUnit.SECONDS).join()).isEqualTo(Unit)
@@ -92,7 +97,7 @@ class ConcurrencyTest {
         item
       }
     }
-      .isInstanceOf(CancellationException::class.java)
-      .hasMessage("cancel")
+      .isInstanceOf(TaskFailedException::class.java)
+      .hasCauseInstanceOf(CancellationException::class.java)
   }
 }

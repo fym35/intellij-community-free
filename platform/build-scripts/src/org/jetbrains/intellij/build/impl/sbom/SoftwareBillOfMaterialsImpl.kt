@@ -4,6 +4,8 @@
 package org.jetbrains.intellij.build.impl.sbom
 
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.platform.buildScripts.concurrency.Joiner
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.buildScripts.licenses.LibraryLicense
 import com.intellij.platform.buildScripts.licenses.LibraryUpstream
 import com.intellij.platform.buildScripts.licenses.SoftwareBillOfMaterials
@@ -23,7 +25,6 @@ import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.JvmArchitecture
 import org.jetbrains.intellij.build.LibcImpl
 import org.jetbrains.intellij.build.OsFamily
-import org.jetbrains.intellij.build.TaskScopePolicy
 import org.jetbrains.intellij.build.downloadAsText
 import org.jetbrains.intellij.build.getLibraryFileName
 import org.jetbrains.intellij.build.impl.BundledRuntime
@@ -44,7 +45,6 @@ import org.jetbrains.intellij.build.io.readZipFile
 import org.jetbrains.intellij.build.io.runProcess
 import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.retryWithExponentialBackOff
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.jps.model.jarRepository.JpsRemoteRepositoryService
 import org.jetbrains.jps.model.java.JpsJavaClasspathKind
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
@@ -443,7 +443,7 @@ class SoftwareBillOfMaterialsImpl(
     return document.outputFile
   }
 
-  private val distributionFilesChecksums = sharedLazy("distribution files checksums") {
+  private val distributionFilesChecksums = sharedLazy(context.lifetime, "distribution files checksums") {
     distributionFiles.asSequence()
       .filterIsInstance<LibraryFileEntry>()
       .map { it.path }.distinct()
@@ -996,7 +996,7 @@ class SoftwareBillOfMaterialsImpl(
         stdErrConsumer = context.messages::warning,
       )
     }
-    taskScope(TaskScopePolicy.RUN_ALL) {
+    taskScope(joiner = Joiner.awaitAllOrThrow()) {
       for (document in documents) {
         fork("NTIA conformance check for ${document.name}") {
           try {
@@ -1023,6 +1023,7 @@ class SoftwareBillOfMaterialsImpl(
           }
         }
       }
+      join()
     }
   }
 

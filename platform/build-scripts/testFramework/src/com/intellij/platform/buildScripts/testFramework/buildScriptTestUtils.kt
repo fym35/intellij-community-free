@@ -1,6 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.buildScripts.testFramework
 
+import com.intellij.platform.buildScripts.concurrency.TaskScope
+import com.intellij.platform.buildScripts.concurrency.taskScope
+import org.jetbrains.intellij.build.BuildLifetime
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.buildScripts.licenses.SoftwareBillOfMaterials
@@ -13,7 +16,7 @@ import io.opentelemetry.api.trace.StatusCode
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.coroutines.CancellationException
+import java.util.concurrent.CancellationException
 import org.assertj.core.api.SoftAssertions
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
@@ -26,8 +29,6 @@ import org.jetbrains.intellij.build.getDevModeOrTestBuildDateInSeconds
 import org.jetbrains.intellij.build.impl.buildNonBundledPlugins
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
-import org.jetbrains.intellij.build.TaskScope
-import org.jetbrains.intellij.build.taskScope
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -137,11 +138,12 @@ inline fun createBuildContext(
   homeDir: Path,
   productProperties: ProductProperties,
   buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
+  lifetime: BuildLifetime,
   buildOptionsCustomizer: (BuildOptions) -> Unit = {},
 ): BuildContext {
   val options = createBuildOptionsForTest(productProperties, homeDir)
   buildOptionsCustomizer(options)
-  return createBuildContext(projectHome = homeDir, productProperties = productProperties, proprietaryBuildTools = buildTools, options = options)
+  return createBuildContext(lifetime = lifetime, projectHome = homeDir, productProperties = productProperties, proprietaryBuildTools = buildTools, options = options)
 }
 
 fun runTestBuild(
@@ -173,57 +175,64 @@ fun runTestBuild(
   checkPrivatePluginModulesAreNotPublic: Boolean = true,
   build: (BuildContext) -> Unit = { buildDistributions(context = it) },
   onSuccess: (BuildContext) -> Unit = {},
-  buildOptionsCustomizer: (BuildOptions) -> Unit = {}
+  buildOptionsCustomizer: (BuildOptions) -> Unit = {},
 ): Unit = taskScope {
   if (isReproducibilityTestAllowed && BuildArtifactsReproducibilityTest.isEnabled) {
     val reproducibilityTest = BuildArtifactsReproducibilityTest()
     repeat(reproducibilityTest.iterations) { iterationNumber ->
       fork("test build iteration $iterationNumber") {
-        doRunTestBuild(
-          context = createBuildContext(
-            projectHome = homeDir,
-            productProperties = productProperties,
-            setupTracer = false,
-            proprietaryBuildTools = buildTools,
-            options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir, testInfo = testInfo).also {
-              buildOptionsCustomizer(it)
-              reproducibilityTest.configure(it)
+        BuildLifetime().use { lifetime ->
+          doRunTestBuild(
+            context = createBuildContext(
+              lifetime = lifetime,
+              projectHome = homeDir,
+              productProperties = productProperties,
+              setupTracer = false,
+              proprietaryBuildTools = buildTools,
+              options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir, testInfo = testInfo).also {
+                buildOptionsCustomizer(it)
+                reproducibilityTest.configure(it)
+              },
+            ),
+            traceSpanName = "${testInfo.spanName}#${iterationNumber}",
+            writeTelemetry = false,
+            checkIntegrityOfEmbeddedFrontend = checkIntegrityOfEmbeddedFrontend,
+            checkPrivatePluginModulesAreNotPublic = checkPrivatePluginModulesAreNotPublic,
+            checkThatBundledPluginInFrontendArePresent = checkIntegrityOfEmbeddedFrontend,
+            build = { context ->
+              build(context)
+              onSuccess(context)
+              reproducibilityTest.iterationFinished(iterationNumber, context)
             },
-          ),
-          traceSpanName = "${testInfo.spanName}#${iterationNumber}",
-          writeTelemetry = false,
-          checkIntegrityOfEmbeddedFrontend = checkIntegrityOfEmbeddedFrontend,
-          checkPrivatePluginModulesAreNotPublic = checkPrivatePluginModulesAreNotPublic,
-          checkThatBundledPluginInFrontendArePresent = checkIntegrityOfEmbeddedFrontend,
-          build = { context ->
-            build(context)
-            onSuccess(context)
-            reproducibilityTest.iterationFinished(iterationNumber, context)
-          },
-        )
+          )
+        }
       }
     }
   }
   else {
-    doRunTestBuild(
-      context = createBuildContext(
-        projectHome = homeDir,
-        productProperties = productProperties,
-        setupTracer = false,
-        proprietaryBuildTools = buildTools,
-        options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir, testInfo = testInfo).also { buildOptionsCustomizer(it) },
-      ),
-      writeTelemetry = true,
-      checkIntegrityOfEmbeddedFrontend = checkIntegrityOfEmbeddedFrontend,
-      checkThatBundledPluginInFrontendArePresent = checkIntegrityOfEmbeddedFrontend,
-      checkPrivatePluginModulesAreNotPublic = checkPrivatePluginModulesAreNotPublic,
-      traceSpanName = testInfo.spanName,
-      build = { context ->
-        build(context)
-        onSuccess(context)
-      },
-    )
+    BuildLifetime().use { lifetime ->
+      doRunTestBuild(
+        context = createBuildContext(
+          lifetime = lifetime,
+          projectHome = homeDir,
+          productProperties = productProperties,
+          setupTracer = false,
+          proprietaryBuildTools = buildTools,
+          options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir, testInfo = testInfo).also { buildOptionsCustomizer(it) },
+        ),
+        writeTelemetry = true,
+        checkIntegrityOfEmbeddedFrontend = checkIntegrityOfEmbeddedFrontend,
+        checkThatBundledPluginInFrontendArePresent = checkIntegrityOfEmbeddedFrontend,
+        checkPrivatePluginModulesAreNotPublic = checkPrivatePluginModulesAreNotPublic,
+        traceSpanName = testInfo.spanName,
+        build = { context ->
+          build(context)
+          onSuccess(context)
+        },
+      )
+    }
   }
+  join()
 }
 
 fun runNonBundledPluginsBuildTest(
@@ -236,26 +245,31 @@ fun runNonBundledPluginsBuildTest(
   buildOptionsCustomizer: (BuildOptions) -> Unit = {},
   onSuccess: (BuildContext) -> Unit = {},
 ) {
-  doRunTestBuild(
-    context = createBuildContext(
-      projectHome = homeDir,
-      productProperties = productProperties,
-      setupTracer = false,
-      proprietaryBuildTools = buildTools,
-      options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir).also {
-        buildOptionsCustomizer(it)
+  BuildLifetime().use { lifetime ->
+
+    doRunTestBuild(
+      context = createBuildContext(
+        lifetime = lifetime,
+        projectHome = homeDir,
+        productProperties = productProperties,
+        setupTracer = false,
+        proprietaryBuildTools = buildTools,
+        options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir).also {
+          buildOptionsCustomizer(it)
+        },
+      ),
+      traceSpanName = traceSpanName,
+      writeTelemetry = true,
+      checkIntegrityOfEmbeddedFrontend = false,
+      checkThatBundledPluginInFrontendArePresent = false,
+      checkPrivatePluginModulesAreNotPublic = false,
+      build = { context ->
+        buildNonBundledPlugins(mainPluginModules = mainPluginModules, context = context, dependencyModules = dependencyModules)
+        onSuccess(context)
       },
-    ),
-    traceSpanName = traceSpanName,
-    writeTelemetry = true,
-    checkIntegrityOfEmbeddedFrontend = false,
-    checkThatBundledPluginInFrontendArePresent = false,
-    checkPrivatePluginModulesAreNotPublic = false,
-    build = { context ->
-      buildNonBundledPlugins(mainPluginModules = mainPluginModules, context = context, dependencyModules = dependencyModules)
-      onSuccess(context)
-    },
-  )
+    )
+
+  }
 }
 
 // FIXME: test reproducibility
@@ -264,7 +278,7 @@ fun runTestBuild(
   context: () -> BuildContext,
   checkThatBundledPluginInFrontendArePresent: Boolean = true,
   checkPrivatePluginModulesAreNotPublic: Boolean = true,
-  build: (BuildContext) -> Unit = { buildDistributions(it) }
+  build: (BuildContext) -> Unit = { buildDistributions(it) },
 ) {
   doRunTestBuild(
     context = context(),
@@ -281,6 +295,7 @@ private val defaultLogFactory = Logger.getFactory()
 
 internal fun <T> doRunTestBuild(
   context: BuildContext,
+  closeLifetime: Boolean = true,
   traceSpanName: String,
   writeTelemetry: Boolean,
   checkIntegrityOfEmbeddedFrontend: Boolean,
@@ -290,6 +305,7 @@ internal fun <T> doRunTestBuild(
 ): T {
   var outDir: Path? = null
   var traceFile: Path? = null
+  var buildFailure: Throwable? = null
   val buildLogsDir = TestLoggerFactory.getTestLogDir().resolve("${context.productProperties.baseFileName}-$traceSpanName")
   Logger.setFactory(TestLoggerFactory::class.java)
   try {
@@ -315,6 +331,7 @@ internal fun <T> doRunTestBuild(
               checkPrivatePluginModulesAreNotPublic(context, softly)
             }
           }
+          join()
         }
         softly.assertAll()
 
@@ -340,23 +357,42 @@ internal fun <T> doRunTestBuild(
       }
     }
   }
+  catch (failure: Throwable) {
+    buildFailure = failure
+    throw failure
+  }
   finally {
+    var interrupted = Thread.interrupted()
+    var cleanupFailure: Throwable? = null
+    fun clean(action: () -> Unit) {
+      try {
+        action()
+      }
+      catch (failure: Throwable) {
+        val previous = buildFailure ?: cleanupFailure
+        if (previous == null) cleanupFailure = failure else if (previous !== failure) previous.addSuppressed(failure)
+      }
+      finally {
+        interrupted = Thread.interrupted() || interrupted
+      }
+    }
+    if (closeLifetime) clean { context.lifetime.close() }
     // close debug logging to prevent locking of the output directory on Windows
-    context.messages.close()
+    clean { context.messages.close() }
 
-    closeKtorClient()
+    clean { closeKtorClient() }
 
     if (traceFile != null) {
       // the span processor is shared by every test of the JVM, so only the file of this test closes
-      TraceManager.flush()
-      JaegerJsonSpanExporterManager.closeOutput()
+      clean { TraceManager.flush() }
+      clean { JaegerJsonSpanExporterManager.closeOutput() }
       println("Performance report is written to $traceFile")
     }
 
     /**
      * Overridden in [org.jetbrains.intellij.build.impl.JpsCompilationRunner.runBuild]
      */
-    Logger.setFactory(defaultLogFactory)
+    clean { Logger.setFactory(defaultLogFactory) }
 
     try {
       keepContentReport(context)
@@ -366,6 +402,8 @@ internal fun <T> doRunTestBuild(
       System.err.println("cannot cleanup $outDir:")
       e.printStackTrace(System.err)
     }
+    if (interrupted) Thread.currentThread().interrupt()
+    cleanupFailure?.let { throw it }
   }
 }
 
@@ -448,8 +486,10 @@ private fun checkKeymapPluginsAreBundledWithFrontend(
     .toList()
   val keymapPluginsBundledWithMonolith = context.getBundledPluginModules().filter { it.startsWith(keymapPluginModulePrefix) }
   softly.assertThat(keymapPluginsBundledWithFrontend)
-    .describedAs("Frontend variant of ${context.applicationInfo.productNameWithEdition} must bundle the same keymap plugins as the full IDE for consistency. " +
-                 "Change 'bundled-plugins' in 'META-INF/$jetBrainsClientMainModule/product-modules.xml' to fix this.")
+    .describedAs(
+      "Frontend variant of ${context.applicationInfo.productNameWithEdition} must bundle the same keymap plugins as the full IDE for consistency. " +
+      "Change 'bundled-plugins' in 'META-INF/$jetBrainsClientMainModule/product-modules.xml' to fix this."
+    )
     .containsExactlyInAnyOrder(*keymapPluginsBundledWithMonolith.toTypedArray())
 }
 
@@ -463,7 +503,7 @@ private fun copyLogs(context: BuildContext, buildLogsDir: Path) {
         OnErrorResult.SKIP_SUBTREE
       })
     }
-    
+
     val debugLogText = context.messages.getDebugLog()
     if (!debugLogText.isNullOrEmpty()) {
       val targetFile = buildLogsDir.resolve("test-build-debug.log")

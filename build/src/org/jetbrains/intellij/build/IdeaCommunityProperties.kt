@@ -31,13 +31,13 @@ val MAVEN_ARTIFACTS_ADDITIONAL_MODULES: PersistentList<String> = persistentListO
 
 internal fun createCommunityBuildContext(
   options: BuildOptions,
-  projectHome: Path = COMMUNITY_ROOT.communityRoot,
+  projectHome: Path = COMMUNITY_ROOT.communityRoot, lifetime: BuildLifetime,
 ): BuildContext {
   return createBuildContext(
     projectHome = projectHome,
     productProperties = IdeaCommunityProperties(COMMUNITY_ROOT.communityRoot),
     setupTracer = true,
-    options = options,
+    options = options, lifetime = lifetime,
   )
 }
 
@@ -243,7 +243,7 @@ fun intellijCommunityBaseFragment(platformPrefix: String? = null): ProductModule
 
 inline fun ideaCommunityWindowsCustomizer(
   projectHome: Path,
-  configure: WindowsCustomizerBuilder.() -> Unit = {}
+  configure: WindowsCustomizerBuilder.() -> Unit = {},
 ): WindowsDistributionCustomizer = windowsCustomizer(projectHome) {
   fileAssociations = listOf("java", "gradle", "groovy", "kt", "kts", "pom")
 
@@ -259,7 +259,7 @@ inline fun ideaCommunityWindowsCustomizer(
 
 inline fun ideaCommunityMacCustomizer(
   projectHome: Path,
-  configure: MacCustomizerBuilder.() -> Unit = {}
+  configure: MacCustomizerBuilder.() -> Unit = {},
 ): MacDistributionCustomizer = macCustomizer(projectHome) {
   urlSchemes = listOf("idea")
   associateIpr = true
@@ -278,7 +278,7 @@ inline fun ideaCommunityMacCustomizer(
 
 inline fun ideaCommunityLinuxCustomizer(
   projectHome: Path,
-  configure: LinuxCustomizerBuilder.() -> Unit = {}
+  configure: LinuxCustomizerBuilder.() -> Unit = {},
 ): LinuxDistributionCustomizer = linuxCustomizer(projectHome) {
 
   rootDirectoryName { _, _ -> "idea-oss" }

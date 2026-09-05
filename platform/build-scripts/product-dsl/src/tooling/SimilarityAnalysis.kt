@@ -1,12 +1,12 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.productLayout.tooling
 
+import com.intellij.platform.buildScripts.concurrency.Subtask
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.platform.pluginGraph.PluginGraph
 import org.jetbrains.intellij.build.productLayout.traversal.collectModuleSetDirectModuleNames
 import org.jetbrains.intellij.build.productLayout.traversal.collectProductModuleSetNames
 import org.jetbrains.intellij.build.productLayout.traversal.isModuleSetTransitivelyNested
-import org.jetbrains.intellij.build.taskScope
-import org.jetbrains.intellij.build.Subtask
 
 /**
  * Detects overlapping or redundant module sets.
@@ -22,7 +22,7 @@ import org.jetbrains.intellij.build.Subtask
 internal fun detectModuleSetOverlap(
   allModuleSets: List<ModuleSetMetadata>,
   pluginGraph: PluginGraph,
-  minOverlapPercent: Int = 50
+  minOverlapPercent: Int = 50,
 ): List<ModuleSetOverlap> {
   return taskScope {
     val comparisons = ArrayList<Subtask<ModuleSetOverlap?>>()
@@ -35,7 +35,7 @@ internal fun detectModuleSetOverlap(
       }
     }
 
-    comparisons.mapNotNull { it.join() }.sortedByDescending { it.overlapPercent }
+    join { comparisons.mapNotNull { it.get() }.sortedByDescending { it.overlapPercent } }
   }
 }
 
@@ -47,7 +47,7 @@ private fun computeOverlap(
   ms1: ModuleSetMetadata,
   ms2: ModuleSetMetadata,
   pluginGraph: PluginGraph,
-  minOverlapPercent: Int
+  minOverlapPercent: Int,
 ): ModuleSetOverlap? {
   // Skip if one explicitly includes the other as a nested set (direct or transitive)
   if (isModuleSetTransitivelyNested(pluginGraph, ms1.moduleSet.name, ms2.moduleSet.name) ||
@@ -94,14 +94,15 @@ private fun generateOverlapRecommendation(
   ms1: ModuleSetMetadata,
   ms2: ModuleSetMetadata,
   relationship: String,
-  overlapPercent: Int
+  overlapPercent: Int,
 ): String {
   return when (relationship) {
     "subset" -> "${ms1.moduleSet.name} is fully contained in ${ms2.moduleSet.name}. Consider removing ${ms1.moduleSet.name}."
     "superset" -> "${ms2.moduleSet.name} is fully contained in ${ms1.moduleSet.name}. Consider removing ${ms2.moduleSet.name}."
     else -> if (overlapPercent >= 80) {
       "High overlap ($overlapPercent%). Review if modules should be reorganized."
-    } else {
+    }
+    else {
       "Moderate overlap ($overlapPercent%). Consider extracting shared modules."
     }
   }
@@ -120,7 +121,7 @@ private fun generateOverlapRecommendation(
 internal fun analyzeProductSimilarity(
   products: List<ProductSpec>,
   pluginGraph: PluginGraph,
-  similarityThreshold: Double = 0.7
+  similarityThreshold: Double = 0.7,
 ): List<ProductSimilarityPair> {
   return taskScope {
     val productsWithContent = products.filter { it.contentSpec != null }
@@ -134,7 +135,7 @@ internal fun analyzeProductSimilarity(
       }
     }
 
-    comparisons.mapNotNull { it.join() }.sortedByDescending { it.similarity }
+    join { comparisons.mapNotNull { it.get() }.sortedByDescending { it.similarity } }
   }
 }
 
@@ -146,7 +147,7 @@ private fun computeProductSimilarity(
   p1: ProductSpec,
   p2: ProductSpec,
   pluginGraph: PluginGraph,
-  similarityThreshold: Double
+  similarityThreshold: Double,
 ): ProductSimilarityPair? {
   val sets1 = collectProductModuleSetNames(pluginGraph, p1.name)
   val sets2 = collectProductModuleSetNames(pluginGraph, p2.name)

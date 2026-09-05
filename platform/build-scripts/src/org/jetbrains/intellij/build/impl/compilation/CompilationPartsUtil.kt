@@ -4,6 +4,7 @@
 
 package org.jetbrains.intellij.build.impl.compilation
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import com.intellij.util.lang.EmptyZipFile
 import com.intellij.util.lang.ImmutableZipFile
 import io.opentelemetry.api.common.AttributeKey
@@ -24,7 +25,6 @@ import org.jetbrains.intellij.build.io.zip
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.intellij.build.telemetry.useSuspending
-import org.jetbrains.intellij.build.taskScope
 import java.net.InetSocketAddress
 import java.net.URI
 import java.nio.file.FileSystemException
@@ -495,6 +495,7 @@ private fun checkPreviouslyUnpackedDirectories(
         out.deleteRecursively()
       }
     }
+    join()
   }
   return System.nanoTime() - start
 }
