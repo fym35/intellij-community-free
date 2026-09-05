@@ -30,7 +30,6 @@ import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.TtyConnector
-import com.pty4j.PtyProcess
 import org.jetbrains.plugins.terminal.startup.ShellExecCommand
 import org.jetbrains.plugins.terminal.startup.ShellExecCommandImpl
 import org.jetbrains.plugins.terminal.startup.WslShellExecCommand
@@ -251,7 +250,7 @@ internal class ShellProcessHolder(
 ) {
   val isPosix: Boolean get() = eelApi.platform.isPosix
 
-  val ptyProcess: PtyProcess = eelProcess.convertToJavaProcess() as PtyProcess
+  val ptyProcess: Process = eelProcess.convertToJavaProcess()
 
   val descriptor: EelDescriptor get() = eelApi.descriptor
 }

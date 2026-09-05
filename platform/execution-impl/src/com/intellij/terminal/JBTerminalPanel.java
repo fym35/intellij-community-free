@@ -2,6 +2,7 @@
 package com.intellij.terminal;
 
 import com.intellij.application.options.EditorFontsConstants;
+import com.intellij.execution.process.LocalProcessService;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.IdeEventQueue;
 import com.intellij.ide.ui.UISettings;
@@ -27,14 +28,12 @@ import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.terminal.actions.TerminalActionWrapper;
 import com.intellij.util.JBHiDPIScaledImage;
-import com.intellij.util.ObjectUtils;
 import com.intellij.util.concurrency.ThreadingAssertions;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.system.OS;
 import com.intellij.util.ui.ImageUtil;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import com.jediterm.terminal.ProcessTtyConnector;
 import com.jediterm.terminal.TerminalCopyPasteHandler;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.StyleState;
@@ -43,7 +42,6 @@ import com.jediterm.terminal.ui.TerminalAction;
 import com.jediterm.terminal.ui.TerminalActionMenuBuilder;
 import com.jediterm.terminal.ui.TerminalActionProvider;
 import com.jediterm.terminal.ui.TerminalPanel;
-import com.pty4j.windows.conpty.WinConPtyProcess;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
@@ -218,13 +216,13 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
         if (getTerminalTextBuffer().isUsingAlternateBuffer()) {
           return false;
         }
-        JBTerminalWidget terminalWidget = DataManager.getInstance().getDataContext(this).getData(JBTerminalWidget.TERMINAL_DATA_KEY);
+        var terminalWidget = DataManager.getInstance().getDataContext(this).getData(JBTerminalWidget.TERMINAL_DATA_KEY);
         if (terminalWidget == null || terminalWidget.getTerminalPanel() != this) {
           return false;
         }
-        ProcessTtyConnector connector = terminalWidget.getProcessTtyConnector();
-        WinConPtyProcess winConPtyProcess = connector != null ? ObjectUtils.tryCast(connector.getProcess(), WinConPtyProcess.class) : null;
-        return winConPtyProcess == null;
+        var connector = terminalWidget.getProcessTtyConnector();
+        var control = connector != null ? LocalProcessService.getInstance().getPtyControl(connector.getProcess()) : null;
+        return control == null || !control.isConPty();
       });
     }
     return actions;

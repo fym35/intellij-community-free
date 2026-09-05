@@ -25,7 +25,6 @@
     <module name="intellij.libraries.opentelemetry"/>
     <module name="intellij.libraries.opentelemetry.semconv"/>
     <module name="intellij.libraries.oro.matcher"/>
-    <module name="intellij.libraries.pty4j"/>
     <module name="intellij.libraries.rd.core"/>
     <module name="intellij.libraries.rd.swing"/>
     <module name="intellij.libraries.stream"/>

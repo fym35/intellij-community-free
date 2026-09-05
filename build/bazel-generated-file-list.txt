@@ -933,6 +933,7 @@ platform/platform-tests/durability
 platform/platform-tests/eel-helper
 platform/platform-util-io
 platform/platform-util-io-impl
+platform/platform-util-io-native
 platform/platform-util-netty
 platform/pluginManager/backend
 platform/pluginManager/frontend

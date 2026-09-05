@@ -16,14 +16,13 @@ import com.intellij.platform.eel.channels.EelSendChannel
 import com.intellij.platform.eel.provider.utils.asEelChannel
 import com.intellij.platform.eel.provider.utils.consumeAsEelChannel
 import com.intellij.util.io.awaitExit
-import com.pty4j.WinSize
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 
 internal class LocalEelPosixProcess private constructor(
   private val process: Process,
-  private val resizeWindow: ((WinSize) -> Unit)?,
+  private val resizeWindow: ((Int, Int) -> Unit)?,
   scope: CoroutineScope,
   private val platform: EelPlatform.Posix,
 ) : EelPosixProcess {
@@ -54,7 +53,7 @@ internal class LocalEelPosixProcess private constructor(
     private val logger = fileLogger()
 
     @JvmStatic
-    suspend fun create(process: Process, resizeWindow: ((WinSize) -> Unit)?, platform: EelPlatform.Posix): LocalEelPosixProcess =
+    suspend fun create(process: Process, resizeWindow: ((Int, Int) -> Unit)?, platform: EelPlatform.Posix): LocalEelPosixProcess =
       LocalEelPosixProcess(process, resizeWindow, ApplicationManager.getApplication().serviceAsync<EelLocalApiService>().scope, platform)
   }
 
@@ -78,7 +77,7 @@ internal class LocalEelPosixProcess private constructor(
       throw EelProcess.ResizePtyError.ProcessExited()
     }
     val resizeWindow = this.resizeWindow ?: throw EelProcess.ResizePtyError.NoPty()
-    resizeWindow(WinSize(columns, rows))
+    resizeWindow(columns, rows)
   }
 
   override suspend fun interrupt() {
@@ -95,4 +94,3 @@ internal class LocalEelPosixProcess private constructor(
     sendSignalToProcessGroup(process, UnixSignal.SIGTERM, platform)
   }
 }
-

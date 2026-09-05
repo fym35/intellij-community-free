@@ -13,20 +13,19 @@ import com.intellij.platform.eel.channels.EelSendChannel
 import com.intellij.platform.eel.provider.utils.asEelChannel
 import com.intellij.platform.eel.provider.utils.consumeAsEelChannel
 import com.intellij.util.io.awaitExit
-import com.pty4j.WinSize
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 
 internal class LocalEelWindowsProcess private constructor(
   private val process: Process,
-  private val resizeWindow: ((WinSize) -> Unit)?,
+  private val resizeWindow: ((Int, Int) -> Unit)?,
   scope: CoroutineScope,
   commandLineForDebug: String,
 ) : EelWindowsProcess {
   companion object {
     @JvmStatic
-    suspend fun create(process: Process, resizeWindow: ((WinSize) -> Unit)?, commandLineForDebug: String): LocalEelWindowsProcess =
+    suspend fun create(process: Process, resizeWindow: ((Int, Int) -> Unit)?, commandLineForDebug: String): LocalEelWindowsProcess =
       LocalEelWindowsProcess(process, resizeWindow, ApplicationManager.getApplication().serviceAsync<EelLocalApiService>().scope, commandLineForDebug)
   }
 
@@ -56,6 +55,6 @@ internal class LocalEelWindowsProcess private constructor(
       throw EelProcess.ResizePtyError.ProcessExited()
     }
     val resizeWindow = this.resizeWindow ?: throw EelProcess.ResizePtyError.NoPty()
-    resizeWindow(WinSize(columns, rows))
+    resizeWindow(columns, rows)
   }
 }

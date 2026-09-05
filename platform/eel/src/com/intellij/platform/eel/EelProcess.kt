@@ -69,7 +69,7 @@ sealed interface EelProcess {
   /**
    * Converts to the JVM [Process] which can be used instead of [EelProcess] for compatibility reasons.
    * Note: After conversion, this [EelProcess] shouldn't be used: Use result [Process] instead
-   * If the process was launched with PTY, `com.pty4j.PtyProcess` instance is returned.
+   * Use `LocalProcessService.getPtyControl` to control a terminal through the returned process.
    */
   @ApiStatus.Experimental
   fun convertToJavaProcess(): Process

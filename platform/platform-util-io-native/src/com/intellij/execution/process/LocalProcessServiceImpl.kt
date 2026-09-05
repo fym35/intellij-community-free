@@ -9,6 +9,7 @@ import com.intellij.util.system.OS
 import com.pty4j.Command
 import com.pty4j.PtyProcess
 import com.pty4j.PtyProcessBuilder
+import com.pty4j.WinSize
 import com.pty4j.windows.conpty.WinConPtyProcess
 import com.pty4j.windows.winpty.WinPtyProcess
 import org.jetbrains.annotations.ApiStatus
@@ -96,6 +97,22 @@ class LocalProcessServiceImpl : LocalProcessService {
   override fun isLocalPtyProcess(process: Process): Boolean = process is PtyProcess
 
   override fun hasControllingTerminal(process: Process): Boolean = process is PtyProcess && !process.isConsoleMode
+
+  override fun getPtyControl(process: Process): PtyProcessControl? {
+    if (process !is PtyProcess) {
+      return super.getPtyControl(process)
+    }
+    return object : PtyProcessControl {
+      override val enterKeyCode: Byte get() = process.enterKeyCode
+      override val isConsoleMode: Boolean get() = process.isConsoleMode
+      override val isConPty: Boolean get() = process is WinConPtyProcess
+      override val isConPtyInheritCursor: Boolean get() = (process as? WinConPtyProcess)?.isConPtyInheritCursor == true
+
+      override fun setWindowSize(columns: Int, rows: Int) {
+        process.winSize = WinSize(columns, rows)
+      }
+    }
+  }
 
   override fun getCommand(process: Process): List<String> {
     return when (process) {

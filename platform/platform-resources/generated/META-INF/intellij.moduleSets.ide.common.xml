@@ -112,8 +112,8 @@
     <module name="intellij.libraries.protobuf" loading="embedded"/>
     <module name="intellij.libraries.protobuf.kotlin"/>
     <module name="intellij.libraries.protobuf.java.util"/>
-    <module name="intellij.libraries.proxy.vole" loading="embedded"/>
-    <module name="intellij.libraries.rhino" loading="embedded"/>
+    <module name="intellij.libraries.proxy.vole"/>
+    <module name="intellij.libraries.rhino"/>
     <module name="intellij.libraries.semver"/>
     <module name="intellij.libraries.snakeyaml" loading="embedded"/>
     <module name="intellij.libraries.snakeyaml.engine" loading="embedded"/>
@@ -205,7 +205,7 @@
     <module name="intellij.libraries.jgoodies.forms" loading="embedded"/>
     <module name="intellij.libraries.jsch.agent.proxy"/>
     <module name="intellij.libraries.miglayout.swing" loading="embedded"/>
-    <module name="intellij.libraries.pty4j" loading="embedded"/>
+    <module name="intellij.libraries.pty4j"/>
     <module name="intellij.libraries.sshj"/>
     <module name="intellij.libraries.swingx" loading="embedded"/>
     <module name="intellij.libraries.winp" loading="embedded"/>
@@ -261,6 +261,7 @@
     <module name="intellij.platform.codeStyle.impl" loading="embedded"/>
     <module name="intellij.platform.refactoring" loading="embedded"/>
     <module name="intellij.platform.ide.impl" loading="embedded"/>
+    <module name="intellij.platform.ide.util.io.native"/>
     <module name="intellij.platform.ide.osCertificates" loading="embedded"/>
     <module name="intellij.platform.ide.pluginSignatureVerifier"/>
     <module name="intellij.libraries.zip.signer"/>

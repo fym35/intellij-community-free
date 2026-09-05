@@ -1602,6 +1602,7 @@
       <module fileurl="file://$PROJECT_DIR$/platform/platform-impl/update-checker/backend/intellij.platform.ide.updateChecker.backend.iml" filepath="$PROJECT_DIR$/platform/platform-impl/update-checker/backend/intellij.platform.ide.updateChecker.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/platform-util-io/intellij.platform.ide.util.io.iml" filepath="$PROJECT_DIR$/platform/platform-util-io/intellij.platform.ide.util.io.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/platform-util-io-impl/intellij.platform.ide.util.io.impl.iml" filepath="$PROJECT_DIR$/platform/platform-util-io-impl/intellij.platform.ide.util.io.impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/platform-util-io-native/intellij.platform.ide.util.io.native.iml" filepath="$PROJECT_DIR$/platform/platform-util-io-native/intellij.platform.ide.util.io.native.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/platform-util-netty/intellij.platform.ide.util.netty.iml" filepath="$PROJECT_DIR$/platform/platform-util-netty/intellij.platform.ide.util.netty.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/ijent/intellij.platform.ijent.iml" filepath="$PROJECT_DIR$/platform/ijent/intellij.platform.ijent.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/ijent/buildConstants/intellij.platform.ijent.community.buildConstants.iml" filepath="$PROJECT_DIR$/platform/ijent/buildConstants/intellij.platform.ijent.community.buildConstants.iml" />

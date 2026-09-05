@@ -1726,7 +1726,6 @@ c:com.intellij.terminal.ProcessHandlerTtyConnector
 - close():V
 - getName():java.lang.String
 - getProcessHandler():com.intellij.execution.process.ProcessHandler
-- getPtyProcess():com.pty4j.PtyProcess
 - isConnected():Z
 - read(C[],I,I):I
 - ready():Z
@@ -1811,9 +1810,9 @@ f:com.intellij.terminal.actions.TerminalActionUtil
 - s:createTerminalAction(com.intellij.terminal.JBTerminalWidget,com.jediterm.terminal.ui.TerminalActionPresentation,java.util.function.Predicate):com.jediterm.terminal.ui.TerminalAction
 - s:createTerminalAction(com.intellij.terminal.JBTerminalWidget,java.lang.String,Z):com.jediterm.terminal.ui.TerminalAction
 c:com.intellij.terminal.pty.PtyProcessTtyConnector
-- <init>(com.pty4j.PtyProcess,java.nio.charset.Charset):V
-- <init>(com.pty4j.PtyProcess,java.nio.charset.Charset,java.util.List):V
-- b:<init>(com.pty4j.PtyProcess,java.nio.charset.Charset,java.util.List,I,kotlin.jvm.internal.DefaultConstructorMarker):V
+- <init>(java.lang.Process,java.nio.charset.Charset):V
+- <init>(java.lang.Process,java.nio.charset.Charset,java.util.List):V
+- b:<init>(java.lang.Process,java.nio.charset.Charset,java.util.List,I,kotlin.jvm.internal.DefaultConstructorMarker):V
 - getName():java.lang.String
 - resize(com.jediterm.core.util.TermSize):V
 com.intellij.terminal.search.JediTermSearchComponentProvider

@@ -7,6 +7,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="intellij.libraries.jna" />
+    <orderEntry type="module" module-name="intellij.libraries.rhino" />
     <orderEntry type="module-library" exported="">
       <library name="proxy-vole" type="repository">
         <properties maven-id="org.bidib.com.github.markusbernhardt:proxy-vole:1.1.9">

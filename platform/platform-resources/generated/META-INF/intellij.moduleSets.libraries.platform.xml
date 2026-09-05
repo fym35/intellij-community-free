@@ -104,8 +104,8 @@
     <module name="intellij.libraries.protobuf" loading="embedded"/>
     <module name="intellij.libraries.protobuf.kotlin"/>
     <module name="intellij.libraries.protobuf.java.util"/>
-    <module name="intellij.libraries.proxy.vole" loading="embedded"/>
-    <module name="intellij.libraries.rhino" loading="embedded"/>
+    <module name="intellij.libraries.proxy.vole"/>
+    <module name="intellij.libraries.rhino"/>
     <module name="intellij.libraries.semver"/>
     <module name="intellij.libraries.snakeyaml" loading="embedded"/>
     <module name="intellij.libraries.snakeyaml.engine" loading="embedded"/>
