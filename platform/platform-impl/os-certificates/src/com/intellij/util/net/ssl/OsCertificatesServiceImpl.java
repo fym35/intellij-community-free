@@ -8,17 +8,17 @@ import org.jetbrains.nativecerts.NativeTrustedCertificates;
 
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 final class OsCertificatesServiceImpl implements OsCertificatesService {
   @Override
   public @NotNull Collection<X509Certificate> getCustomOsSpecificTrustedCertificates() {
-    String property = System.getProperty("ide.load.os.certificates", "true");
+    var property = System.getProperty("ide.load.os.certificates", "true");
     if (!Boolean.parseBoolean(property)) {
       LOG.info("System property 'idea.os.certificates' is set to false value ('" +
                property +
                "'), skipping loading custom certificates from operating system.");
-      return Collections.emptyList();
+      return List.of();
     }
 
     // Ensure debug log categories are available before loading custom certificates.

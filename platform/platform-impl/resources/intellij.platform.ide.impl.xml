@@ -29,7 +29,6 @@
     <module name="intellij.libraries.jgoodies.forms"/>
     <module name="intellij.libraries.jna"/>
     <module name="intellij.libraries.jsoup"/>
-    <module name="intellij.libraries.jvm.native.trusted.roots"/>
     <module name="intellij.libraries.kotlin.reflect"/>
     <module name="intellij.libraries.kotlinx.collections.immutable"/>
     <module name="intellij.libraries.kotlinx.coroutines.core"/>
@@ -562,8 +561,6 @@
                        descriptionKey="configurable.group.other.settings.description"/>
     <applicationService serviceInterface="com.intellij.ide.actions.ReportFeedbackService" open="true"
                         serviceImplementation="com.intellij.ide.actions.DefaultReportFeedbackService"/>
-    <applicationService serviceInterface="com.intellij.util.net.ssl.OsCertificatesService"
-                        serviceImplementation="com.intellij.util.net.ssl.OsCertificatesServiceImpl"/>
     <applicationService serviceInterface="com.intellij.ide.plugins.PluginConflictReporter"
                         serviceImplementation="com.intellij.diagnostic.GuiPluginConflictReporter"/>
     <applicationService serviceInterface="com.intellij.openapi.vfs.newvfs.ManagingFS"

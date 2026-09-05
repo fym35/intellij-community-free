@@ -509,6 +509,7 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.codeStyle.impl")
     embeddedModule("intellij.platform.refactoring")
     embeddedModule("intellij.platform.ide.impl")
+    embeddedModule("intellij.platform.ide.osCertificates")
     // keeps marketplace-zip-signer out of the core classloader - loaded only when a plugin signature is verified
     module("intellij.platform.ide.pluginSignatureVerifier")
     // private wrapper used only by intellij.platform.ide.pluginSignatureVerifier, so it is not embedded

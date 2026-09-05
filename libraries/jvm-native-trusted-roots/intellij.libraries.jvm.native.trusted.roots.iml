@@ -7,6 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="intellij.libraries.jna" />
     <orderEntry type="module-library" exported="">
       <library name="jvm-native-trusted-roots" type="repository">
         <properties include-transitive-deps="false" maven-id="org.jetbrains.nativecerts:jvm-native-trusted-roots:1.1.7">
