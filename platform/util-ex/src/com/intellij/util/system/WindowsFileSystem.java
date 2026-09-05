@@ -41,6 +41,48 @@ public final class WindowsFileSystem {
 
   private static final int FILE_CASE_SENSITIVE_INFORMATION = 71;  // FILE_INFORMATION_CLASS::FileCaseSensitiveInformation
   private static final int FILE_CS_FLAG_CASE_SENSITIVE_DIR = 1;
+  private static final int FILE_READ_ATTRIBUTES = 0x80;
+  private static final int FSCTL_QUERY_PERSISTENT_VOLUME_STATE = 0x9023C;
+  private static final int PERSISTENT_VOLUME_STATE_DEV_VOLUME = 0x2000;
+  private static final int PERSISTENT_VOLUME_STATE_TRUSTED_VOLUME = 0x4000;
+  private static final int TRUSTED_DEV_VOLUME = PERSISTENT_VOLUME_STATE_DEV_VOLUME | PERSISTENT_VOLUME_STATE_TRUSTED_VOLUME;
+  private static final StructLayout PERSISTENT_VOLUME_INFORMATION = MemoryLayout.structLayout(
+    JAVA_INT.withName("VolumeFlags"), JAVA_INT.withName("FlagMask"), JAVA_INT.withName("Version"), JAVA_INT.withName("Reserved"));
+
+  public static boolean isOnDevDrive(@NotNull Path path) {
+    try (var arena = Arena.ofConfined()) {
+      var callState = arena.allocate(Handles.CALL_STATE_LAYOUT);
+      var name = arena.allocateFrom(path.toString(), StandardCharsets.UTF_16LE);
+      var handle = (MemorySegment)Handles.CREATE_FILE.invokeExact(
+        callState, name, FILE_READ_ATTRIBUTES, 0x3, MemorySegment.NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, MemorySegment.NULL);
+      if (handle.address() == INVALID_HANDLE_VALUE) {
+        LOG.warn("CreateFile(" + path + "): " + Handles.LAST_ERROR.get(callState, 0L));
+        return false;
+      }
+      try {
+        var information = arena.allocate(PERSISTENT_VOLUME_INFORMATION);
+        information.set(JAVA_INT, 4, TRUSTED_DEV_VOLUME);
+        information.set(JAVA_INT, 8, 1);
+        var returned = arena.allocate(JAVA_INT);
+        var size = (int)information.byteSize();
+        var success = (int)Handles.DEVICE_IO_CONTROL.invokeExact(
+          callState, handle, FSCTL_QUERY_PERSISTENT_VOLUME_STATE, information, size, information, size, returned, MemorySegment.NULL);
+        if (success == 0) {
+          if (LOG.isDebugEnabled()) LOG.debug("DeviceIoControl(" + path + "): " + Handles.LAST_ERROR.get(callState, 0L));
+          return false;
+        }
+        var flags = information.get(JAVA_INT, 0);
+        if (LOG.isDebugEnabled()) LOG.debug(path + ": 0x" + Integer.toHexString(flags));
+        return returned.get(JAVA_INT, 0) >= size && flags == TRUSTED_DEV_VOLUME;
+      }
+      finally {
+        var _ = (int)Handles.CLOSE_HANDLE.invokeExact(handle);
+      }
+    }
+    catch (Throwable failure) {
+      throw new IllegalStateException(failure);
+    }
+  }
 
   /** @return {@code true} when {@code GetFileAttributesW} reports {@code FILE_ATTRIBUTE_REPARSE_POINT} for the path */
   public static boolean isReparsePoint(@NotNull Path path) {
@@ -131,6 +173,11 @@ public final class WindowsFileSystem {
     static final MethodHandle CLOSE_HANDLE = LINKER.downcallHandle(
       KERNEL32.findOrThrow("CloseHandle"),
       FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+    static final MethodHandle DEVICE_IO_CONTROL = LINKER.downcallHandle(
+      KERNEL32.findOrThrow("DeviceIoControl"),
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, ADDRESS),
+      CAPTURE_LAST_ERROR);
 
     /** {@code IO_STATUS_BLOCK { union { NTSTATUS Status; PVOID Pointer; }; ULONG_PTR Information; }}, 16 bytes on x64 and ARM64 */
     static final StructLayout IO_STATUS_BLOCK = MemoryLayout.structLayout(ADDRESS.withName("Pointer"), JAVA_LONG.withName("Information"));
