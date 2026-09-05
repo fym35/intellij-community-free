@@ -543,6 +543,14 @@ def _fragment_impl(ctx):
     project_tree = ctx.attr.project_model_tree[IntellijProjectModelTreeInfo].tree
     build_inputs = ctx.attr.build_inputs[IntellijDevBuildInputsInfo]
     bazel_inputs_manifest = build_inputs.manifest
+    ijent_binaries = ctx.files.ijent_binaries
+    if ijent_binaries and ctx.attr.ijent_required_input:
+        required_owner = Label(ctx.attr.ijent_required_input)
+        ijent_binaries = []
+        for source in build_inputs.files.to_list():
+            if source.owner == required_owner:
+                ijent_binaries = ctx.files.ijent_binaries
+                break
 
     args = ctx.actions.args()
     args.add("--project-dir=" + project_tree.path)
@@ -556,9 +564,9 @@ def _fragment_impl(ctx):
     # should stay empty, and it is cleaned on success.
     args.add("--download-cache-dir=" + scratch.path + "/download-cache")
     args.add("--clean-scratch-on-success")
-    if ctx.files.ijent_binaries:
+    if ijent_binaries:
         # The unpacked archive, handed over as a directory: without it the build extracts the preloaded tar.gz itself.
-        args.add("--ijent-binaries-dir=" + ctx.files.ijent_binaries[0].dirname)
+        args.add("--ijent-binaries-dir=" + ijent_binaries[0].dirname)
     args.add("--fragment=" + ctx.attr.fragment_name)
     args.add("--build-date-seconds=" + ctx.attr.build_date_seconds)
     args.add("--platform-prefix=" + ctx.attr.platform_prefix)
@@ -627,7 +635,7 @@ def _fragment_impl(ctx):
                 bazel_inputs_manifest,
                 build_inputs.prepacked_plugin_jars_plan,
                 ctx.file.bazel_targets_json,
-            ] + ctx.files.preloaded_downloads + ctx.files.preloaded_manifests + ctx.files.ijent_binaries,
+            ] + ctx.files.preloaded_downloads + ctx.files.preloaded_manifests + ijent_binaries,
             transitive = [build_inputs.files],
         ),
         outputs = outputs,
@@ -705,22 +713,22 @@ intellij_dev_fragment = rule(
         "preloaded_downloads": attr.label_list(allow_files = True),
         "preloaded_manifests": attr.label_list(allow_files = True),
         "ijent_binaries": attr.label_list(allow_files = True, doc = "The unpacked IJent binaries the assembly bundles at `lib/ijent/`, so that it extracts nothing itself."),
+        "ijent_required_input": attr.string(
+            doc = "The canonical producer rule label that must own a declared build input before IJent binaries are included. " +
+                  "Use the rule label, not its output label. Empty keeps the binaries without scanning build inputs.",
+        ),
     } | _TRACE_SPANS_ATTR | _DEV_DIST_PLANS_ATTR | _DEV_DIST_PATCHED_DESCRIPTORS_ATTR,
 )
 
-def _packed_jars_component_impl(ctx):
+_COLLECTOR_ATTRS = {
+    "collector": attr.label(executable = True, cfg = "exec", mandatory = True),
+    "component_name": attr.string(mandatory = True, doc = "Identifies the component in its manifest and completeness check."),
+    "platform_prefix": attr.string(mandatory = True),
+    "target_platform": attr.string(default = ""),
+} | _TRACE_SPANS_ATTR
+
+def _collect_component(ctx, files, collection_args, inputs, mnemonic, progress_message):
     component_manifest = ctx.actions.declare_file(ctx.label.name + ".component.json")
-
-    # Which jars these are is read off the graph by `dev_dist_platform_payload`, not from a list something had to
-    # keep in step. A module that stops packing a jar stops being collected here in the same analysis that stops
-    # producing it, so the old "handed over but sets no `content_module_jar`" staleness cannot arise.
-    jars = ctx.attr.platform_payload[DevDistPlatformPayloadInfo].packed_jars.to_list()
-
-    jar_list = ctx.actions.args()
-    jar_list.set_param_file_format("multiline")
-    jar_list.use_param_file("--jars-file=%s", use_always = True)
-    jar_list.add_all(jars)
-
     args = ctx.actions.args()
     args.add("--component-manifest=" + component_manifest.path)
     args.add("--kind=" + ctx.attr.component_name)
@@ -732,22 +740,21 @@ def _packed_jars_component_impl(ctx):
     spans = _declare_spans(ctx, args, ctx.label.name + ".component")
 
     ctx.actions.run(
-        inputs = depset(jars),
+        inputs = depset(files + inputs),
         outputs = [component_manifest] + ([spans] if spans else []),
         executable = ctx.executable.collector,
-        arguments = [args, jar_list],
+        arguments = [args] + collection_args,
         execution_requirements = _LOCAL_DISK_CACHE_ONLY,
-        mnemonic = "IntellijDevPackedJars",
-        progress_message = "Naming %d packed %s jars for %%{label}" % (len(jars), ctx.attr.platform_prefix),
+        mnemonic = mnemonic,
+        progress_message = progress_message,
     )
     return [
-        # The jars come along with the manifest, so that building this component alone produces everything it names.
-        DefaultInfo(files = depset([component_manifest] + jars)),
+        DefaultInfo(files = depset([component_manifest] + files)),
         OutputGroupInfo(trace_spans = _spans_output_group([spans], [])),
         IntellijDevFragmentInfo(
             name = ctx.attr.component_name,
             home = None,
-            payload = depset(jars),
+            payload = depset(files),
             manifest = component_manifest,
             plugin_classpath_part = None,
             plugin_classpath_prefix = None,
@@ -760,38 +767,74 @@ def _packed_jars_component_impl(ctx):
         ),
     ]
 
+def _packed_jars_component_impl(ctx):
+    if ctx.attr.platform_payload:
+        if ctx.attr.files or ctx.attr.executable:
+            fail("%s: files and executable cannot be combined with platform_payload" % ctx.label)
+        jars = ctx.attr.platform_payload[DevDistPlatformPayloadInfo].packed_jars.to_list()
+        jar_list = ctx.actions.args()
+        jar_list.set_param_file_format("multiline")
+        jar_list.use_param_file("--jars-file=%s", use_always = True)
+        jar_list.add_all(jars)
+        return _collect_component(
+            ctx,
+            files = jars,
+            collection_args = [jar_list],
+            inputs = [],
+            mnemonic = "IntellijDevPackedJars",
+            progress_message = "Naming %d packed %s jars for %%{label}" % (len(jars), ctx.attr.platform_prefix),
+        )
+
+    if not ctx.attr.files:
+        fail("%s: either platform_payload or nonempty files is required" % ctx.label)
+    files = []
+    records = []
+    destinations = {}
+    for target, relative_path in ctx.attr.files.items():
+        outputs = target[DefaultInfo].files.to_list()
+        if len(outputs) != 1 or outputs[0].is_directory:
+            fail("%s: %s must provide exactly one ordinary file" % (ctx.label, target.label))
+        if relative_path in destinations:
+            fail("%s: duplicate destination: %s" % (ctx.label, relative_path))
+        destinations[relative_path] = True
+        files.append(outputs[0])
+        records.append({
+            "source": outputs[0].path,
+            "relativePath": relative_path,
+            "executable": ctx.attr.executable,
+        })
+    metadata = ctx.actions.declare_file(ctx.label.name + ".files.json")
+    ctx.actions.write(metadata, json.encode(records))
+    args = ctx.actions.args()
+    args.add("--files-file=" + metadata.path)
+    return _collect_component(
+        ctx,
+        files = files,
+        collection_args = [args],
+        inputs = [metadata],
+        mnemonic = "IntellijDevFiles",
+        progress_message = "Naming distribution files for %{label}",
+    )
+
 intellij_dev_packed_jars_component = rule(
-    doc = """The distribution component made of the `lib/` jars `jvm_library` packed itself.
+    doc = """Collect packed platform jars or explicitly placed files into a distribution component.
 
-    Every other component is assembled by evaluating the product layout, which declares the shared project-model tree
-    and is therefore re-keyed by any `.iml` edit. These jars are packed by actions that declare only the jars they
-    merge, and this rule does no more than name them `lib/<module>.jar` and inventory them - so an unrelated model edit
-    leaves both the packing and this collection untouched.
-
-    It declares no tree: its one output is the manifest, which names each jar where its packer left it, and the
-    composer copies from there. A tree here would hold a second copy of every jar for no purpose other than being
-    copied out of again.
-
-    Which jars those are comes from `dev_dist_platform_payload`, which asks the payload's targets; the sibling
-    fragment is handed the same provider and stops packing exactly these jars, so ownership cannot overlap.
+    Set platform_payload to collect its packed jars at lib/<filename>. Alternatively, set files to map source labels
+    to distribution paths. Set executable to apply executable permissions to these files. The modes cannot be combined.
+    The action reads only these sources and writes one manifest. The composer copies the files directly from their sources.
     """,
     implementation = _packed_jars_component_impl,
-    attrs = {
-        "collector": attr.label(executable = True, cfg = "exec", mandatory = True),
-        "component_name": attr.string(mandatory = True, doc = "Identifies this component in its manifest and in the composer's completeness check."),
-        "platform_prefix": attr.string(mandatory = True),
-        "target_platform": attr.string(default = ""),
+    attrs = _COLLECTOR_ATTRS | {
         "platform_payload": attr.label(
             providers = [DevDistPlatformPayloadInfo],
-            mandatory = True,
             doc = "The payload's packed `lib/` jars, derived from the graph - see `dev_dist_platform_payload`.",
         ),
-    } | _TRACE_SPANS_ATTR,
+        "files": attr.label_keyed_string_dict(allow_files = True, doc = "Maps each source label to its distribution path."),
+        "executable": attr.bool(default = False, doc = "Whether the explicitly placed files are executable."),
+    },
 )
 
 def _packed_plugin_jars_component_impl(ctx):
-    component_manifest = ctx.actions.declare_file(ctx.label.name + ".component.json")
-
     placement_manifests = []
     entries = []
     for target in ctx.attr.fragments:
@@ -803,8 +846,8 @@ def _packed_plugin_jars_component_impl(ctx):
 
     # One relation per line, as `<plugin main module>\t<`lib/`-relative destination>\t<jar path>`. The first two columns
     # are the relation's key, and the third is the bytes to place there. The member is not written: this component only
-    # copies a jar to a destination, and the destination is now part of the key. `collectPrepackedPluginContentJars` is
-    # the one reader, and it joins these lines to the fragment's placement manifests on the same two columns.
+    # copies a jar to a destination, and the destination is now part of the key. The collector joins these lines to
+    # the fragment's placement manifests on the same two columns.
     metadata_lines = []
     jars = []
     for key in sorted(records.keys()):
@@ -819,55 +862,24 @@ def _packed_plugin_jars_component_impl(ctx):
     ctx.actions.write(metadata, ("\n".join(metadata_lines) + "\n") if metadata_lines else "")
 
     args = ctx.actions.args()
-    args.add("--component-manifest=" + component_manifest.path)
-    args.add("--kind=" + ctx.attr.component_name)
-    args.add("--platform-prefix=" + ctx.attr.platform_prefix)
     args.add("--plugin-jars-file=" + metadata.path)
     args.add_all(placement_manifests, format_each = "--plugin-placement=%s")
-    _add_target_platform_args(args, ctx.attr.target_platform)
-
-    # See the sibling rule: the span file's name follows the primary output, which is now the manifest.
-    spans = _declare_spans(ctx, args, ctx.label.name + ".component")
-
-    ctx.actions.run(
-        inputs = depset(direct = [metadata] + jars + placement_manifests),
-        outputs = [component_manifest] + ([spans] if spans else []),
-        executable = ctx.executable.collector,
-        arguments = [args],
-        execution_requirements = _LOCAL_DISK_CACHE_ONLY,
+    return _collect_component(
+        ctx,
+        files = jars,
+        collection_args = [args],
+        inputs = [metadata] + placement_manifests,
         mnemonic = "IntellijDevPackedPluginJars",
         progress_message = "Naming packed plugin content jars for %{label}",
     )
-    return [
-        DefaultInfo(files = depset([component_manifest] + jars)),
-        # Only this action's own spans: the fragments it reads placement manifests from are composed by the same
-        # distribution, which carries them already.
-        OutputGroupInfo(trace_spans = _spans_output_group([spans], [])),
-        IntellijDevFragmentInfo(
-            name = ctx.attr.component_name,
-            home = None,
-            payload = depset(jars),
-            manifest = component_manifest,
-            plugin_classpath_part = None,
-            plugin_classpath_prefix = None,
-            inputs_manifest = None,
-            unused_inputs = None,
-            prepacked_plugin_jars = depset(),
-            prepacked_plugin_jars_placement = None,
-        ),
-    ]
 
 intellij_dev_packed_plugin_jars_component = rule(
     doc = "Names plugin content-module jars packed by `jvm_library` at their JarPackager-validated destinations, in " +
           "a manifest the composer copies from - this rule declares no tree of its own.",
     implementation = _packed_plugin_jars_component_impl,
-    attrs = {
-        "collector": attr.label(executable = True, cfg = "exec", mandatory = True),
-        "component_name": attr.string(mandatory = True),
-        "platform_prefix": attr.string(mandatory = True),
-        "target_platform": attr.string(default = ""),
+    attrs = _COLLECTOR_ATTRS | {
         "fragments": attr.label_list(providers = [IntellijDevFragmentInfo], mandatory = True),
-    } | _TRACE_SPANS_ATTR,
+    },
 )
 
 def _compose(ctx, fragment_targets):
@@ -892,7 +904,7 @@ def _compose(ctx, fragment_targets):
             "components": [
                 {
                     # None for a component that declares no tree: its manifest names each file where it already is, and
-                    # the composer copies from there - see `writeSourcedDevBuildComponentManifest`.
+                    # the composer copies from there.
                     "root": fragment.home.path if fragment.home else None,
                     "manifest": fragment.manifest.path,
                     "pluginClasspathPart": fragment.plugin_classpath_part.path if fragment.plugin_classpath_part else None,
