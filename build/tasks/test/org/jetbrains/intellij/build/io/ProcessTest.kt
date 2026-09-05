@@ -13,6 +13,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
@@ -147,7 +148,7 @@ class ProcessTest {
     }
   }
 
-  @Test
+  @RepeatedTest(5)
   fun `a consumer that clears interruption does not receive another line`() {
     val calls = AtomicInteger()
     val release = CountDownLatch(1)
@@ -156,7 +157,7 @@ class ProcessTest {
         runShell(code = "echo one; echo two", timeout = 1.seconds, stdOutConsumer = {
           calls.incrementAndGet()
           try {
-            release.await()
+            release.await(5, TimeUnit.SECONDS)
           }
           catch (_: InterruptedException) {
           }

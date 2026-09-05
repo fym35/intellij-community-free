@@ -3,9 +3,11 @@ package org.jetbrains.intellij.build.io
 
 import com.fasterxml.jackson.jr.ob.JSON
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.platform.buildScripts.concurrency.TaskContext
+import com.intellij.platform.buildScripts.concurrency.TaskFailedException
+import com.intellij.platform.buildScripts.concurrency.taskScope
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
-import io.opentelemetry.context.Context
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
@@ -17,15 +19,11 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Collections
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import kotlin.time.ComparableTimeMark
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.TimeSource
 
 val DEFAULT_TIMEOUT: Duration = 10.minutes
 
@@ -261,60 +259,60 @@ fun runProcess(
       var process: Process? = null
       val pumps = ArrayList<ProcessOutputPump>(2)
       var failure: Throwable? = null
-      val deadline = TimeSource.Monotonic.markNow() + timeout
       try {
-        if (Thread.interrupted()) {
-          throw InterruptedException()
-        }
-        logFreeDiskSpace(workingDir, "before $commandLine")
-        @Suppress("IO_FILE_USAGE")
-        process = ProcessBuilder(args)
-          .directory(workingDir.toFile())
-          .also { builder ->
-            if (additionalEnvVariables.isNotEmpty()) {
-              builder.environment().putAll(additionalEnvVariables)
+        taskScope(name = commandLine, timeout = timeout.takeIf { it.isFinite() }) {
+          try {
+            checkCancelled()
+            logFreeDiskSpace(workingDir, "before $commandLine")
+            @Suppress("IO_FILE_USAGE")
+            val running = ProcessBuilder(args)
+              .directory(workingDir.toFile())
+              .also { builder ->
+                builder.environment().putAll(additionalEnvVariables)
+                if (inheritOut) {
+                  builder.inheritIO()
+                  builder.redirectErrorStream(inheritErrToOut)
+                }
+              }.start()
+            process = running
+            val outputLines = Collections.synchronizedList(ArrayList<String>())
+            if (!inheritOut) {
+              pumps.add(ProcessOutputPump("stdout of $commandLine", running, running.inputStream) {
+                span.addEvent(it)
+                stdOutConsumer(it)
+                if (attachStdOutToException) outputLines.add(it)
+              })
+              pumps.add(ProcessOutputPump("stderr of $commandLine", running, running.errorStream) {
+                span.addEvent(it)
+                stdErrConsumer(it)
+                outputLines.add(it)
+              })
             }
-            if (inheritOut) {
-              builder.inheritIO()
-              builder.redirectErrorStream(inheritErrToOut)
+            val pid = running.pid()
+            span.setAttribute("pid", pid)
+            for (pump in pumps) fork(pump.name) { pump.run(this) }
+            val exit = fork("wait for $commandLine") { running.waitFor() }
+            try {
+              join()
             }
-          }.start()
-        val outputLines = Collections.synchronizedList(ArrayList<String>())
-        val pumpFailure = CompletableFuture<Unit>()
-        if (!inheritOut) {
-          pumps.add(
-            ProcessOutputPump("stdout of $commandLine", process, process.inputStream, pumpFailure) {
-              span.addEvent(it)
-              stdOutConsumer(it)
-              if (attachStdOutToException) {
-                outputLines += it
-              }
-            },
-          )
-          pumps.add(
-            ProcessOutputPump("stderr of $commandLine", process, process.errorStream, pumpFailure) {
-              span.addEvent(it)
-              stdErrConsumer(it)
-              outputLines += it
-            },
-          )
-        }
-
-        val pid = process.pid()
-        span.setAttribute("pid", pid)
-        val timeoutFailure = {
-          TimeoutException("Process '$commandLine' (pid=$pid) failed to complete in $timeout" + merge(outputLines))
-        }
-
-        for (pump in pumps) {
-          pump.thread.start()
-        }
-        val completed = CompletableFuture.allOf(process.onExit(), *pumps.map { it.completion }.toTypedArray())
-        CompletableFuture.anyOf(completed, pumpFailure).awaitProcessResult(deadline, timeoutFailure)
-
-        val exitCode = process.exitValue()
-        if (exitCode != 0) {
-          throw RuntimeException("Process '$commandLine' (pid=$pid) finished with exitCode $exitCode" + merge(outputLines))
+            catch (error: TaskFailedException) {
+              throw error.cause ?: error
+            }
+            catch (_: TimeoutException) {
+              throw TimeoutException("Process '$commandLine' (pid=$pid) failed to complete in $timeout" + merge(outputLines))
+            }
+            val exitCode = exit.get()
+            if (exitCode != 0) {
+              throw RuntimeException("Process '$commandLine' (pid=$pid) finished with exitCode $exitCode" + merge(outputLines))
+            }
+          }
+          catch (error: Throwable) {
+            failure = error
+            throw error
+          }
+          finally {
+            closeProcess(process, pumps, failure)
+          }
         }
       }
       catch (error: Throwable) {
@@ -322,78 +320,66 @@ fun runProcess(
         throw error
       }
       finally {
-        try {
-          closeProcess(process, pumps, failure)
+        for (pump in pumps) {
+          val cleanupFailure = pump.failure
+          val primary = failure
+          if (primary != null && cleanupFailure != null && primary !== cleanupFailure &&
+              cleanupFailure !is InterruptedException && cleanupFailure !is java.util.concurrent.CancellationException) {
+            primary.addSuppressed(cleanupFailure)
+          }
+          try {
+            pump.stream.close()
+          }
+          catch (error: Throwable) {
+            val primary = failure ?: throw error
+            if (primary !== error) primary.addSuppressed(error)
+          }
         }
-        finally {
-          logFreeDiskSpace(workingDir, "after $commandLine")
-        }
+        logFreeDiskSpace(workingDir, "after $commandLine")
       }
     }
-}
-
-private fun <T> CompletableFuture<T>.awaitProcessResult(deadline: ComparableTimeMark, timeoutFailure: () -> TimeoutException): T {
-  if (Thread.interrupted()) {
-    throw InterruptedException()
-  }
-  try {
-    return get((-deadline.elapsedNow()).inWholeNanoseconds.coerceAtLeast(0), TimeUnit.NANOSECONDS)
-  }
-  catch (_: TimeoutException) {
-    throw timeoutFailure()
-  }
-  catch (error: ExecutionException) {
-    throw error.cause ?: error
-  }
 }
 
 /** Owns one output reader. Only stream errors caused by an explicit stop are ignored. */
 private class ProcessOutputPump(
-  name: String,
+  val name: String,
   private val process: Process,
   val stream: InputStream,
-  pumpFailure: CompletableFuture<Unit>,
   private val consume: (String) -> Unit,
 ) {
-  val completion = CompletableFuture<Unit>()
-  var failure: Throwable? = null
-    private set
-
   @Volatile
   private var stopping = false
 
-  private val telemetryContext = Context.current()
-  val thread: Thread = Thread.ofVirtual().name(name).unstarted {
+  @Volatile
+  var failure: Throwable? = null
+    private set
+
+  fun run(context: TaskContext) {
     try {
-      telemetryContext.makeCurrent().use {
-        stream.use { readLines() }
-      }
-      completion.complete(Unit)
+      stream.use { readLines(context) }
     }
     catch (error: Throwable) {
       failure = error
-      completion.completeExceptionally(error)
-      pumpFailure.completeExceptionally(error)
+      throw error
     }
   }
 
   fun stop() {
     stopping = true
-    thread.interrupt()
   }
 
-  private fun checkActive() {
-    if (stopping || Thread.interrupted()) {
+  private fun checkActive(context: TaskContext) {
+    if (stopping || context.isCancelled || Thread.interrupted()) {
       throw InterruptedException()
     }
   }
 
-  private fun readLines() {
+  private fun readLines(context: TaskContext) {
     val buffer = ByteArray(8192)
     val line = ByteArrayOutputStream()
     var previousWasCarriageReturn = false
     while (true) {
-      checkActive()
+      checkActive(context)
       var count = readAvailable(buffer)
       if (count == 0 && !process.isAlive) {
         count = readAvailable(buffer)
@@ -412,7 +398,7 @@ private class ProcessOutputPump(
         val value = buffer[index].toInt() and 0xff
         if (value == '\r'.code || value == '\n'.code) {
           if (value != '\n'.code || !previousWasCarriageReturn) {
-            checkActive()
+            checkActive(context)
             consume(line.toString(Charsets.UTF_8))
             line.reset()
           }
@@ -425,7 +411,7 @@ private class ProcessOutputPump(
       }
     }
     if (line.size() > 0) {
-      checkActive()
+      checkActive(context)
       consume(line.toString(Charsets.UTF_8))
     }
   }
@@ -456,6 +442,7 @@ private fun closeProcess(process: Process?, pumps: List<ProcessOutputPump>, prim
       previous.addSuppressed(error)
     }
   }
+
   fun awaitTermination(action: () -> Unit) {
     while (true) {
       try {
@@ -483,16 +470,7 @@ private fun closeProcess(process: Process?, pumps: List<ProcessOutputPump>, prim
     catch (error: Throwable) {
       recordFailure(error)
     }
-    for (pump in pumps) {
-      awaitTermination { pump.thread.join() }
-      pump.failure?.takeUnless { it is InterruptedException }?.let { recordFailure(it) }
-      try {
-        pump.stream.close()
-      }
-      catch (error: Throwable) {
-        recordFailure(error)
-      }
-    }
+
   }
   finally {
     if (interrupted) {
