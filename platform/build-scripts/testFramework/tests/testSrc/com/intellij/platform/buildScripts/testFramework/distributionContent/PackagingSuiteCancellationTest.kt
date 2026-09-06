@@ -24,7 +24,7 @@ class PackagingSuiteCancellationTest {
       targets = listOf(PackagingTargetSpec(
         id = "not started",
         createProductProperties = { error("The build must not start") },
-        contentYamlPath = null,
+        contentYamlPath = "unused.yaml",
       )),
     ))
     try {

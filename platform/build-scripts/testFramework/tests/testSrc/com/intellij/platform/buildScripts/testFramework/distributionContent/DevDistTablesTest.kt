@@ -5,8 +5,13 @@ import com.intellij.platform.distributionContent.DevDistProductReport
 import com.intellij.platform.distributionContent.DistFileRow
 import com.intellij.platform.distributionContent.FileEntry
 import com.intellij.platform.distributionContent.PluginContentReport
+import com.intellij.platform.distributionContent.ProductModuleSelection
+import com.intellij.platform.distributionContent.ProductPlatformReview
+import com.intellij.platform.distributionContent.ProductPublishingReview
+import com.intellij.platform.distributionContent.ProductReviewReport
 import com.intellij.platform.distributionContent.readDevDistProductReport
 import com.intellij.platform.distributionContent.writeDevDistProductReport
+import com.intellij.platform.distributionContent.writeProductReviewReport
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -18,6 +23,20 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
 class DevDistTablesTest {
+  private val emptyReview = ProductReviewReport(
+    bundledPlugins = emptyList(),
+    nonBundledPlugins = emptyList(),
+    publishing = ProductPublishingReview(false, emptyList(), emptyList()),
+    platform = ProductPlatformReview(),
+    distFiles = emptyList(),
+  )
+
+  private val review = emptyReview.copy(
+    bundledPlugins = listOf(PluginContentReport(mainModule = "bundled.plugin")),
+    publishing = ProductPublishingReview(true, listOf("published.plugin"), emptyList()),
+    platform = ProductPlatformReview(modules = listOf(ProductModuleSelection("platform.content", loading = "required"))),
+  )
+
   private val emptyReport = DevDistProductReport(
     bundledPlugins = emptyList(),
     nonBundledPlugins = emptyList(),
@@ -45,25 +64,25 @@ class DevDistTablesTest {
     val relativePath = Path.of(contentYamlPath)
     val communityFile = projectHome.resolve("community").resolve(relativePath)
     communityFile.parent.createDirectories()
-    val originalText = writeDevDistProductReport(emptyReport)
+    val originalText = writeProductReviewReport(emptyReview)
     communityFile.writeText(originalText)
     val otherProductFile = projectHome.resolve("rider/build/tests/testData/RiderPackagingTest/other-content.yaml")
     otherProductFile.parent.createDirectories()
     otherProductFile.writeText(originalText)
 
-    val failure = validateProductReport(projectHome, contentYamlPath, report).single()
+    val failure = validateProductReport(projectHome, contentYamlPath, review).single()
     val file = projectHome.resolve(relativePath)
     assertThat(file.exists()).isTrue()
     assertThat(file.readText()).isEmpty()
     assertThat(failure.name).isEqualTo("product-report-out-of-date")
     assertThat(failure.error.message).containsOnlyOnce("--- $relativePath").containsOnlyOnce("+++ $relativePath")
-      .contains("bundledPlugins:", "nonBundledPlugins:", "platformContentModules:", "distFiles:")
+      .contains("bundledPlugins:", "publishing:", "platform:", "distFiles:")
       .doesNotContain(Path.of("community").resolve(relativePath).toString())
     assertThat(communityFile.readText()).isEqualTo(originalText)
     assertThat(otherProductFile.readText()).isEqualTo(originalText)
 
-    file.writeText(writeDevDistProductReport(report))
-    assertThat(validateProductReport(projectHome, contentYamlPath, report)).isEmpty()
+    file.writeText(writeProductReviewReport(review))
+    assertThat(validateProductReport(projectHome, contentYamlPath, review)).isEmpty()
   }
 
   @Test
@@ -72,15 +91,15 @@ class DevDistTablesTest {
     val contentYamlPath = "platform/build-scripts/testData/CommunityPackagingTest/idea-content.yaml"
     val relativePath = Path.of(contentYamlPath)
 
-    val failure = validateProductReport(projectHome, contentYamlPath, report).single()
+    val failure = validateProductReport(projectHome, contentYamlPath, review).single()
     val file = projectHome.resolve(relativePath)
     assertThat(file.exists()).isTrue()
     assertThat(ultimateHome.resolve(relativePath).exists()).isFalse()
     assertThat(failure.error.message).contains("--- $relativePath", "+++ $relativePath")
       .doesNotContain(Path.of("community").resolve(relativePath).toString())
 
-    file.writeText(writeDevDistProductReport(report))
-    assertThat(validateProductReport(projectHome, contentYamlPath, report)).isEmpty()
+    file.writeText(writeProductReviewReport(review))
+    assertThat(validateProductReport(projectHome, contentYamlPath, review)).isEmpty()
   }
 
   @Test
@@ -88,22 +107,22 @@ class DevDistTablesTest {
     val contentYamlPath = "reports/sample.yaml"
     val file = projectHome.resolve(contentYamlPath)
     file.parent.createDirectories()
-    val originalText = writeDevDistProductReport(emptyReport)
+    val originalText = writeProductReviewReport(emptyReview)
     val observations = listOf(
-      "bundledPlugins" to emptyReport.copy(bundledPlugins = report.bundledPlugins),
-      "nonBundledPlugins" to emptyReport.copy(nonBundledPlugins = report.nonBundledPlugins),
-      "platformContentModules" to emptyReport.copy(platformContentModules = report.platformContentModules),
-      "distFiles" to emptyReport.copy(distFiles = rows),
+      "bundledPlugins" to emptyReview.copy(bundledPlugins = review.bundledPlugins),
+      "publishing" to emptyReview.copy(publishing = review.publishing),
+      "platform" to emptyReview.copy(platform = review.platform),
+      "distFiles" to emptyReview.copy(distFiles = rows),
     )
     for ((section, observation) in observations) {
       file.writeText(originalText)
       val failures = validateProductReport(projectHome, contentYamlPath, observation)
       assertThat(failures).describedAs(section).hasSize(1)
-      assertThat(failures.single().error.message).contains("+$section:")
+      assertThat(failures.single().error.message).contains("$section:")
         .containsOnlyOnce("--- $contentYamlPath").containsOnlyOnce("+++ $contentYamlPath")
       assertThat(file.readText()).isEqualTo(originalText)
 
-      file.writeText(writeDevDistProductReport(observation))
+      file.writeText(writeProductReviewReport(observation))
       assertThat(validateProductReport(projectHome, contentYamlPath, observation)).describedAs(section).isEmpty()
     }
   }
@@ -111,13 +130,13 @@ class DevDistTablesTest {
   @Test
   fun `the report uses the explicit path without an extension restriction`(@TempDir projectHome: Path) {
     for (contentYamlPath in listOf("product-content", "reports/custom-content.snapshot")) {
-      val failure = validateProductReport(projectHome, contentYamlPath, report).single()
+      val failure = validateProductReport(projectHome, contentYamlPath, review).single()
       val file = projectHome.resolve(contentYamlPath)
       assertThat(file.exists()).isTrue()
       assertThat(failure.error.message).contains("--- $contentYamlPath", "+++ $contentYamlPath")
 
-      file.writeText(writeDevDistProductReport(report))
-      assertThat(validateProductReport(projectHome, contentYamlPath, report)).isEmpty()
+      file.writeText(writeProductReviewReport(review))
+      assertThat(validateProductReport(projectHome, contentYamlPath, review)).isEmpty()
     }
     assertThat(projectHome.resolve("build/dev-dist/packaging").exists()).isFalse()
   }
@@ -140,7 +159,7 @@ class DevDistTablesTest {
       absoluteFile.toString(),
     )
     for (contentYamlPath in invalidPaths) {
-      assertThatThrownBy { validateProductReport(projectHome, contentYamlPath, report) }
+      assertThatThrownBy { validateProductReport(projectHome, contentYamlPath, review) }
         .describedAs(contentYamlPath)
         .isInstanceOf(IllegalArgumentException::class.java)
         .hasMessageContaining("relative to the project root")

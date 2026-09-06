@@ -84,7 +84,7 @@ data class DistFileRow(
   @JvmField val path: String,
 )
 
-/** A compact product report for review. The report is not a build input. */
+/** An expanded product observation for test artifacts. The report is not a build input. */
 @Internal
 data class DevDistProductReport(
   @JvmField val bundledPlugins: List<PluginContentReport>,
@@ -102,50 +102,56 @@ private class ProductReportYaml(
 )
 
 @Serializable
-private class DistFileGroup(
+internal class DistFileGroup(
   val os: String? = null,
   val arch: String? = null,
   val libc: String? = null,
   val paths: List<String>,
 )
 
-/** Reads the compact report for one product. */
+/** Reads the expanded observation for one product. */
 @Internal
 fun readDevDistProductReport(text: String): DevDistProductReport {
   val report = yaml.decodeFromString(ProductReportYaml.serializer(), text)
-  val distFiles = report.distFiles.flatMap { group ->
+  return DevDistProductReport(
+    bundledPlugins = report.bundledPlugins,
+    nonBundledPlugins = report.nonBundledPlugins,
+    platformContentModules = report.platformContentModules,
+    distFiles = readDistFileGroups(report.distFiles),
+  )
+}
+
+/** Writes the expanded observation in canonical order. Dist files are grouped by OS, architecture, and libc. */
+@Internal
+fun writeDevDistProductReport(report: DevDistProductReport): String {
+  return yaml.encodeToString(ProductReportYaml.serializer(), ProductReportYaml(
+    bundledPlugins = summarizePlugins(report.bundledPlugins),
+    nonBundledPlugins = summarizePlugins(report.nonBundledPlugins),
+    platformContentModules = report.platformContentModules.distinct().sorted(),
+    distFiles = groupDistFiles(report.distFiles),
+  )).trimEnd() + "\n"
+}
+
+internal fun summarizePlugins(plugins: List<PluginContentReport>): List<PluginContentReport> {
+  return plugins.map { it.copy(content = emptyList()) }.distinct().sortedWith(compareBy({ it.mainModule }, { it.os }, { it.arch }))
+}
+
+internal fun groupDistFiles(files: List<DistFileRow>): List<DistFileGroup> {
+  files.forEach(::validateDistFileRow)
+  return files.distinct().sortedWith(compareBy({ it.os }, { it.arch }, { it.libc }, { it.path }))
+    .groupBy { Triple(it.os, it.arch, it.libc) }
+    .map { (platform, entries) ->
+      DistFileGroup(os = platform.first, arch = platform.second, libc = platform.third, paths = entries.map { it.path })
+    }
+}
+
+internal fun readDistFileGroups(groups: List<DistFileGroup>): List<DistFileRow> {
+  return groups.flatMap { group ->
     require(group.paths.isNotEmpty()) { "A dist file group must contain a path." }
     group.paths.map { path ->
       DistFileRow(os = group.os, arch = group.arch, libc = group.libc, path = path).also(::validateDistFileRow)
     }
   }
-  return DevDistProductReport(
-    bundledPlugins = report.bundledPlugins,
-    nonBundledPlugins = report.nonBundledPlugins,
-    platformContentModules = report.platformContentModules,
-    distFiles = distFiles,
-  )
-}
-
-/** Writes the compact report in canonical order. Dist files are grouped by OS, architecture, and libc. */
-@Internal
-fun writeDevDistProductReport(report: DevDistProductReport): String {
-  report.distFiles.forEach(::validateDistFileRow)
-  val groups = report.distFiles.distinct().sortedWith(compareBy({ it.os }, { it.arch }, { it.libc }, { it.path }))
-    .groupBy { Triple(it.os, it.arch, it.libc) }
-    .map { (platform, files) ->
-      DistFileGroup(os = platform.first, arch = platform.second, libc = platform.third, paths = files.map { it.path })
-    }
-  return yaml.encodeToString(ProductReportYaml.serializer(), ProductReportYaml(
-    bundledPlugins = summarizePlugins(report.bundledPlugins),
-    nonBundledPlugins = summarizePlugins(report.nonBundledPlugins),
-    platformContentModules = report.platformContentModules.distinct().sorted(),
-    distFiles = groups,
-  )).trimEnd() + "\n"
-}
-
-private fun summarizePlugins(plugins: List<PluginContentReport>): List<PluginContentReport> {
-  return plugins.map { it.copy(content = emptyList()) }.distinct().sortedWith(compareBy({ it.mainModule }, { it.os }, { it.arch }))
 }
 
 private fun validateDistFileRow(row: DistFileRow) {

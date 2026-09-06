@@ -4,19 +4,24 @@ package com.intellij.platform.buildScripts.testFramework.distributionContent
 import com.intellij.platform.distributionContent.DevDistProductReport
 import com.intellij.platform.distributionContent.DistFileRow
 import com.intellij.platform.distributionContent.FileEntry
+import com.intellij.platform.distributionContent.ProductReviewReport
 import com.intellij.platform.distributionContent.writeDevDistProductReport
+import com.intellij.platform.distributionContent.writeProductReviewReport
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.devDist.PlatformJarRows
 import org.jetbrains.intellij.build.devDist.derivePlatformJars
+import org.jetbrains.intellij.build.devDist.deriveProductReviewReport
 import org.jetbrains.intellij.build.devDist.devDistProductToken
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Compares the source derivation with the build layout, then checks the independently packed platform jars.
  *
- * At the CONTENT stage, a compact report records plugins, platform content modules, and files outside jar packing.
+ * At the CONTENT stage, a compact report records product choices and distribution files. An artifact records expanded observations.
  * Each product owns one YAML file at [PackagingTargetSpec.contentYamlPath]. These reports are not build inputs.
  */
 @Internal
@@ -49,7 +54,7 @@ private const val PLATFORM_LIB_PREFIX = "dist.all/lib/"
 private const val HIDDEN_FILE_NAME = "<file>"
 
 private const val PRODUCT_REPORT_REPAIR =
-  "The product report differs from this build's plugins, platform content modules, or dist files. " +
+  "The product report differs from this build's product choices or distribution files. " +
   "The patch updates only this product's YAML file. Apply the patch or accept it in the Diff Viewer, then run this test again."
 
 /** The version in a library file name: the match of `-1.2.3.jar` in `lib/foo-1.2.3.jar`, or of `/1.2.3/` in a path. */
@@ -164,9 +169,8 @@ private fun validateProductReport(context: PackagingTargetValidationContext): Li
       path = removeVersionFromPath(it.relativePath),
     )
   }
-  return validateProductReport(
-    projectHome = context.projectHome,
-    contentYamlPath = context.target.contentYamlPath,
+  writeProductObservation(
+    file = context.productObservationFile,
     report = DevDistProductReport(
       bundledPlugins = content.bundled,
       nonBundledPlugins = content.nonBundled,
@@ -174,12 +178,30 @@ private fun validateProductReport(context: PackagingTargetValidationContext): Li
       distFiles = distFiles,
     ),
   )
+  return validateProductReport(
+    projectHome = context.projectHome,
+    contentYamlPath = context.target.contentYamlPath,
+    report = deriveProductReviewReport(
+      productProperties = buildContext.productProperties,
+      bundledPlugins = content.bundled,
+      nonBundledPlugins = content.nonBundled,
+      distFiles = distFiles,
+      platformEntries = content.platform,
+    ),
+  )
+}
+
+internal fun writeProductObservation(file: Path, report: DevDistProductReport) {
+  val text = writeDevDistProductReport(report)
+  file.parent.createDirectories()
+  file.writeText(text)
+  println("Expanded product observation: $file")
 }
 
 internal fun validateProductReport(
   projectHome: Path,
   contentYamlPath: String,
-  report: DevDistProductReport,
+  report: ProductReviewReport,
 ): List<PackagingCheckFailure> {
   val relativePath = Path.of(contentYamlPath)
   require(contentYamlPath.isNotBlank() && !relativePath.isAbsolute && relativePath.none { it.toString() == ".." } &&
@@ -188,7 +210,7 @@ internal fun validateProductReport(
   }
   val file = projectHome.resolve(relativePath)
   val currentText = if (file.exists()) file.readText() else ""
-  val desiredText = writeDevDistProductReport(report)
+  val desiredText = writeProductReviewReport(report)
   if (desiredText == currentText) {
     return emptyList()
   }

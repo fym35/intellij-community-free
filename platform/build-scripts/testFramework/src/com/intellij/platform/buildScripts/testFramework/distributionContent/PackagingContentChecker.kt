@@ -181,6 +181,7 @@ class PackagingTargetValidationContext internal constructor(
   @JvmField val target: PackagingTargetSpec,
   @JvmField val projectHome: Path,
   @JvmField val tempDir: Path,
+  @JvmField val productObservationFile: Path,
   @JvmField val project: JpsProject,
   @JvmField val outputProvider: ModuleOutputProvider,
   @JvmField val layout: PackagedLayout,
@@ -787,6 +788,8 @@ private fun createTargetValidationTasks(
                       target = packagingTask.spec,
                       projectHome = layout.buildContext.paths.projectHome,
                       tempDir = validationTempDir,
+                      productObservationFile = TestLoggerFactory.getTestLogDir().resolve("packaging-reports")
+                        .resolve(spec.name).resolve("${validation.targetId}.yaml"),
                       project = layout.buildContext.project,
                       outputProvider = suiteContext.compilationContext.outputProvider,
                       layout = layout,
