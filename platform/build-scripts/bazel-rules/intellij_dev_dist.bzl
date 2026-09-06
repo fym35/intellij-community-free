@@ -303,9 +303,10 @@ IntellijDevFragmentInfo = provider(
 IntellijDevDistInfo = provider(
     fields = {
         "fingerprint": "The content fingerprint of the composed IDE distribution.",
-        "home": "The composed IDE home directory.",
+        "home": "The self-contained home or the local launch metadata directory.",
         "ide_config": "The config file used by PreBuiltDevMain.",
         "stamp_inputs": "Small declared inputs whose contents identify the fragments composed into the distribution.",
+        "runtime_files": "Component artifacts used directly by a local launch.",
     },
 )
 
@@ -882,11 +883,20 @@ intellij_dev_packed_plugin_jars_component = rule(
     },
 )
 
+def _runfile_path(ctx, file):
+    path = file.short_path
+    return path[3:] if path.startswith("../") else ctx.workspace_name + "/" + path
+
 def _compose(ctx, fragment_targets):
-    home = ctx.actions.declare_directory(ctx.label.name + ".dist")
+    local_launch = ctx.attr.local_launch
+    home = ctx.actions.declare_directory(ctx.label.name + (".metadata" if local_launch else ".dist"))
     ide_config = ctx.actions.declare_file(ctx.label.name + ".ide.config")
     fingerprint = ctx.actions.declare_file(ctx.label.name + ".fingerprint")
     fragments = [target[IntellijDevFragmentInfo] for target in fragment_targets]
+    runtime_files = depset(
+        direct = [fragment.home for fragment in fragments if fragment.home],
+        transitive = [fragment.payload for fragment in fragments if fragment.payload],
+    ) if local_launch else depset()
 
     prefixes = [fragment.plugin_classpath_prefix for fragment in fragments if fragment.plugin_classpath_prefix]
     parts = [fragment.plugin_classpath_part for fragment in fragments if fragment.plugin_classpath_part]
@@ -912,6 +922,7 @@ def _compose(ctx, fragment_targets):
                 for fragment in fragments
             ],
             "pluginClasspathPrefix": prefixes[0].path if prefixes else None,
+            "sourceRunfiles": {file.path: _runfile_path(ctx, file) for file in runtime_files.to_list()} if local_launch else None,
         }),
     )
 
@@ -922,16 +933,12 @@ def _compose(ctx, fragment_targets):
     args.add("--fingerprint=" + fingerprint.path)
     spans = _declare_spans(ctx, args, ctx.label.name)
     ctx.actions.run(
-        # A tree-less component's files are staged individually instead of as its tree: they are the very files its
-        # manifest names, at the execution-root paths the manifest recorded, which is what makes them findable from
-        # inside this action. The count staged is the same either way - a TreeArtifact input is staged file by file too -
-        # but this action's key now lists them one by one where it listed one tree digest.
         inputs = depset(
             direct = [composition_spec] +
                      [fragment.manifest for fragment in fragments] +
-                     [fragment.home for fragment in fragments if fragment.home] +
+                     ([fragment.home for fragment in fragments if fragment.home] if not local_launch else []) +
                      parts + prefixes,
-            transitive = [fragment.payload for fragment in fragments if fragment.payload],
+            transitive = [fragment.payload for fragment in fragments if fragment.payload] if not local_launch else [],
         ),
         outputs = [home, ide_config, fingerprint] + ([spans] if spans else []),
         executable = ctx.executable.composer,
@@ -939,16 +946,20 @@ def _compose(ctx, fragment_targets):
         # Composed distributions are large and intended for local consumption. Until a producer and delivery policy
         # exist, the local disk cache is the only intended cache.
         execution_requirements = {"no-remote-cache": "1"},
-        mnemonic = "IntellijDevDistCompose",
-        progress_message = "Composing dev distribution %s" % ctx.label,
+        mnemonic = "IntellijDevLaunchMetadata" if local_launch else "IntellijDevDistCompose",
+        progress_message = "Composing dev launch metadata %s" % ctx.label if local_launch else "Composing dev distribution %s" % ctx.label,
     )
     return [
-        DefaultInfo(files = depset([home, ide_config, fingerprint])),
+        DefaultInfo(
+            files = depset([home, ide_config, fingerprint]),
+            runfiles = ctx.runfiles(files = [home, ide_config, fingerprint], transitive_files = runtime_files),
+        ),
         IntellijDevDistInfo(
             home = home,
             ide_config = ide_config,
             fingerprint = fingerprint,
             stamp_inputs = depset(stamp_inputs),
+            runtime_files = runtime_files,
         ),
         # Read by `intellij_dev_dist_config`, which needs the single-file label `$(rlocationpath ...)` takes - which a
         # dist target, with three outputs, is not. Not reachable through `IntellijDevDistInfo`: the consumers are
@@ -975,6 +986,7 @@ intellij_dev_fragments_dist = rule(
     attrs = {
         "composer": attr.label(executable = True, cfg = "exec", mandatory = True),
         "fragments": attr.label_list(providers = [IntellijDevFragmentInfo], mandatory = True),
+        "local_launch": attr.bool(default = False, doc = "Compose metadata that refers to component runfiles instead of copying their contents."),
         "expect_fragments": attr.string_list(
             doc = "The fragment names this distribution is supposed to be made of, stated independently of `fragments` so that a fragment missing from that list fails composition instead of thinning the IDE.",
         ),

@@ -4,6 +4,7 @@ go_binary(
     name = "dev-dist-collector",
     srcs = [
         "collect.go",
+        "local_home.go",
         "main.go",
         "manifest.go",
     ],
@@ -25,6 +26,8 @@ go_test(
     srcs = [
         "collect.go",
         "collect_test.go",
+        "local_home.go",
+        "local_home_test.go",
         "main.go",
         "main_test.go",
         "manifest.go",

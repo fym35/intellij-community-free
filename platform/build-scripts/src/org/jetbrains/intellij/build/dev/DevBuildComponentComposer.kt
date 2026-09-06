@@ -61,6 +61,7 @@ data class ComposedDevBuild(
  * [pluginClasspathPrefix] is the `plugin-classpath.txt` prefix one component was asked to produce; it is required as
  * soon as any component contributed plugins, since the file cannot be written without it.
  * [additionalModules] is what the distribution declares it contains - see [ComposedDevBuild.additionalModules].
+ * [sourceRunfiles] requests launch metadata without copying the component files. Its values name Bazel runfiles.
  */
 @ApiStatus.Internal
 fun composeDevBuildComponents(
@@ -69,6 +70,7 @@ fun composeDevBuildComponents(
   pluginClasspathPrefix: Path? = null,
   expectedFragments: Collection<String> = emptyList(),
   additionalModules: Collection<String> = emptyList(),
+  sourceRunfiles: Map<Path, String>? = null,
 ): ComposedDevBuild {
   require(components.isNotEmpty()) { "At least one dev-build component is required" }
   val first = components.first().manifest
@@ -128,6 +130,38 @@ fun composeDevBuildComponents(
   }
 
   Files.createDirectories(target)
+  if (sourceRunfiles == null) {
+    mergeDevBuildComponents(components, target)
+  }
+
+  val pluginClasspathFile = composePluginClassPath(components = components, target = target, prefix = pluginClasspathPrefix)
+
+  val declaredModules = LinkedHashSet(additionalModules)
+  val assembledModules = components.flatMapTo(LinkedHashSet()) { it.manifest.additionalModules }
+  check(declaredModules.containsAll(assembledModules)) {
+    "Dev-build components assembled plugin modules the distribution does not declare: " +
+    "${(assembledModules - declaredModules).sorted()}\n" +
+    "  declared: ${declaredModules.sorted()}\n" +
+    "  assembled: ${assembledModules.sorted()}"
+  }
+  val coreClassPath = orderCoreClasspathEntries(components.flatMap { it.manifest.coreClassPath })
+  if (sourceRunfiles != null) {
+    writeDevBuildLocalLayout(components, target, sourceRunfiles, pluginClasspathFile != null)
+  }
+  return ComposedDevBuild(
+    platformPrefix = first.platformPrefix,
+    mainClass = mainClass,
+    additionalModules = declaredModules.toList(),
+    coreClassPath = coreClassPath,
+    fingerprint = computeIdeFingerprintFromComponents(
+      components = components.map { it.manifest },
+      pluginClasspathFile = pluginClasspathFile,
+      additionalModules = declaredModules,
+    ),
+  )
+}
+
+private fun mergeDevBuildComponents(components: List<DevBuildComponent>, target: Path) {
   for ((root, manifest) in components) {
     val genuineSymlinks = HashMap<String, String>()
     for (entry in manifest.entries) {
@@ -149,31 +183,6 @@ fun composeDevBuildComponents(
       span.setAttribute("byteCount", merged.byteCount)
     }
   }
-
-  val pluginClasspathFile = composePluginClassPath(components = components, target = target, prefix = pluginClasspathPrefix)
-
-  val declaredModules = LinkedHashSet(additionalModules)
-  val assembledModules = components.flatMapTo(LinkedHashSet()) { it.manifest.additionalModules }
-  check(declaredModules.containsAll(assembledModules)) {
-    "Dev-build components assembled plugin modules the distribution does not declare: " +
-    "${(assembledModules - declaredModules).sorted()}\n" +
-    "  declared: ${declaredModules.sorted()}\n" +
-    "  assembled: ${assembledModules.sorted()}"
-  }
-  val coreClassPath = orderCoreClasspathEntries(components.flatMap { it.manifest.coreClassPath })
-  return ComposedDevBuild(
-    platformPrefix = first.platformPrefix,
-    mainClass = mainClass,
-    additionalModules = declaredModules.toList(),
-    // Ordering can only happen here: each component sorted the share of the classpath it packed, and the leading jars
-    // are not necessarily in the same component as the rest.
-    coreClassPath = coreClassPath,
-    fingerprint = computeIdeFingerprintFromComponents(
-      components = components.map { it.manifest },
-      pluginClasspathFile = pluginClasspathFile,
-      additionalModules = declaredModules,
-    ),
-  )
 }
 
 /**

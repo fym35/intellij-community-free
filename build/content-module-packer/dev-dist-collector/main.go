@@ -29,6 +29,9 @@ func main() {
 }
 
 func run(args []string, output, errors io.Writer) (exitCode int) {
+	if len(args) > 0 && args[0] == "local-home" {
+		return runLocalHome(args[1:], output, errors)
+	}
 	opts, err := parseOptions(args)
 	if err != nil {
 		fmt.Fprintf(errors, "ERROR: %v\n", err)
