@@ -38,11 +38,6 @@ internal interface NativeFileHandler {
   fun sign(name: String, dataSupplier: () -> ByteBuffer): Path?
 }
 
-fun buildUncompressJarWithDirEntries(targetFile: Path, sources: List<Source>) {
-  // addDirEntries=true has no effect when compress=true
-  buildJar(targetFile = targetFile, sources = sources, nativeFileHandler = null, addDirEntries = true, compress = false)
-}
-
 fun buildJar(targetFile: Path, sources: List<Source>, compress: Boolean = false) {
   buildJar(targetFile = targetFile, sources = sources, nativeFileHandler = null, addDirEntries = false, compress = compress)
 }
@@ -160,12 +155,6 @@ private fun writeSource(
         }
         else {
           throw IOException("Failed to include $sourceFile to $targetFile", e)
-        }
-      }
-      finally {
-        @Suppress("KotlinConstantConditions")
-        if (sourceFile !== source.file) {
-          Files.deleteIfExists(sourceFile)
         }
       }
     }
