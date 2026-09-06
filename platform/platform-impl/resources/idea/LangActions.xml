@@ -202,8 +202,13 @@
       <add-to-group group-id="GoToMenu" anchor="after" relative-to-action="NavigateInFileGroup"/>
     </group>
 
-    <!-- Code -->
+    <!-- Each customized toolbar Floating.CodeToolbar.XXX must include this group -->
+    <group id="Floating.CodeToolbar.Extensions" searchable="false"/>
+    <!-- Reformat, Comment, common actions with code -->
+    <group id="Floating.CodeToolbar.Additional" searchable="false"/>
+
     <group id="Floating.CodeToolbar" popup="false" searchable="false">
+      <reference ref="Floating.CodeToolbar.Extensions"/>
       <reference ref="Floating.CodeToolbar.Extract"/>
       <group id="Floating.CodeToolbar.Surround" popup="true"
              searchable="false">
@@ -211,6 +216,7 @@
         <reference ref="Floating.CodeToolbar.SurroundWithTryCatchFinally"/>
         <reference ref="Floating.CodeToolbar.SurroundWithIf"/>
       </group>
+      <reference ref="Floating.CodeToolbar.Additional"/>
     </group>
 
     <reference ref="CodeFloatingToolbar.GotoNextMenu"/>
@@ -298,14 +304,14 @@
 
       <group id="CommentGroup">
         <reference ref="CommentByLineComment">
-          <add-to-group group-id="Floating.CodeToolbar" anchor="after" relative-to-action="Floating.CodeToolbar.Surround" />
+          <add-to-group group-id="Floating.CodeToolbar.Additional"/>
         </reference>
         <reference ref="CommentByBlockComment"/>
       </group>
 
       <group id="CodeFormatGroup">
         <reference ref="ReformatCode">
-          <add-to-group group-id="Floating.CodeToolbar" anchor="after" relative-to-action="CommentByLineComment" />
+          <add-to-group group-id="Floating.CodeToolbar.Additional" anchor="after" relative-to-action="CommentByLineComment" />
         </reference>
         <reference ref="ShowReformatFileDialog"/>
         <reference ref="AutoIndentLines"/>

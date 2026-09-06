@@ -2191,11 +2191,10 @@
   GotoPrevElementUnderCaretUsage
   ShowRecentFindUsagesGroup
 [group Floating.CodeToolbar]
+  Floating.CodeToolbar.Extensions
   Floating.CodeToolbar.Extract
   Floating.CodeToolbar.Surround
-  XDebugger.Code.Toolbar
-  CommentByLineComment
-  ReformatCode
+  Floating.CodeToolbar.Additional
 [group Floating.CodeToolbar.Extract]
   ExtractFunction
   PyExtractFunction

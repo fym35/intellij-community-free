@@ -1124,5 +1124,11 @@
               class="com.jetbrains.python.actions.internal.PyTypeBenchmarkAction"
               internal="true"/>
     </group>
+
+    <!-- Activates when AI plugins present, they contribute lang.floatingToolbar for Python -->
+    <group id="Floating.CodeToolbar.Python" popup="false" searchable="false">
+      <reference ref="Floating.CodeToolbar.Extensions"/>
+      <reference ref="Floating.CodeToolbar.Additional"/>
+    </group>
   </actions>
 </idea-plugin>

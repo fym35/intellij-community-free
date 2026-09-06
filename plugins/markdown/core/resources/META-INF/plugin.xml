@@ -515,6 +515,9 @@
     </action>
 
     <group id="Markdown.Toolbar.Floating">
+      <!-- enables AI actions -->
+      <reference ref="Floating.CodeToolbar.Extensions"/>
+
       <action id="Markdown.Styling.SetHeaderLevel"
               class="org.intellij.plugins.markdown.ui.actions.styling.SetHeaderLevelAction"/>
       <separator/>
