@@ -1,5 +1,6 @@
 package org.jetbrains.intellij.build.io
 
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.util.SystemInfoRt
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -87,8 +88,8 @@ class RunJavaTest {
     runJava(
       mainClass = RunJavaChild::class.java.name,
       args = listOf(pidFile.toString(), action),
-      classPath = listOf(RunJavaChild::class.java, Unit::class.java).map {
-        Path.of(it.protectionDomain.codeSource.location.toURI()).toString()
+      classPath = listOf(RunJavaChild::class.java, Unit::class.java).map { childClass ->
+        requireNotNull(PathManager.getJarForClass(childClass)).toString()
       },
       javaExe = Path.of(System.getProperty("java.home"), "bin", javaName),
       timeout = timeout,
