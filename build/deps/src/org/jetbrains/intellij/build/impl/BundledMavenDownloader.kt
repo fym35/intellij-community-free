@@ -3,6 +3,9 @@
 
 package org.jetbrains.intellij.build.impl
 
+import com.intellij.platform.buildScripts.concurrency.taskScope
+import org.jetbrains.annotations.VisibleForTesting
+import org.jetbrains.intellij.build.ResolvedDownload
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesConstants
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
@@ -18,9 +21,6 @@ import java.nio.file.attribute.FileTime
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.HexFormat
-import java.util.concurrent.Callable
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -144,8 +144,13 @@ object BundledMavenDownloader {
     }
   }
 
-  /** Resolves every library on a virtual thread of its own, so a cold cache downloads them side by side. */
   private fun resolveMavenLibs(communityRoot: BuildDependenciesCommunityRoot, libs: List<String>): List<MavenLibraryFile> {
+    return resolveMavenLibs(libs) { url -> resolveFileForReading(url, communityRoot) }
+  }
+
+  /** Returns the libraries in input order. Cancels and joins the downloads when a worker fails or the caller is interrupted. */
+  @VisibleForTesting
+  fun resolveMavenLibs(libs: List<String>, resolveFile: (String) -> ResolvedDownload): List<MavenLibraryFile> {
     val fileNameToUri = libs.associate { coordinates ->
       val split = coordinates.split(':')
       check(split.size == 3) {
@@ -162,20 +167,15 @@ object BundledMavenDownloader {
       fileName to uri
     }
 
-    Executors.newVirtualThreadPerTaskExecutor().use { executor ->
-      val futures = fileNameToUri.map { (fileName, uri) ->
-        executor.submit(Callable {
-          val resolved = resolveFileForReading(uri.toString(), communityRoot)
+    return taskScope {
+      val downloads = fileNameToUri.map { (fileName, uri) ->
+        fork("resolve $fileName") {
+          val resolved = resolveFile(uri.toString())
           MavenLibraryFile(fileName = fileName, source = resolved.file, sha256 = resolved.sha256)
-        })
+        }
       }
-      return futures.map { future ->
-        try {
-          future.get()
-        }
-        catch (e: ExecutionException) {
-          throw e.cause ?: e
-        }
+      join {
+        downloads.map { it.get() }
       }
     }
   }
