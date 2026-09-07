@@ -21,6 +21,7 @@ import com.intellij.ui.render.RenderingHelper
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.TraceContext
+import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.packaging.management.PyPackageScope
 import com.jetbrains.python.packaging.management.PythonPackageInstallRequest
 import com.jetbrains.python.packaging.statistics.PyInstallDialogSource
@@ -39,6 +40,7 @@ import com.jetbrains.python.packaging.toolwindow.packages.tree.PyPackagesTree.Co
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.PyPackageTreeCellRenderer
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.TrailingIconKind
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.asInstalledPackageOrNull
+import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.installedFromTooltip
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.trailingIconTooltip
 import com.jetbrains.python.packaging.toolwindow.ui.PyInstallPackageDialog
 import com.jetbrains.python.packaging.toolwindow.ui.showChangeVersionPopup
@@ -230,7 +232,12 @@ internal class PyPackagesTree(
     val trailingIcon = renderer.trailingIcon
     val trailingIconKind = renderer.trailingIconKind
     val overTrailingIcon = trailingIconX > 0 && trailingIcon != null && relativeX in trailingIconX..(trailingIconX + trailingIcon.iconWidth)
-    if (!overTrailingIcon) return null
+    if (!overTrailingIcon) {
+      // The documentation popup covers the name, and it already names where a local package lives.
+      // Serving this tooltip there too puts one over the other (PY-90174).
+      if (renderer.findFragmentAt(relativeX) == NAME_FRAGMENT) return null
+      return pkg.rowTooltip()
+    }
     return when (trailingIconKind) {
       TrailingIconKind.PROGRESS -> installSpinnerTooltip(pkg)
       TrailingIconKind.ACTION -> pkg.trailingIconTooltip()
@@ -604,3 +611,17 @@ internal fun JTree.expandAllRows() {
     row++
   }
 }
+
+/** The renderer paints the package name first, and the documentation popup covers that fragment. */
+internal const val NAME_FRAGMENT: Int = 0
+
+/** The installed package a row stands for, or `null` for a row that stands for none. */
+internal fun DisplayablePackage.installedPackage(): PythonPackage? = when (this) {
+  is InstalledPackage -> instance
+  is RequirementPackage -> instance
+  is WorkspaceMember -> instance
+  else -> null
+}
+
+/** Where the package on this row was installed from, in the same words on every row that has one. */
+internal fun DisplayablePackage.rowTooltip(): String? = installedPackage()?.installedFromTooltip()

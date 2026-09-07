@@ -258,7 +258,7 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
       else emptyList()
       val selfMatches = nameMatches(pkg, query)
       val keep: DisplayablePackage? = when (pkg) {
-        is WorkspaceMember -> if (prunedChildren.isNotEmpty()) WorkspaceMember(pkg.name, prunedChildren) else null
+        is WorkspaceMember -> if (prunedChildren.isNotEmpty()) WorkspaceMember(pkg.name, prunedChildren, pkg.instance) else null
         is DependencyGroupNode -> if (prunedChildren.isNotEmpty()) DependencyGroupNode(pkg.name, prunedChildren) else null
         is UndeclaredPackagesGroup -> if (prunedChildren.isNotEmpty()) UndeclaredPackagesGroup(prunedChildren.filterIsInstance<InstalledPackage>()) else null
         is InstalledPackage -> if (selfMatches || prunedChildren.isNotEmpty()) InstalledPackage(
@@ -803,7 +803,8 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
                        dependencyGroup = node.group?.let { PyDependencyGroup(it) },
                        isProjectPackage = pkg.name in projectPackageNames, extras = node.extras)
     }
-    return WorkspaceMember(memberName, packages.sortedForDisplay())
+    return WorkspaceMember(memberName, packages.sortedForDisplay(),
+                           instance = packageIndex.installedByName[PyPackageName.from(memberName).name])
   }
 
   private suspend fun buildInstalledPackages(

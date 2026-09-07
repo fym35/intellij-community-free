@@ -58,6 +58,8 @@ class InstalledPackage(
 class WorkspaceMember(
   name: String,
   private val packages: List<DisplayablePackage>,
+  /** The member's own installed package, which carries where it lives. `null` when it is not installed. */
+  val instance: PythonPackage? = null,
 ) : DisplayablePackage(name, null) {
   override fun getRequirements(): List<DisplayablePackage> = packages
 }

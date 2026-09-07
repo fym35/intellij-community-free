@@ -14,6 +14,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.icons.PythonIcons
+import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.packaging.toolwindow.model.DependencyGroupNode
 import com.jetbrains.python.packaging.toolwindow.model.DisplayablePackage
 import com.jetbrains.python.packaging.toolwindow.PyPackageIcons
@@ -32,6 +33,25 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 
 private fun URI.toDisplayString(): String = if (scheme == "file") Path.of(this).toString() else toString()
+
+/**
+ * Where a package was installed from, or `null` for one from an index.
+ *
+ * The tree serves this, not the renderer. Setting it on the renderer registers that component with
+ * `ToolTipManager`, and the renderer is one reused instance that [javax.swing.CellRendererPane]
+ * parks outside the rows, so the tooltip was placed against those bounds instead of the row the
+ * mouse is on (PY-90174).
+ */
+internal fun PythonPackage.installedFromTooltip(): String? {
+  val location = editableLocation
+  return when {
+    location != null && isEditableMode ->
+      "<html>" + PyBundle.message("python.toolwindow.packages.editable.installed.from.tooltip", location.toDisplayString()) + "</html>"
+    location != null -> PyBundle.message("python.toolwindow.packages.installed.from", location.toDisplayString())
+    isEditableMode -> PyBundle.message("python.toolwindow.packages.editable.package")
+    else -> null
+  }
+}
 
 internal class PyPackageTreeCellRenderer(
   private val packagesTree: PyPackagesTree,
@@ -207,19 +227,6 @@ internal class PyPackageTreeCellRenderer(
     @NlsSafe val version = pkg.instance.version
     if (version.isNotEmpty()) {
       append(" $version", VERSION_ATTRIBUTES)
-    }
-
-    if (isLocalInstall) {
-      val displayLocation = location.toDisplayString()
-      toolTipText = if (pkg.isEditMode) {
-        "<html>" + PyBundle.message("python.toolwindow.packages.editable.installed.from.tooltip", displayLocation) + "</html>"
-      }
-      else {
-        PyBundle.message("python.toolwindow.packages.installed.from", displayLocation)
-      }
-    }
-    else if (pkg.isEditMode) {
-      toolTipText = PyBundle.message("python.toolwindow.packages.editable.package")
     }
 
     if (packagesTree.isReadOnly) return
