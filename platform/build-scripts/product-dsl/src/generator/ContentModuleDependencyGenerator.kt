@@ -447,7 +447,6 @@ private fun isTestSupportContentModule(moduleName: ContentModuleName, descriptor
          name.endsWith("TestFramework") ||
          name.endsWith(".testGuiFramework") ||
          name.contains(".test.framework") ||
-         name.startsWith("intellij.rider.test.framework") ||
          name == "intellij.tools.testsBootstrap" ||
          name == "intellij.idea.tools.launch" ||
          name.startsWith("intellij.ide.starter.") ||
