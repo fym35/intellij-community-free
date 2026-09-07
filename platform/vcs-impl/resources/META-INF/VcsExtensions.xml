@@ -283,7 +283,7 @@
     <projectService serviceInterface="com.intellij.openapi.vcs.impl.LineStatusTrackerManagerI"
                     serviceImplementation="com.intellij.openapi.vcs.impl.LineStatusTrackerManager"/>
     <checkinHandlerFactory implementation="com.intellij.openapi.vcs.impl.LineStatusTrackerManager$CheckinFactory"/>
-    <projectService serviceInterface="com.intellij.openapi.vcs.impl.ActiveChangeListTracker" open="true"
+    <projectService serviceInterface="com.intellij.openapi.vcs.impl.ActiveChangeListTracker" open="false"
                     serviceImplementation="com.intellij.openapi.vcs.impl.ActiveChangeListTrackerImpl"/>
     <gutterMarkPreprocessor implementation="com.intellij.openapi.vcs.ex.ClientIdGutterIconMerge"/>
 

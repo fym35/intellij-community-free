@@ -27,7 +27,7 @@ interface ActiveChangeListTracker {
 }
 
 @ApiStatus.Internal
-open class ActiveChangeListTrackerImpl(val project: Project) : ActiveChangeListTracker {
+class ActiveChangeListTrackerImpl(val project: Project) : ActiveChangeListTracker {
   companion object {
     private val LOG = logger<ActiveChangeListTracker>()
   }
