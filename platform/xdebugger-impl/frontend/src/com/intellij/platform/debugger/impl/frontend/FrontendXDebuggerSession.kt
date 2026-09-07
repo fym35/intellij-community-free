@@ -206,7 +206,7 @@ class FrontendXDebuggerSession(
 
   override val processHandler: ProcessHandler = createFrontendProcessHandler(project, sessionDto.processHandlerDto)
 
-  private val consoleViewDeferred: Deferred<ConsoleView?> = scope.async {
+  private val consoleViewDeferred: Deferred<ConsoleView?> = tabScope.async {
     sessionDto.consoleViewData?.consoleView(tabScope, processHandler)
   }
 
@@ -247,7 +247,7 @@ class FrontendXDebuggerSession(
   override val activeNonLineBreakpointFlow: Flow<XBreakpointProxy?>
     get() = activeNonLineBreakpoint
 
-  private val dropFrameHandler = FrontendDropFrameHandler(id, scope)
+  private val dropFrameHandler = FrontendDropFrameHandler(id, cs)
 
   private var tabLayouter: XDebugTabLayouter? = null
 
