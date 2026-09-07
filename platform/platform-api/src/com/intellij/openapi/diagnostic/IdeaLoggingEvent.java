@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.diagnostic;
 
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
@@ -50,7 +50,7 @@ public class IdeaLoggingEvent {
   }
 
   /** Returns a message passed to {@link Logger#error Logger.error(String, [...])} methods. */
-  public @Nullable String getMessage() {
+  public final @Nullable String getMessage() {
     return myMessage;
   }
 
@@ -60,16 +60,16 @@ public class IdeaLoggingEvent {
    * the returned throwable only partially resembles an original exception.
    * Prefer {@link #getThrowableText()}.
    */
-  public Throwable getThrowable() {
+  public final Throwable getThrowable() {
     return myThrowable;
   }
 
-  public @NotNull String getThrowableText() {
+  public final @NotNull String getThrowableText() {
     return myThrowable != null ? StringUtil.getThrowableText(myThrowable) : "";
   }
 
   /** Returns a (possibly empty) list of attachments marked by a user to be included in the error report. */
-  public @Unmodifiable @NotNull List<Attachment> getAttachments() {
+  public final @Unmodifiable @NotNull List<Attachment> getAttachments() {
     return myAttachments;
   }
 
@@ -79,7 +79,7 @@ public class IdeaLoggingEvent {
    * If the IDE is running in remote development mode and the exception was produced by the backend process, it returns {@code null}.
    * Consider using {@link #getProblematicPluginInfo()} instead which handles such cases.
    */
-  public @Nullable IdeaPluginDescriptor getPlugin() {
+  public final @Nullable IdeaPluginDescriptor getPlugin() {
     return myPlugin;
   }
 

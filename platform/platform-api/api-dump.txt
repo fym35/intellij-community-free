@@ -2013,12 +2013,12 @@ a:com.intellij.openapi.diagnostic.ErrorReportSubmitter
 c:com.intellij.openapi.diagnostic.IdeaLoggingEvent
 - <init>(java.lang.String,java.lang.Throwable):V
 - <init>(java.lang.String,java.lang.Throwable,java.lang.Object):V
-- getAttachments():java.util.List
+- f:getAttachments():java.util.List
 - getData():java.lang.Object
-- getMessage():java.lang.String
-- getPlugin():com.intellij.ide.plugins.IdeaPluginDescriptor
-- getThrowable():java.lang.Throwable
-- getThrowableText():java.lang.String
+- f:getMessage():java.lang.String
+- f:getPlugin():com.intellij.ide.plugins.IdeaPluginDescriptor
+- f:getThrowable():java.lang.Throwable
+- f:getThrowableText():java.lang.String
 c:com.intellij.openapi.diagnostic.SubmittedReportInfo
 - <init>(com.intellij.openapi.diagnostic.SubmittedReportInfo$SubmissionStatus):V
 - <init>(java.lang.String,java.lang.String,com.intellij.openapi.diagnostic.SubmittedReportInfo$SubmissionStatus):V
