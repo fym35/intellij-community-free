@@ -497,7 +497,6 @@ internal class LspDiagnosticsTest {
     fun `unchanged report keeps the diagnostics`(): Unit = timeoutRunBlocking {
       (codeInsightFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
 
-      val otherFile = codeInsightFixture.addFileToProject("other.txt", "other").virtualFile
       val virtualFile = codeInsightFixture.configureByText("test.txt", """
       <error descr="error">hello</error> world
       """.trimIndent()).virtualFile
@@ -512,18 +511,19 @@ internal class LspDiagnosticsTest {
       }
       checkHighlightingByPolling(expectedData)
 
-      // A change in another file marks the cache stale, and the server answers "unchanged".
+      // An edit of this document marks the cache stale, and the server answers "unchanged".
+      // The trailing append leaves the cached range in place.
       val unchangedRequest = serverSession.expectRequest(serverSession.DIAGNOSTIC, { it.textDocument.uri == uri && it.previousResultId == "r1" }) {
         DocumentDiagnosticReport(RelatedUnchangedDocumentDiagnosticReport("r1"))
       }
       writeCommandAction(project, "") {
-        val otherDocument = FileDocumentManager.getInstance().getDocument(otherFile)!!
-        otherDocument.insertString(0, "x")
-        PsiDocumentManager.getInstance(project).commitDocument(otherDocument)
+        val document = codeInsightFixture.editor.document
+        document.insertString(document.textLength, " ")
+        PsiDocumentManager.getInstance(project).commitDocument(document)
       }
 
       // Trigger the pull. The cached error must stay visible while the pull is in flight.
-      val expected = createExpectedDataFromText("""<error descr="error">hello</error> world""")
+      val expected = createExpectedDataFromText("""<error descr="error">hello</error> world """)
       waitUntilAssertSucceeds {
         (codeInsightFixture as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(expected)
       }
@@ -625,7 +625,6 @@ internal class LspDiagnosticsTest {
     fun `unexpected unchanged report settles the cache`(): Unit = timeoutRunBlocking {
       (codeInsightFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
 
-      val otherFile = codeInsightFixture.addFileToProject("other.txt", "other").virtualFile
       val virtualFile = codeInsightFixture.configureByText("test.txt", "hello world").virtualFile
       val serverSession = configureServerSession(project, virtualFile)
       val uri = serverSession.fileUri(virtualFile)
@@ -642,15 +641,15 @@ internal class LspDiagnosticsTest {
         assertTrue(readAction { client.getDiagnosticsAndQuickFixes(virtualFile) }.isNotEmpty())
       }
 
-      // Phase 2: a change in another file makes the cache stale. The server answers "unchanged"
+      // Phase 2: an edit of this document makes the cache stale. The server answers "unchanged"
       // although no previousResultId was sent - non-conforming, but tolerated.
       val unchangedRequest = serverSession.expectRequest(serverSession.DIAGNOSTIC, { it.textDocument.uri == uri && it.previousResultId == null }) {
         DocumentDiagnosticReport(RelatedUnchangedDocumentDiagnosticReport("unexpected"))
       }
       writeCommandAction(project, "") {
-        val otherDocument = FileDocumentManager.getInstance().getDocument(otherFile)!!
-        otherDocument.insertString(0, "x")
-        PsiDocumentManager.getInstance(project).commitDocument(otherDocument)
+        val document = codeInsightFixture.editor.document
+        document.insertString(document.textLength, " ")
+        PsiDocumentManager.getInstance(project).commitDocument(document)
       }
       withContext(Dispatchers.IO) { readAction { client.getDiagnosticsAndQuickFixes(virtualFile) } }
       unchangedRequest.await()
