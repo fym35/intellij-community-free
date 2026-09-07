@@ -387,6 +387,7 @@ public class MarkupModelImpl extends UserDataHolderBase implements MarkupModelEx
   public boolean processRangeHighlightersOutside(int start, int end, @NotNull Processor<? super RangeHighlighterEx> processor) {
     SnapshotHighlighterStorage snapshotStorage = mySnapshotHighlighterStorage;
     if (snapshotStorage != null) {
+      // TODO optimize if there's enough evidence it's in the hot path. Right now nobody's using it
       for (RangeHighlighterEx highlighter : snapshotStorage.collectAll()) {
         if ((highlighter.getAffectedAreaStartOffset() < start || highlighter.getAffectedAreaEndOffset() > end)
             && !processor.process(highlighter)) {
