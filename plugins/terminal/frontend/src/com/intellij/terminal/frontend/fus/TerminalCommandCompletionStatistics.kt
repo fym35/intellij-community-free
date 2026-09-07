@@ -16,6 +16,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.plugins.terminal.block.ui.TerminalUiUtils
 import org.jetbrains.plugins.terminal.fus.ReworkedTerminalUsageCollector
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
@@ -30,7 +32,8 @@ import org.jetbrains.plugins.terminal.view.shellIntegration.getTypedCommandText
 import java.awt.event.KeyEvent
 import kotlin.time.Duration.Companion.milliseconds
 
-internal class TerminalCommandCompletionStatistics private constructor(
+@ApiStatus.Internal
+class TerminalCommandCompletionStatistics private constructor(
   private val project: Project,
   private val shellIntegration: TerminalShellIntegration,
 ) {
@@ -140,7 +143,8 @@ internal class TerminalCommandCompletionStatistics private constructor(
    * PendingSlice tracks this unconfirmed range. It prevents suggestion text from increasing the command length until a later
    * cursor or model update confirms that the text was accepted.
    */
-  private fun recordCommandTextChanged(outputModel: TerminalOutputModel) {
+  @VisibleForTesting
+  fun recordCommandTextChanged(outputModel: TerminalOutputModel) {
     if (shellIntegration.outputStatus.value != TerminalOutputStatus.TypingCommand) return
     val commandBlock = shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock ?: return
     val commandStartOffset = commandBlock.commandStartOffset ?: return
