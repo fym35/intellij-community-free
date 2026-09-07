@@ -2,6 +2,7 @@ package com.intellij.terminal.frontend.view.impl
 
 import com.intellij.execution.impl.EditorTextDecorationApplier
 import com.intellij.execution.impl.createEditorTextDecorationApplier
+import com.intellij.ide.ActivityTracker
 import com.intellij.ide.dnd.DnDSupport
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.DataSink
@@ -467,6 +468,7 @@ class TerminalViewImpl(
     sessionDeferred.complete(session)
     controller.handleEvents(session)
     mutableSessionState.value = TerminalViewSessionState.Running
+    ActivityTracker.getInstance().inc()  // Make actions notice that session is initialized
   }
 
   override suspend fun hasChildProcesses(): Boolean {

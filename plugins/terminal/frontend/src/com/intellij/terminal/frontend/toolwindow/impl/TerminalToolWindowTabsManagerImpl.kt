@@ -17,6 +17,7 @@ import com.intellij.openapi.wm.ex.ToolWindowEx
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.openapi.wm.impl.content.ToolWindowContentUi
 import com.intellij.platform.util.coroutines.childScope
+import com.intellij.terminal.frontend.action.TerminalEmulatorBadgeAction
 import com.intellij.terminal.frontend.action.TerminalRenameTabAction
 import com.intellij.terminal.frontend.fus.TerminalFocusFusService
 import com.intellij.terminal.frontend.toolwindow.TerminalRequestedProcessOptions
@@ -296,6 +297,7 @@ class TerminalToolWindowTabsManagerImpl(
 
       val toolWindowActions = ActionManager.getInstance().getAction("Terminal.ToolWindowActions") as? ActionGroup
       toolWindow.setAdditionalGearActions(toolWindowActions)
+      toolWindow.setTitleActions(listOf(TerminalEmulatorBadgeAction()))
       toolWindow.setTabsSplittingAllowed(true)
       ToolWindowContentUi.setToolWindowInEditorSupport(toolWindow, TerminalInEditorSupport())
 
