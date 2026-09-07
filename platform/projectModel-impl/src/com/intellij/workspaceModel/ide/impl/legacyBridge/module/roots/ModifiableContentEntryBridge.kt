@@ -91,13 +91,13 @@ internal class ModifiableContentEntryBridge(
     val propertiesFilter: (SourceFolder) -> Boolean = when (properties) {
       is JavaSourceRootProperties -> label@{ sourceFolder: SourceFolder ->
         val javaSourceRoot = (sourceFolder as SourceFolderBridge).sourceRootEntity.asJavaSourceRoot()
-        return@label javaSourceRoot != null && javaSourceRoot.generated == properties.isForGeneratedSources
-                     && javaSourceRoot.packagePrefix == properties.packagePrefix
+        return@label (javaSourceRoot?.generated ?: false) == properties.isForGeneratedSources
+                     && (javaSourceRoot?.packagePrefix ?: "") == properties.packagePrefix
       }
       is JavaResourceRootProperties -> label@{ sourceFolder: SourceFolder ->
         val javaResourceRoot = (sourceFolder as SourceFolderBridge).sourceRootEntity.asJavaResourceRoot()
-        return@label javaResourceRoot != null && javaResourceRoot.generated == properties.isForGeneratedSources
-                     && javaResourceRoot.relativeOutputPath == properties.relativeOutputPath
+        return@label (javaResourceRoot?.generated ?: false) == properties.isForGeneratedSources
+                     && (javaResourceRoot?.relativeOutputPath ?: "") == properties.relativeOutputPath
       }
       else -> { _ -> true }
     }
