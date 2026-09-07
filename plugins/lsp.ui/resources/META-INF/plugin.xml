@@ -41,6 +41,8 @@
     <pluginAdvertiserSuppressor implementation="com.intellij.lsp.ui.LspConfiguredPluginAdvertiserSuppressor"/>
     <statistics.projectUsagesCollector implementation="com.intellij.lsp.ui.statistics.LspServerUsagesCollector"/>
     <projectSettings service="com.intellij.lsp.ui.settings.LspServerSettings"/>
+    <!--suppress PluginXmlCapitalization -->
+    <notificationGroup id="Language Servers" displayType="BALLOON" bundle="messages.LspUiBundle" key="lsp.settings.display.name"/>
   </extensions>
 
   <actions resource-bundle="messages.LspUiBundle">
