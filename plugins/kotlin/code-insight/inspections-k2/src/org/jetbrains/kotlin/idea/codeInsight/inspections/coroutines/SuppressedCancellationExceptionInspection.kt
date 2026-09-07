@@ -19,22 +19,18 @@ import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.siblings
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.scopeContext
 import org.jetbrains.kotlin.analysis.api.expressions.isUsedAsExpression
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
-import org.jetbrains.kotlin.analysis.api.resolution.resolveSymbol
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.types.classId
-import org.jetbrains.kotlin.analysis.api.types.defaultType
 import org.jetbrains.kotlin.analysis.api.types.expandedSymbol
-import org.jetbrains.kotlin.analysis.api.types.isFunctionType
 import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.isPossiblySubTypeOf
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.shortenReferences
 import org.jetbrains.kotlin.idea.base.analysis.withRootPrefixIfNeeded
@@ -47,6 +43,8 @@ import org.jetbrains.kotlin.idea.codeinsight.utils.StandardKotlinNames
 import org.jetbrains.kotlin.idea.codeinsight.utils.callExpression
 import org.jetbrains.kotlin.idea.codeinsight.utils.isInlinedArgument
 import org.jetbrains.kotlin.idea.imports.addImportFor
+import org.jetbrains.kotlin.idea.util.resolveSuccessfulExpressionCall
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.name.render
 import org.jetbrains.kotlin.psi.KtBlockExpression
@@ -74,9 +72,6 @@ import org.jetbrains.kotlin.psi.psiUtil.anyDescendantOfType
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForReceiver
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import org.jetbrains.kotlin.psi.psiUtil.topParenthesizedParentOrMe
-
-// Parts of names indicating a callable does more with an exception than log it.
-private val HANDLING_NAME_PARTS = listOf("handle", "throw")
 
 internal class SuppressedCancellationExceptionInspection :
     KotlinApplicableInspectionBase<KtExpression, SuppressedCancellationExceptionInspectionData>() {
@@ -110,6 +105,11 @@ internal class SuppressedCancellationExceptionInspection :
         )
     }
 
+    private val RUN_CATCHING_BLOCK_PARAM = Name.identifier("block")
+
+    // Parts of names indicating a callable does more with an exception than log it.
+    private val HANDLING_NAME_PARTS: List<String> = listOf("handle", "throw")
+
     // Any of these callables does not handle the exception of a `Result`.
     private val definitelyDiscardingCallables = setOf(
         StandardKotlinNames.Result.isSuccess,
@@ -133,6 +133,17 @@ internal class SuppressedCancellationExceptionInspection :
         StandardKotlinNames.Result.onSuccess,
         StandardKotlinNames.Result.map,
     )
+
+    /**
+     * A heuristic that decides whether the receiver with [this] name is
+     * likely to be a logger.
+     */
+    private fun String.isLikelyLoggerReceiver(): Boolean {
+        return startsWith("Log") ||
+                contains("Logger") ||
+                contains("Reporter") ||
+                contains("Trace")
+    }
 
     override fun InspectionManager.createProblemDescriptor(
         element: KtExpression,
@@ -163,20 +174,20 @@ internal class SuppressedCancellationExceptionInspection :
      * Finds all aliases for `runCatching` in the file, including the original name.
      * Using this is a significant performance improvement over `findImportByAlias` on the file.
      */
-    private fun KtFile.runCatchingNamesWithAliases(): Set<String> {
+    private fun KtFile.runCatchingNamesWithAliases(): Set<Name> {
         val file = this
         return CachedValuesManager.getCachedValue(file) {
-            val names = mutableSetOf(StandardKotlinNames.Result.runCatching.callableName.asString())
+            val names = mutableSetOf(StandardKotlinNames.Result.runCatching.callableName)
             val runCatchingFqName = StandardKotlinNames.Result.runCatching.asSingleFqName()
             if (file.hasImportAlias()) {
                 for (directive in file.importDirectives) {
                     val alias = directive.aliasName ?: continue
                     if (directive.importedFqName == runCatchingFqName) {
-                        names += alias
+                        names += Name.identifier(alias)
                     }
                 }
             }
-            CachedValueProvider.Result.create<Set<String>>(names, file)
+            CachedValueProvider.Result.create<Set<Name>>(names, file)
         }
     }
 
@@ -185,7 +196,8 @@ internal class SuppressedCancellationExceptionInspection :
 
         // This part checks for `runCatching`
         if (element is KtCallExpression) {
-            val callName = (element.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: return false
+            val callName = (element.calleeExpression as? KtNameReferenceExpression)
+                ?.getReferencedNameAsName() ?: return false
 
             val runCatchingNames = element.containingKtFile.runCatchingNamesWithAliases()
             return callName in runCatchingNames
@@ -202,7 +214,7 @@ internal class SuppressedCancellationExceptionInspection :
     private fun KtBlockExpression.callsSuspendMethod(): Boolean {
         val calls = descendantsOfType<KtCallExpression>()
         for (call in calls) {
-            val resolvedCall = call.resolveToCall()?.successfulFunctionCallOrNull() ?: continue
+            val resolvedCall = call.resolveSuccessfulCall() ?: continue
             val functionSymbol = resolvedCall.symbol as? KaNamedFunctionSymbol ?: continue
             if (functionSymbol.isSuspend) return true
         }
@@ -220,7 +232,7 @@ internal class SuppressedCancellationExceptionInspection :
         while (current != null) {
             val callOrAccess = current.selectorExpression
             val nextExpression = current.topParenthesizedParentOrMe().parent as? KtQualifiedExpression
-            val resolvedCall = callOrAccess?.resolveToCall()?.singleCallOrNull<KaCallableMemberCall<*, *>>() ?: return false
+            val resolvedCall = callOrAccess?.resolveSuccessfulExpressionCall() as? KaCallableMemberCall<*, *> ?: return false
             val callableId = resolvedCall.symbol.callableId
 
             // We are definitely suppressing the exception
@@ -258,23 +270,30 @@ internal class SuppressedCancellationExceptionInspection :
     }
 
     /**
-     * Checks if the `runCatching` together with its call chain might suppress a CancellationException.
-     * Returns true if a CancellationException might be suppressed.
+     * Checks if the `runCatching` together with its call chain might suppress a CancellationException
+     * and returns data about the suppression if it does.
      */
     context(session: KaSession)
     private fun checkRunCatching(call: KtCallExpression): SuppressedCancellationExceptionInspectionData? {
-        val resolvedCall = call.resolveToCall()?.successfulFunctionCallOrNull() ?: return null
+        val resolvedCall = call.resolveSuccessfulCall() ?: return null
         if (resolvedCall.symbol.callableId != StandardKotlinNames.Result.runCatching) return null
 
-        val (parameter, _) = resolvedCall.combinedArgumentMapping.entries.firstOrNull {
-            it.value.symbol.returnType.isFunctionType
+        val (parameter, _) = resolvedCall.combinedArgumentMapping.entries.firstOrNull { (_, signature) ->
+            signature.name == RUN_CATCHING_BLOCK_PARAM
         } ?: return null
 
         // It is not possible to pass suspend function references to `runCatching`.
-        if (parameter !is KtLambdaExpression) return null
+        // Anonymous functions are `KtNamedFunctions` and they always have a `bodyBlockExpression`.
+        if (parameter !is KtLambdaExpression && parameter !is KtNamedFunction) return null
+
+        val bodyExpression = when (parameter) {
+            is KtLambdaExpression -> parameter.bodyExpression
+            is KtNamedFunction -> parameter.bodyBlockExpression
+            else -> null
+        } ?: return null
 
         // We assume that a runCatching without calling a suspend function is not relevant to check here.
-        if (parameter.bodyExpression?.callsSuspendMethod() != true) return null
+        if (!bodyExpression.callsSuspendMethod()) return null
 
         // If we do not use it as an expression at all, then we are definitely swallowing exceptions
         if (!call.isUsedAsExpression) return RunCatchingDetection(call)
@@ -309,10 +328,7 @@ internal class SuppressedCancellationExceptionInspection :
         // Calls on a logger instance, such as `LOG.error("...", e)`, where the name alone says nothing.
         val receiver = dispatchReceiver ?: extensionReceiver
         val receiverName = receiver?.type?.expandedSymbol?.classId?.shortClassName?.asString() ?: return false
-        return receiverName.startsWith("Log") ||
-                receiverName.contains("Logger") ||
-                receiverName.contains("Reporter") ||
-                receiverName.contains("Trace")
+        return receiverName.isLikelyLoggerReceiver()
     }
 
     /**
@@ -338,7 +354,7 @@ internal class SuppressedCancellationExceptionInspection :
         if (anyDescendantOfType<KtThrowExpression>()) return true
         val calls = descendantsOfType<KtCallExpression>()
         for (call in calls) {
-            val resolvedCall = call.resolveToCall()?.successfulFunctionCallOrNull() ?: continue
+            val resolvedCall = call.resolveSuccessfulCall() ?: continue
             if (resolvedCall.mayRaiseCancellation()) {
                 return true
             }
@@ -387,17 +403,15 @@ internal class SuppressedCancellationExceptionInspection :
                 }
             }
 
-            if (current.parent !is KtBlockExpression) {
-                // We only have siblings in a block
-                current = current.parent as? KtElement
-                continue
-            }
-
-            val siblingsInBlock = current.siblings(forward = true, withSelf = false)
-                .filterIsInstance<KtExpression>()
-            for (statement in siblingsInBlock) {
-                if (statement.mayDescendantRaiseCancellation()) {
-                    return true
+            if (current.parent is KtBlockExpression) {
+                // We only have statements of relevance following our current element if we are in a block.
+                // E.g., an if branch with an expression body does not have statements following it.
+                val siblingsInBlock = current.siblings(forward = true, withSelf = false)
+                    .filterIsInstance<KtExpression>()
+                for (statement in siblingsInBlock) {
+                    if (statement.mayDescendantRaiseCancellation()) {
+                        return true
+                    }
                 }
             }
 
@@ -417,21 +431,22 @@ internal class SuppressedCancellationExceptionInspection :
     private fun KtTryExpression.findClauseCatchingCancellation(): KtCatchClause? {
         val cancellationType = session.typeCreator.classType(CoroutinesIds.Stdlib.Cancellation.CancellationException.ID)
         for (catchClause in catchClauses) {
-            val exceptionSymbol = catchClause.catchParameter?.typeReference?.resolveSymbol() ?: continue
-            if (exceptionSymbol.defaultType.isPossiblySubTypeOf(cancellationType)) {
+            val exceptionType = catchClause.catchParameter?.typeReference?.type ?: continue
+            if (exceptionType.isPossiblySubTypeOf(cancellationType)) {
                 // This means someone is handling a subtype of `CancellationException` explicitly, which
                 // means the user did not forget about it and might be handling it even without throwing it.
                 return null
             }
-            if (!cancellationType.isPossiblySubTypeOf(exceptionSymbol.defaultType)) continue
-            return catchClause
+            if (cancellationType.isPossiblySubTypeOf(exceptionType)) {
+                return catchClause
+            }
         }
         return null
     }
 
     /**
-     * Returns true if the [tryExpression] might suppress a CancellationException by catching it
-     * without rethrowing it.
+     * Checks if the [tryExpression] might suppress a CancellationException by catching it
+     * without rethrowing it and returns data about the suppression if it does.
      */
     context(session: KaSession)
     private fun checkTryExpression(tryExpression: KtTryExpression): SuppressedCancellationExceptionInspectionData? {
@@ -493,9 +508,10 @@ internal class SuppressedCancellationExceptionInspection :
 
 /**
  * Creates the PSI for calling `ensureActive` on the current coroutine context.
- * If [exceptionName] is not "_", wraps the call in an `if` statement checking if the caught exception is a CancellationException.
+ * If [exceptionParameterName] is not "_", wraps the call in an `if` statement checking if the caught exception is a CancellationException.
+ * Adds an import for `ensureActive` to the [ktFile] if required.
  */
-private fun createEnsureActiveCall(exceptionName: String, psiFactory: KtPsiFactory, ktFile: KtFile): KtExpression {
+private fun createEnsureActiveCallAndImport(exceptionParameterName: String, psiFactory: KtPsiFactory, ktFile: KtFile): KtExpression {
     val cancellationExceptionFqName = CoroutinesIds.CancellationException.ID.asSingleFqName().withRootPrefixIfNeeded()
     val currentCoroutineContextFqName = CoroutinesIds.currentCoroutineContext.asSingleFqName().withRootPrefixIfNeeded()
     val ensureActiveFqName = CoroutinesIds.ensureActive.asSingleFqName()
@@ -505,12 +521,12 @@ private fun createEnsureActiveCall(exceptionName: String, psiFactory: KtPsiFacto
 
     val ensureActiveCall =
         psiFactory.createExpressionByPattern("$0().$1()", currentCoroutineContextFqName.render(), ensureActiveFqName.shortName())
-    if (exceptionName == "_") {
+    if (exceptionParameterName == "_") {
         // Without exception name, we do not check the exception to be a CancellationException explicitly.
         return ensureActiveCall
     }
 
-    val expressionCheck = psiFactory.createExpression("$exceptionName is ${cancellationExceptionFqName.render()}")
+    val expressionCheck = psiFactory.createExpression("$exceptionParameterName is ${cancellationExceptionFqName.render()}")
     val thenBlock = psiFactory.createBlock(ensureActiveCall.text)
     return psiFactory.createIf(expressionCheck, thenBlock)
 }
@@ -526,7 +542,7 @@ private class AddEnsureActiveInRunCatchingQuickFix : KotlinModCommandQuickFix<Kt
     ) {
         val psiFactory = KtPsiFactory(project)
 
-        val ifExpression = createEnsureActiveCall("it", psiFactory, element.containingKtFile)
+        val ifExpression = createEnsureActiveCallAndImport("it", psiFactory, element.containingKtFile)
         val newExpression = psiFactory.createExpressionByPattern("$0.onFailure { $1 }", element, ifExpression)
         val replaced = element.replaced(newExpression)
 
@@ -552,7 +568,7 @@ private class AddEnsureActiveToTryCatchQuickFix(
         val lbrace = catchBody.lBrace ?: return
         val parameterName = catchClause.catchParameter?.name ?: return
 
-        val ifExpression = createEnsureActiveCall(parameterName, psiFactory, element.containingKtFile)
+        val ifExpression = createEnsureActiveCallAndImport(parameterName, psiFactory, element.containingKtFile)
 
         val newIfStatement = catchBody.addAfter(ifExpression, lbrace) as? KtElement
         if (newIfStatement != null) {
