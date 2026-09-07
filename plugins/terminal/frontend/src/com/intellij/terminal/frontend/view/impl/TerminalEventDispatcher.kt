@@ -20,7 +20,7 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.terminal.JBTerminalSystemSettingsProviderBase
-import com.intellij.terminal.TerminalCmdKShortcutConflictNotification
+import com.intellij.terminal.TerminalCmdKShortcutDialog
 import com.intellij.terminal.frontend.action.SendShortcutToTerminalAction
 import com.intellij.terminal.frontend.view.TerminalAllowedActionsProvider
 import com.intellij.util.concurrency.ThreadingAssertions
@@ -82,12 +82,12 @@ private class TerminalEventDispatcher(
   override fun dispatch(e: AWTEvent): Boolean {
     if (e is KeyEvent) {
       val timedEvent = TimedKeyEvent(e)
-      dispatchKeyEvent(timedEvent)
+      return dispatchKeyEvent(timedEvent)
     }
     return false
   }
 
-  private fun dispatchKeyEvent(e: TimedKeyEvent) {
+  private fun dispatchKeyEvent(e: TimedKeyEvent): Boolean {
     LOG.trace { "Key event received: ${e.original}" }
 
     // Special handling for Escape shortcut - show notification about behavior change.
@@ -97,7 +97,11 @@ private class TerminalEventDispatcher(
       TerminalEscapeBehaviorChangeNotification.showNotificationIfNeeded(editor.project!!)
     }
 
-    TerminalCmdKShortcutConflictNotification.showIfNeeded(editor.project, keyEvent)
+    if (TerminalCmdKShortcutDialog.handleIfNeeded(editor.project, editor.contentComponent, keyEvent)) {
+      keyEvent.consume()
+      ignoreNextKeyTypedEvent = true
+      return true
+    }
 
     if (isAllowedActionShortcut(e.original)) {
       // KeyEvent will be handled by action system, so we need to remember that the next KeyTyped event is not needed
@@ -118,6 +122,7 @@ private class TerminalEventDispatcher(
         LOG.trace { "Key event skipped (key typed ignored): ${e.original}" }
       }
     }
+    return false
   }
 
   fun registerIfNeeded() {

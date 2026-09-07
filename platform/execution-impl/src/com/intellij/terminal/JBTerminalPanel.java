@@ -170,6 +170,9 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
   }
 
   private static boolean skipAction(@NotNull KeyEvent e, @Nullable List<? extends AnAction> actionsToSkip) {
+    if (TerminalCmdKShortcutDialog.hasClearTerminalShortcut(e))
+      return false;
+
     if (actionsToSkip != null) {
       final KeyboardShortcut eventShortcut = new KeyboardShortcut(KeyStroke.getKeyStrokeForEvent(e), null);
       for (AnAction action : actionsToSkip) {
@@ -224,6 +227,14 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
       });
     }
     return actions;
+  }
+
+  private void invokeClearBufferAction(@NotNull KeyEvent event) {
+    String actionName = mySettingsProvider.getClearBufferActionPresentation().getName();
+    TerminalAction action = ContainerUtil.find(getActions(), candidate -> candidate.getName().equals(actionName));
+    if (action != null && action.isEnabled(event)) {
+      action.actionPerformed(event);
+    }
   }
 
   @Override
@@ -402,13 +413,16 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
     @Override
     public boolean dispatch(@NotNull AWTEvent e) {
       if (e instanceof KeyEvent) {
-        dispatchKeyEvent((KeyEvent)e);
+        return dispatchKeyEvent((KeyEvent)e);
       }
       return false;
     }
 
-    private void dispatchKeyEvent(@NotNull KeyEvent e) {
-      TerminalCmdKShortcutConflictNotification.showIfNeeded(getContextProject(), e);
+    private boolean dispatchKeyEvent(@NotNull KeyEvent e) {
+      if (TerminalCmdKShortcutDialog.handleIfNeeded(getContextProject(), JBTerminalPanel.this, e, () -> invokeClearBufferAction(e))) {
+        e.consume();
+        return true;
+      }
 
       if (e.getID() == KeyEvent.KEY_PRESSED && !skipKeyEvent(e)) {
         if (!JBTerminalPanel.this.isFocusOwner()) {
@@ -417,13 +431,14 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
                       getDebugTerminalPanelName() + ", unregistering");
           }
           unregister();
-          return;
+          return false;
         }
         if (LOG.isDebugEnabled()) {
           LOG.debug("Consuming " + KeyStroke.getKeyStrokeForEvent(e) + ", registered:" + myRegistered);
         }
         JBTerminalPanel.this.dispatchEvent(e);
       }
+      return false;
     }
 
     void register() {
