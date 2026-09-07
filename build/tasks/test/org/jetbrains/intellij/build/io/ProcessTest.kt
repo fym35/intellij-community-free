@@ -303,6 +303,16 @@ class ProcessTest {
     }.isInstanceOf(TimeoutException::class.java)
   }
 
+  @Test
+  fun `a failure message carries a bounded output tail`() {
+    assertThatThrownBy {
+      runShell(code = "seq 1 150 >&2; exit 3", timeout = DEFAULT_TIMEOUT)
+    }
+      .hasMessageContaining("exitCode 3")
+      .hasMessageContaining("[50 earlier output lines omitted]\n51\n")
+      .hasMessageEndingWith("\n150")
+  }
+
   /** The process runner is a blocking body of a fork, so an interrupt of the calling thread must not leave the child running. */
   @Test
   fun `an interrupt kills the process`() {

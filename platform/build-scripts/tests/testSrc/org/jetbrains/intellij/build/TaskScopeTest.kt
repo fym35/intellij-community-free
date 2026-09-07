@@ -67,7 +67,7 @@ class TaskScopeTest {
   }
 
   @Test
-  fun `body failure stays primary when close reports a missing join`() {
+  fun `body failure stays primary and close skips the missing-join report`() {
     val failure = IllegalArgumentException("body failed")
     assertThatThrownBy {
       taskScope {
@@ -75,7 +75,7 @@ class TaskScopeTest {
         throw failure
       }
     }.isSameAs(failure)
-    assertThat(failure.suppressed).singleElement().isInstanceOf(IllegalStateException::class.java)
+    assertThat(failure.suppressed).isEmpty()
   }
 
   @Test

@@ -27,6 +27,7 @@ jvm_library(
         "//platform/util/zip",
         "@community//build:zip",
         "//libraries/opentelemetry",
+        "//build/tasks",
     ],
 )
 
@@ -57,6 +58,7 @@ jvm_library(
         "//platform/util/zip:zip_test_lib",
         "@community//build:zip_test_lib",
         "//libraries/opentelemetry:opentelemetry_test_lib",
+        "//build/tasks:tasks_test_lib",
     ],
 )
 ### auto-generated section `build intellij.platform.buildScripts.api` end

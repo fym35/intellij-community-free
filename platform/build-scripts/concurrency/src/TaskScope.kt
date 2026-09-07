@@ -112,6 +112,7 @@ class TaskScope private constructor(
   private val previousScope = current.get()
   private var pending = 0
   private var joinAttempted = false
+  private var abandoned = false
   private var closed = false
   private val parentLink: AutoCloseable?
   private val deadline: java.util.concurrent.ScheduledFuture<*>?
@@ -231,6 +232,12 @@ class TaskScope private constructor(
     return result()
   }
 
+  /** Marks the owner as unwinding a failure, so [close] does not report a missing join. */
+  fun abandon() {
+    checkOwner()
+    abandoned = true
+  }
+
   private fun cancel(failure: Throwable) {
     if (!cancellation.cancel(failure)) return
     val cancelledWorkers = lock.withLock {
@@ -247,7 +254,7 @@ class TaskScope private constructor(
     checkOwner()
     if (closed) return
     check(current.get() === this) { "Nested task scopes must close before their parent" }
-    val missingJoin = !joinAttempted && workers.isNotEmpty()
+    val missingJoin = !joinAttempted && !abandoned && workers.isNotEmpty()
     cancel(ScopeCancelledException())
     deadline?.cancel(false)
     var interrupted = Thread.interrupted()
@@ -305,4 +312,12 @@ inline fun <T> taskScope(
   joiner: Joiner = Joiner.awaitAllSuccessfulOrThrow(),
   timeout: Duration? = null,
   block: TaskScope.() -> T,
-): T = TaskScope.open(name, joiner, timeout).use { scope -> scope.block() }
+): T = TaskScope.open(name, joiner, timeout).use { scope ->
+  try {
+    scope.block()
+  }
+  catch (failure: Throwable) {
+    scope.abandon()
+    throw failure
+  }
+}

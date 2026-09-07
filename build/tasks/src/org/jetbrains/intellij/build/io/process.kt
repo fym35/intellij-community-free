@@ -18,7 +18,6 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.charset.MalformedInputException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Collections
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.time.Duration
@@ -270,22 +269,36 @@ fun runProcess(
               .also { builder ->
                 builder.environment().putAll(additionalEnvVariables)
                 if (inheritOut) {
-                  builder.inheritIO()
-                  builder.redirectErrorStream(inheritErrToOut)
+                  if (inheritErrToOut) {
+                    builder.inheritIO()
+                    builder.redirectErrorStream(true)
+                  }
+                  else {
+                    // stderr stays piped, so a failure message can carry its tail
+                    builder.redirectInput(Redirect.INHERIT)
+                    builder.redirectOutput(Redirect.INHERIT)
+                  }
                 }
               }.start()
             process = running
-            val outputLines = Collections.synchronizedList(ArrayList<String>())
+            val outputTail = OutputTail()
             if (!inheritOut) {
               pumps.add(ProcessOutputPump("stdout of $commandLine", running, running.inputStream) {
                 span.addEvent(it)
                 stdOutConsumer(it)
-                if (attachStdOutToException) outputLines.add(it)
+                if (attachStdOutToException) outputTail.add(it)
               })
               pumps.add(ProcessOutputPump("stderr of $commandLine", running, running.errorStream) {
                 span.addEvent(it)
                 stdErrConsumer(it)
-                outputLines.add(it)
+                outputTail.add(it)
+              })
+            }
+            else if (!inheritErrToOut) {
+              pumps.add(ProcessOutputPump("stderr of $commandLine", running, running.errorStream) {
+                System.err.println(it)
+                stdErrConsumer(it)
+                outputTail.add(it)
               })
             }
             val pid = running.pid()
@@ -299,11 +312,11 @@ fun runProcess(
               throw error.cause ?: error
             }
             catch (_: TimeoutException) {
-              throw TimeoutException("Process '$commandLine' (pid=$pid) failed to complete in $timeout" + merge(outputLines))
+              throw TimeoutException("Process '$commandLine' (pid=$pid) failed to complete in $timeout" + outputTail.format())
             }
             val exitCode = exit.get()
             if (exitCode != 0) {
-              throw RuntimeException("Process '$commandLine' (pid=$pid) finished with exitCode $exitCode" + merge(outputLines))
+              throw RuntimeException("Process '$commandLine' (pid=$pid) finished with exitCode $exitCode" + outputTail.format())
             }
           }
           catch (error: Throwable) {
@@ -520,6 +533,26 @@ internal fun dumpThreads(pid: Long, javaExe: Path) {
   runProcess(args = listOf(jstack, pid.toString()), inheritOut = true)
 }
 
-private fun merge(lines: List<String>): String = synchronized(lines) {
-  if (lines.any()) lines.joinToString(prefix = ":\n", separator = "\n") else ""
+private const val ATTACHED_OUTPUT_TAIL_LINES = 100
+
+/** Keeps the last [ATTACHED_OUTPUT_TAIL_LINES] lines, so a verbose process does not grow the heap. */
+private class OutputTail {
+  private val lines = ArrayDeque<String>()
+  private var omitted = 0
+
+  @Synchronized
+  fun add(line: String) {
+    if (lines.size == ATTACHED_OUTPUT_TAIL_LINES) {
+      lines.removeFirst()
+      omitted++
+    }
+    lines.add(line)
+  }
+
+  @Synchronized
+  fun format(): String {
+    if (lines.isEmpty()) return ""
+    val prefix = if (omitted > 0) ":\n[$omitted earlier output lines omitted]\n" else ":\n"
+    return lines.joinToString(prefix = prefix, separator = "\n")
+  }
 }

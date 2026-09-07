@@ -18,5 +18,6 @@
     <orderEntry type="module" module-name="intellij.platform.util.zip" />
     <orderEntry type="module" module-name="intellij.idea.community.build.zip" />
     <orderEntry type="module" module-name="intellij.libraries.opentelemetry" />
+    <orderEntry type="module" module-name="intellij.idea.community.build.tasks" />
   </component>
 </module>
