@@ -60,6 +60,7 @@ import com.intellij.ui.ComponentWithMnemonics
 import com.intellij.ui.ExperimentalUI
 import com.intellij.ui.GuiUtils
 import com.intellij.ui.InplaceButton
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.docking.DockContainer
 import com.intellij.ui.docking.DockManager
 import com.intellij.ui.docking.DockableContent
@@ -73,6 +74,7 @@ import com.intellij.ui.tabs.TabInfo.DragOutDelegate
 import com.intellij.ui.tabs.TabInfoIconHolder
 import com.intellij.ui.tabs.UiDecorator
 import com.intellij.ui.tabs.UiDecorator.UiDecoration
+import com.intellij.ui.tabs.impl.DragHelper
 import com.intellij.ui.tabs.impl.JBEditorTabs
 import com.intellij.ui.tabs.impl.JBEditorTabsBorder
 import com.intellij.ui.tabs.impl.JBTabsImpl
@@ -754,6 +756,14 @@ private class EditorTabs(
     @Suppress("SENSELESS_COMPARISON")
     if (window != null && !window.owner.isInsideChange) {
       super.revalidateAndRepaint(layoutNow)
+    }
+  }
+
+  override fun createDragHelper(tabs: JBTabsImpl, parentDisposable: Disposable): DragHelper {
+    return object : DragHelper(tabs, parentDisposable) {
+      override fun canFinishDragging(component: JComponent, point: RelativePoint): Boolean {
+        return !(tabs.contains(point.getPoint(tabs)) && tabs.getVisibleInfos().isEmpty())
+      }
     }
   }
 }
