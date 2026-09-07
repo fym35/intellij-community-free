@@ -20,11 +20,8 @@ import sun.awt.AWTAccessor;
 
 import javax.swing.JFrame;
 import java.awt.Window;
-import java.awt.peer.ComponentPeer;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.reflect.Method;
 
 /**
  * This class is not thread safe, and must be accessed from EDT only.
@@ -129,13 +126,13 @@ final class Win7TaskBar {
     }
 
     // CreateIconFromResourceEx copies the bits, so the arena can close right after the call
-    try (Arena arena = Arena.ofConfined()) {
-      MemorySegment memory = arena.allocateFrom(ValueLayout.JAVA_BYTE, ico);
+    try (var arena = Arena.ofConfined()) {
+      var memory = arena.allocateFrom(ValueLayout.JAVA_BYTE, ico);
 
-      int nSize = 100;
-      int offset = User32Ex.lookupIconIdFromDirectoryEx(memory, true, nSize, nSize, 0);
+      var nSize = 100;
+      var offset = User32Ex.lookupIconIdFromDirectoryEx(memory, true, nSize, nSize, 0);
       if (offset != 0) {
-        long icon = User32Ex.createIconFromResourceEx(memory.asSlice(offset), 0, true, ICO_VERSION, nSize, nSize, 0);
+        var icon = User32Ex.createIconFromResourceEx(memory.asSlice(offset), 0, true, ICO_VERSION, nSize, nSize, 0);
         return icon != 0 ? new WinDef.HICON(new Pointer(icon)) : null;
       }
 
@@ -160,14 +157,14 @@ final class Win7TaskBar {
   }
 
   private static WinDef.HWND getHandle(@NotNull Window window) {
-    long handle = getHandleValue(window);
+    var handle = getHandleValue(window);
     return handle != 0 ? new WinDef.HWND(new Pointer(handle)) : null;
   }
 
   private static long getHandleValue(@NotNull Window window) {
     try {
-      ComponentPeer peer = AWTAccessor.getComponentAccessor().getPeer(window);
-      Method getHWnd = peer.getClass().getMethod("getHWnd");
+      var peer = AWTAccessor.getComponentAccessor().getPeer(window);
+      var getHWnd = peer.getClass().getMethod("getHWnd");
       return (Long)getHWnd.invoke(peer);
     }
     catch (Throwable e) {
