@@ -5,7 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.ui.SimpleToolWindowPanel.LEFT_ALIGNMENT
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
@@ -49,6 +51,9 @@ internal class PyPackagesListPanel(
   private val noPackagesPanel = JBPanelWithEmptyText().apply {
     emptyText.text = message("python.toolwindow.packages.no.packages.installed")
   }
+
+  /** Filled in by [showPackagesUnavailableMessage], which knows what failed and what would put it right. */
+  private val packagesUnavailablePanel = JBPanelWithEmptyText()
 
   val component: JPanel = JPanel(BorderLayout())
   private var currentPanel: JComponent? = null
@@ -102,6 +107,26 @@ internal class PyPackagesListPanel(
     setContentPanel(noPackagesPanel)
   }
 
+  /**
+   * Says why the packages could not be listed, rather than showing an empty list.
+   *
+   * [actions] become links under the reason, in the order given.
+   */
+  @RequiresEdt
+  internal fun showPackagesUnavailableMessage(description: @Nls String, actions: List<PackagesUnavailableAction>) {
+    packagesUnavailablePanel.emptyText.apply {
+      clear()
+      // The panel is one narrow column and StatusText neither wraps a line nor paints two at once, so keep the
+      // reason to a line the column fits and let a link carry the detail.
+      val reason: List<@NlsSafe String> = description.lines().filter { it.isNotBlank() }
+      reason.forEach { appendLine(it) }
+      actions.forEach { action ->
+        appendLine(action.label, SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) { action.run() }
+      }
+    }
+    setContentPanel(packagesUnavailablePanel)
+  }
+
   private fun showPackageList() {
     setContentPanel(scrollingPackageListComponent)
     setLoadingState(false)
@@ -121,3 +146,6 @@ internal class PyPackagesListPanel(
     }
   }
 }
+
+/** A link under the reason the packages could not be listed. */
+internal data class PackagesUnavailableAction(val label: @Nls String, val run: () -> Unit)

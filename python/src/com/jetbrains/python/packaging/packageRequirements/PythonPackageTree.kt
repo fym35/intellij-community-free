@@ -1,13 +1,21 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.jetbrains.python.packaging.packageRequirements
 
+import com.jetbrains.python.PyBundle
+import com.intellij.openapi.util.NlsSafe
+import com.jetbrains.python.errorProcessing.ExecError
+import com.jetbrains.python.errorProcessing.PyError
 import com.jetbrains.python.errorProcessing.PyResult
+import com.jetbrains.python.getOrNull
+import com.jetbrains.python.packaging.management.PythonPackageManager
+import com.jetbrains.python.packaging.management.PythonPackageManager.Companion.PackageManagerErrorMessage
 import com.jetbrains.python.packaging.PyPackageName
 import com.jetbrains.python.packaging.common.PyDependencyGroupName
 import com.jetbrains.python.packaging.common.PythonPackage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
 import java.util.Collections
 import java.util.IdentityHashMap
 
@@ -81,6 +89,63 @@ data class PackageCollectionPackageStructureNode(
  */
 @ApiStatus.Internal
 data object FlatPackageStructureNode : PackageStructureNode()
+
+/**
+ * The tool could not report the packages, so [description] says why and [fixCommand] names what would put it right.
+ *
+ * Not an empty [PackageCollectionPackageStructureNode]: a project that declares nothing is a fact, a command that
+ * failed is not, and showing "no packages installed" for a `uv.lock` the tool refused to read tells the user nothing
+ * (PY-90174).
+ */
+@ApiStatus.Internal
+data class PackagesUnavailableNode(
+  val description: @Nls String,
+  val fixCommand: @Nls String?,
+  /** The process that failed, where one did. The view links to its output instead of repeating it. */
+  val failedProcess: ExecError? = null,
+) : PackageStructureNode()
+
+/**
+ * The state to show when the tool could not report the packages.
+ *
+ * The description comes from [error]. A manager can fail for any reason — a missing executable, a broken environment,
+ * a read error — and [syncError] describes only one of them, so it cannot say what went wrong here.
+ *
+ * A failed process describes itself over as many lines as it likes, and the panel is one narrow column, so the
+ * description names the command and the view links to its output in the Process Output tool window.
+ *
+ * The fix is an offer, not a diagnosis: it appears when the manager has an action to run ([canUpdateLocked]), named by
+ * [syncError] where the manager names it. The description says what failed, so the user can judge whether the offer
+ * applies.
+ */
+@ApiStatus.Internal
+fun packagesUnavailableNode(
+  error: PyError,
+  syncError: PackageManagerErrorMessage?,
+  canUpdateLocked: Boolean,
+): PackagesUnavailableNode = PackagesUnavailableNode(
+  description = if (error is ExecError) PyBundle.message("python.packaging.unavailable.command.failed", commandName(error))
+  else error.message,
+  // "Sync project" is what the same action is called as an intention, and one action keeps one name.
+  fixCommand = if (canUpdateLocked) syncError?.fixCommandMessage ?: PyBundle.message("python.sdk.intention.family.name.sync.project")
+  else null,
+  failedProcess = error as? ExecError,
+)
+
+/**
+ * [packagesUnavailableNode] for a manager, which knows what it can offer: its own name for the fix, and whether it has
+ * one to run.
+ */
+@ApiStatus.Internal
+fun PythonPackageManager.packagesUnavailable(error: PyError): PackagesUnavailableNode =
+  packagesUnavailableNode(error, syncErrorMessage(), canUpdateLocked = updateLockedAction() != null)
+
+/** The command as a user says it — `uv tree`, `pip install` — and not the absolute path with every flag. */
+private fun commandName(error: ExecError): @NlsSafe String {
+  val exe = error.exe.pathParts().lastOrNull()?.takeIf { it.isNotBlank() } ?: error.exe.toString()
+  val subCommand = error.args.firstOrNull { !it.startsWith("-") } ?: return exe
+  return "$exe $subCommand"
+}
 
 /**
  * Iteratively collects all package names from this node and its descendants.
@@ -278,22 +343,40 @@ interface DependencyTreeProvider {
 internal class CachedDependencyTreeProvider(
   private val fetchOutput: suspend () -> PyResult<String>,
   private val parse: (String) -> List<PackageTreeNode> = { TreeParser.parseTrees(it.lines()) },
+  /**
+   * What the tree is built from, as a value that differs once any of it changes — the dependency files and their
+   * modification stamps, say. `null` where the inputs are unknown.
+   *
+   * A failure is cached only while this holds. Caching it forever would strand the view on an error the user has
+   * already fixed, and not caching it at all runs the command again for every caller: a startup asks four times,
+   * from the tool window, the inspection, and the two package-management events (PY-90174).
+   */
+  private val dependenciesState: suspend () -> Any? = { null },
 ) : DependencyTreeProvider {
   private val mutex = Mutex()
 
-  /** Only a successful fetch is cached, so the next read retries after a transient failure. */
   @Volatile
-  private var cachedTrees: List<PackageTreeNode>? = null
+  private var cached: Entry? = null
 
   override suspend fun getDependencyTrees(): PyResult<List<PackageTreeNode>> {
-    cachedTrees?.let { return PyResult.success(it) }
+    val state = dependenciesState()
+    cached?.takeIf { it.holdsFor(state) }?.let { return it.trees }
     return mutex.withLock {
-      cachedTrees?.let { return PyResult.success(it) }
-      fetchOutput().mapSuccess { output -> parse(output).also { cachedTrees = it } }
+      // A caller that waited here while another fetched reads that result rather than fetching again.
+      cached?.takeIf { it.holdsFor(state) }?.let { return it.trees }
+      val trees = fetchOutput().mapSuccess { parse(it) }
+      // Without a state to tie it to, a failure has nothing to expire it, so it is not kept.
+      if (state != null || trees.getOrNull() != null) cached = Entry(state, trees)
+      trees
     }
   }
 
   override fun invalidateCache() {
-    cachedTrees = null
+    cached = null
+  }
+
+  private class Entry(private val state: Any?, val trees: PyResult<List<PackageTreeNode>>) {
+    /** An entry with no state is a success, and a success with nothing to expire it holds until it is invalidated. */
+    fun holdsFor(current: Any?): Boolean = state == null || state == current
   }
 }

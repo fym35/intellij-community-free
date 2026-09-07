@@ -2,6 +2,7 @@
 package com.jetbrains.python.packaging.toolwindow
 
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -48,9 +49,12 @@ import com.jetbrains.python.packaging.packageRequirements.PackageCollectionPacka
 import com.jetbrains.python.packaging.packageRequirements.PackageTreeNode
 import com.jetbrains.python.packaging.packageRequirements.newNodeSet
 import com.jetbrains.python.packaging.packageRequirements.PackageStructureNode
+import com.jetbrains.python.packaging.packageRequirements.PackagesUnavailableNode
 import com.jetbrains.python.packaging.packageRequirements.WorkspaceMemberPackageStructureNode
 import com.jetbrains.python.packaging.packageRequirements.collectAllNames
 import com.jetbrains.python.packaging.pip.PipRepositoryManager
+import com.jetbrains.python.packaging.toolwindow.packages.PackagesUnavailableAction
+import com.jetbrains.python.showProcessExecutionErrorDialog
 import com.intellij.python.requirements.pyRequirement
 import com.jetbrains.python.packaging.repository.PyPiPackageRepository
 import com.jetbrains.python.packaging.repository.PyPackageRepositories
@@ -508,6 +512,37 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
     }
   }
 
+  /**
+   * Shows why the packages could not be listed, with the manager's own fix as a link when it has one.
+   *
+   * An empty list in this state read as "this project has no packages", which is not what a `uv tree` the tool
+   * refused to run means (PY-90174).
+   */
+  private suspend fun showPackagesUnavailable(state: PackagesUnavailableNode, manager: PythonPackageManager) {
+    val updateLocked = manager.updateLockedAction()
+    val actions = buildList {
+      state.failedProcess?.let { failed ->
+        // The process already wrote its command and its output to the Process Output tool window, so link to it
+        // there instead of repeating either in a column too narrow to hold them (PY-90174).
+        add(PackagesUnavailableAction(message("python.packaging.unavailable.show.output")) {
+          showProcessExecutionErrorDialog(failed)
+        })
+      }
+      if (state.fixCommand != null && updateLocked != null) {
+        add(PackagesUnavailableAction(state.fixCommand) {
+          serviceScope.launch {
+            updateLocked().onFailure { thisLogger().warn("Failed to update the lock file: $it") }
+            refreshInstalledPackages()
+          }
+        })
+      }
+    }
+    withContext(Dispatchers.EDT) {
+      installedPackages = emptyList()
+      toolWindowPanel?.packageListController?.showPackagesUnavailableMessage(state.description, actions)
+    }
+  }
+
   private fun showNoInterpreterMessage() {
     serviceScope.launch(Dispatchers.EDT) {
       installedPackages = emptyList()
@@ -597,6 +632,11 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
     val packageIndex = PackageIndex(context.manager)
     val packageTree = context.manager.getPackageTree()
 
+    if (packageTree is PackagesUnavailableNode) {
+      showPackagesUnavailable(packageTree, context.manager)
+      return
+    }
+
     val declaredPackageNames = collectDeclaredNames(packageTree, packageIndex)
     val projectPackageNames = collectProjectPackageNames(packageTree)
 
@@ -629,7 +669,7 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
     is WorkspaceMemberPackageStructureNode ->
       (listOf(node.name) + node.subMembers.map { it.name }).mapTo(mutableSetOf()) { PyPackageName.from(it).name }
     is PackageCollectionPackageStructureNode -> node.projectPackageNames
-    FlatPackageStructureNode -> emptySet()
+    FlatPackageStructureNode, is PackagesUnavailableNode -> emptySet()
   }
 
   private suspend fun buildPackages(
@@ -664,6 +704,7 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
       is FlatPackageStructureNode -> {
         buildPackagesFromManager(packageIndex, declaredPackageNames, projectPackageNames)
       }
+      is PackagesUnavailableNode -> emptyList()
     }
   }
 
@@ -692,6 +733,8 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
         }
       }
       is FlatPackageStructureNode -> return packageIndex.installedByName.keys
+      // Handled before either of these is reached; it names no package at all.
+      is PackagesUnavailableNode -> return emptySet()
     }
     return names
   }

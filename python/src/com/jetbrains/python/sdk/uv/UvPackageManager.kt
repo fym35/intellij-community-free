@@ -21,7 +21,9 @@ import com.intellij.python.uv.common.UV_TOOL_ID
 import com.jetbrains.python.PyBundle.message
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
-import com.jetbrains.python.getOrNull
+import com.jetbrains.python.uv.UV_LOCK
+import com.jetbrains.python.packaging.packageRequirements.packagesUnavailable
+import com.jetbrains.python.packaging.packageRequirements.cachedDependencyTree
 import com.jetbrains.python.packaging.PyPackageName
 import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PythonOutdatedPackage
@@ -65,16 +67,18 @@ internal class UvPackageManager internal constructor(
   override val cliSpecs: List<PythonManagerCliSpec> = listOf(
     PythonManagerCliSpec("uv", { UvPyTool.getInstance().resolveExecutable(EelFileSystem(localEel))?.path })
   )
-  override val treeProvider = CachedDependencyTreeProvider(fetchOutput = {
-    withUv { uv -> uv.listProjectStructureTree() }
-  })
+  override val treeProvider = cachedDependencyTree(
+    lockFileName = UV_LOCK.value,
+    dependencyFiles = { resolveDependencyFilesTree() },
+  ) { withUv { uv -> uv.listProjectStructureTree() } }
 
   /**
    * What the environment holds, which is not the same as what the project declares. A package here
    * and missing from [treeProvider] was installed into the environment on its own.
    *
    * Cached like the project tree: the tool window refreshes several times over a session, and every
-   * refresh would otherwise run `uv pip tree` again.
+   * refresh would otherwise run `uv pip tree` again. Not through [cachedDependencyTree], because this tree is what
+   * the environment holds and the dependency files do not say when that changes.
    */
   private val installedTreeProvider = CachedDependencyTreeProvider(fetchOutput = {
     withUv { uv -> uv.listAllPackagesTree() }
@@ -164,7 +168,7 @@ internal class UvPackageManager internal constructor(
    * dependency of one member, such as `a2wsgi`, next to the members themselves (PY-90174).
    */
   override suspend fun getPackageTree(): PackageStructureNode {
-    val roots = treeProvider.getDependencyTrees().getOrNull().orEmpty()
+    val roots = treeProvider.getDependencyTrees().getOr { return packagesUnavailable(it.error) }
     if (roots.isEmpty()) return PackageCollectionPackageStructureNode(emptyList(), emptyList())
 
     // Every package the output names. What is installed and missing from it is undeclared.

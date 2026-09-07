@@ -14,6 +14,8 @@ import com.intellij.python.pyproject.model.spi.ProjectName
 import com.intellij.python.pytools.resolveExecutable
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.getOrNull
+import com.jetbrains.python.packaging.packageRequirements.packagesUnavailable
+import com.jetbrains.python.packaging.packageRequirements.cachedDependencyTree
 import com.jetbrains.python.packaging.PyPackageName
 import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PyDependencyGroupName
@@ -26,7 +28,6 @@ import com.jetbrains.python.packaging.management.PythonPackageInstallRequest
 import com.jetbrains.python.packaging.management.PythonPackageManager
 import com.jetbrains.python.packaging.management.PythonRepositoryManager
 import com.jetbrains.python.packaging.management.PythonWorkspaceSupport
-import com.jetbrains.python.packaging.packageRequirements.CachedDependencyTreeProvider
 import com.jetbrains.python.packaging.packageRequirements.PackageCollectionPackageStructureNode
 import com.jetbrains.python.packaging.packageRequirements.PackageStructureNode
 import com.jetbrains.python.packaging.packageRequirements.PackageTreeNode
@@ -55,9 +56,10 @@ internal class PoetryPackageManager(project: Project, sdk: Sdk) : PythonPackageM
   override val cliSpecs: List<PythonManagerCliSpec> = listOf(
     PythonManagerCliSpec("poetry", { PoetryPyTool.getInstance().resolveExecutable(EelFileSystem(localEel))?.path })
   )
-  override val treeProvider = CachedDependencyTreeProvider(fetchOutput = {
-    runPoetryWithSdk(sdk, "show", "--tree")
-  })
+  override val treeProvider = cachedDependencyTree(
+    lockFileName = POETRY_LOCK.value,
+    dependencyFiles = { resolveDependencyFilesTree() },
+  ) { runPoetryWithSdk(sdk, "show", "--tree") }
   override val dependenciesFilesRelativePaths: List<Path>
     get() = listOf(
       Path.of(PY_PROJECT_TOML),
@@ -276,7 +278,7 @@ internal class PoetryPackageManager(project: Project, sdk: Sdk) : PythonPackageM
   }
 
   override suspend fun getPackageTree(): PackageStructureNode {
-    val allTrees = treeProvider.getDependencyTrees().getOrNull().orEmpty()
+    val allTrees = treeProvider.getDependencyTrees().getOr { return packagesUnavailable(it.error) }
     if (allTrees.isEmpty()) return PackageCollectionPackageStructureNode(emptyList(), emptyList())
     val declaredPackageNames = declaredPackagesFromTrees(allTrees).getOrNull()
                                  ?.mapTo(mutableSetOf()) { it.name } ?: emptySet()
