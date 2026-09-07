@@ -37,7 +37,7 @@ Check the [language release guide][language] and the target release's API docume
 
 Default to `var` where supported.
 Use an explicit type when Java requires it, when it preserves semantics, or when it materially improves readability.
-Check generic inference, overload selection, and later assignments before replacing a declared type.
+Check generic inference, primitive widths, overload selection, and later assignments before replacing a declared type.
 Keep explicit types in fields, parameters, and return declarations.
 
 ### Data and control flow
@@ -49,6 +49,8 @@ Keep explicit types in fields, parameters, and return declarations.
 - Prefer exhaustive switches over closed alternatives. Preserve deliberate fall-through and existing behavior for `null`.
 - Use record patterns where deconstruction makes the code clearer. Keep a named value when the code needs the whole record.
 - Use `_` only when the value is unused. Keep required validation, side effects, and error handling.
+- For `MethodHandle.invokeExact`, preserve the static argument types and the return cast, even when the result is unused.
+  A standalone invocation has the return type `void`, which can cause `WrongMethodTypeException`.
 - Preserve the exact whitespace and trailing newline when replacing string literals with text blocks.
 - Use flexible constructor bodies only where supported. Follow their restrictions on access to the instance under construction.
 
@@ -74,6 +76,41 @@ Use virtual threads only when the target supports them and the task's concurrenc
 ## Examples
 
 Apply each example only when the target supports it and the behavior checks above hold.
+
+### Generic inference
+
+Before:
+
+```text
+List<String> names = new ArrayList<>();
+```
+
+Prefer:
+
+```java
+var names = new ArrayList<String>();
+```
+
+Using `var names = new ArrayList<>();` instead infers `ArrayList<Object>` and loses the element type.
+Keep constructor type arguments only when inference would otherwise change the required type.
+
+### Unused method handle result
+
+Before:
+
+```text
+int ignored = (int)handle.invokeExact(argument);
+```
+
+Prefer on Java 22 or later:
+
+```java
+var _ = (int)handle.invokeExact(argument);
+```
+
+Keep the named local on older targets.
+Do not replace the assignment with `handle.invokeExact(argument);`.
+That call expects a `void` return type instead of `int`.
 
 ### Type test and cast
 
