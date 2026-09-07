@@ -24,7 +24,9 @@ import com.intellij.openapi.editor.impl.DocumentImpl
 import com.intellij.openapi.editor.impl.DocumentWriteAccessGuard
 import com.intellij.openapi.editor.impl.ElfDocumentSyncScheduler
 import com.intellij.openapi.editor.impl.event.DocumentEventImpl
+import com.intellij.openapi.editor.impl.marker.UsePMarkerImplementation
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.junit5.TestDisposable
@@ -164,6 +166,25 @@ class ElfDocumentTest {
     assertEquals("abc", getSnapshot(document).string())
     assertEquals("xabc", getSnapshot(elfDocument).string())
     waitForTextAndAssertSnapshots(document, elfDocument, "xabc")
+  }
+
+  @Test
+  @UsePMarkerImplementation
+  fun `test range marker offsets follow the current document snapshot`() = runOnUi {
+    val document = DocumentImpl("abc")
+    val elfDocument = getElfDocument(document)
+    val marker = document.createRangeMarker(1, 2)
+
+    withElfScope {
+      runCommandAction {
+        document.insertString(0, "x")
+      }
+      assertEquals(TextRange(2, 3), marker.textRange)
+    }
+
+    assertEquals(TextRange(1, 2), marker.textRange)
+    waitForTextAndAssertSnapshots(document, elfDocument, "xabc")
+    assertEquals(TextRange(2, 3), marker.textRange)
   }
 
   @Test
