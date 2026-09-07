@@ -31,7 +31,7 @@ public final class TrigramTextSearchService implements TextSearchService {
   public @NotNull TextSearchResult processFilesWithText(@NotNull String text,
                                                         @NotNull Processor<? super VirtualFile> processor,
                                                         @NotNull GlobalSearchScope scope) {
-    IntSet keys = TrigramBuilder.getTrigrams(text);
+    IntSet keys = TrigramBuilder.getTrigrams(text, () -> ProgressManager.checkCanceled());
     if (keys.isEmpty()) {
       return TextSearchResult.NO_TRIGRAMS;
     }
