@@ -7,9 +7,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.externalSystem.service.execution.ExternalSystemJdkUtil
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.PathPrefixTree
 import com.intellij.platform.backend.workspace.WorkspaceModelChangeListener
 import com.intellij.platform.backend.workspace.toVirtualFileUrl
-import com.intellij.platform.backend.workspace.virtualFile
 import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.platform.workspace.jps.entities.ContentRootEntity
 import com.intellij.platform.workspace.jps.entities.ModuleId
@@ -19,6 +19,8 @@ import com.intellij.platform.workspace.storage.VersionedStorageChange
 import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import com.intellij.platform.workspace.storage.url.VirtualFileUrlManager
 import com.intellij.psi.PsiManager
+import com.intellij.util.containers.prefixTree.map.PrefixTreeMap
+import com.intellij.workspaceModel.ide.toPath
 import org.jetbrains.kotlin.gradle.scripting.k2.importing.GradleScriptModel
 import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleKotlinScriptEntitySource
 import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleScriptDefinitionEntity
@@ -45,8 +47,8 @@ import org.jetbrains.kotlin.scripting.resolve.refineScriptCompilationConfigurati
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.plugins.gradle.model.GradleBuildScriptClasspathModel
 import java.io.File
+import java.nio.file.Path
 import java.util.function.Predicate
-import kotlin.script.experimental.api.ScriptCollectedData
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.ScriptDiagnostic
 import kotlin.script.experimental.api.defaultImports
@@ -82,6 +84,11 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
             }
         }
 
+        val contentRootIndex = PathPrefixTree.createMap<ModuleId>()
+        for (contentRoot in storage.entities(ContentRootEntity::class.java)) {
+            contentRootIndex.put(contentRoot.url.toPath(), contentRoot.module.symbolicId)
+        }
+
         for (model in models) {
             val sourceCode = VirtualFileScriptSource(model.virtualFile)
             val definition = definitions.firstOrNull { it.isScript(sourceCode) } ?: continue
@@ -97,7 +104,8 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
 
 
             val configurationResult = resolveConfiguration(sourceCode, definition, configuration)
-            updateStorage(storage, entitySource, model.virtualFile.toVirtualFileUrl(urlManager), configurationResult, model.classpathModel)
+            val relatedModules = model.classpathModel?.let { getRelatedModules(contentRootIndex, it) }.orEmpty()
+            updateStorage(storage, entitySource, model.virtualFile.toVirtualFileUrl(urlManager), configurationResult, relatedModules)
         }
 
         return storage.toSnapshot()
@@ -133,7 +141,7 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
         entitySource: GradleKotlinScriptEntitySource,
         scriptUrl: VirtualFileUrl,
         configurationResult: ScriptCompilationConfigurationResult,
-        classpathModel: GradleBuildScriptClasspathModel?
+        relatedModules: Collection<ModuleId>
     ) {
         val configurationWrapper = configurationResult.valueOrNull() ?: return
         if (storage.getVirtualFileUrlIndex().findEntitiesByUrl(scriptUrl).filterIsInstance<KotlinScriptEntity>().any()) return
@@ -200,34 +208,14 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
             this.configurationId = configurationWrapper.configuration?.getOrCreateScriptConfigurationId(storage, entitySource)
             this.reports = configurationResult.reports.map(ScriptDiagnostic::map).toMutableList()
             this.sdkId = configurationWrapper.configuration?.sdkId
-            this.relatedModuleIds = classpathModel?.let { getRelatedModules(storage, it) }.orEmpty().toMutableList()
+            this.relatedModuleIds = relatedModules.toMutableList()
         }
     }
 
-
-    private fun getRelatedModules(storage: MutableEntityStorage, classpathModel: GradleBuildScriptClasspathModel): MutableSet<ModuleId> {
-
-        val virtualFileUrls = classpathModel.classpath.flatMap { it.sources }.mapNotNull {
-            it.toVirtualFileUrl(urlManager)
-        }.filter { it.virtualFile != null }
-
-        val result = mutableSetOf<ModuleId>()
-        for (url in virtualFileUrls) {
-            var current: VirtualFileUrl? = url
-            while (current != null && current.url != project.basePath) {
-                val moduleIds = storage.getVirtualFileUrlIndex().findEntitiesByUrl(current)
-                    .filterIsInstance<ContentRootEntity>().map { it.module.symbolicId }.toSet()
-
-                if (result.addAll(moduleIds)) {
-                    break
-                }
-
-                current = current.parent
-            }
-        }
-
-        return result
-    }
+    private fun getRelatedModules(contentRootIndex: PrefixTreeMap<Path, ModuleId>, classpathModel: GradleBuildScriptClasspathModel): Set<ModuleId> =
+        classpathModel.classpath.asSequence()
+            .flatMap { it.sources }
+            .mapNotNullTo(mutableSetOf()) { contentRootIndex.getAncestorValues(Path.of(it)).lastOrNull() }
 
     private fun getOrCreateScriptLibrary(
         storage: MutableEntityStorage,
