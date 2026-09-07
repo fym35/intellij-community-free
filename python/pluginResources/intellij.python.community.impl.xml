@@ -1232,6 +1232,10 @@
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
 
+    <action id="PyOpenInPythonConsole" class="com.jetbrains.python.console.PyOpenInPythonConsoleAction">
+      <add-to-group group-id="RevealGroup" anchor="last"/>
+    </action>
+
     <action id="ExecuteInPyConsoleAction"
             class="com.jetbrains.python.actions.PyExecuteSelectionAction">
       <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="CompareClipboardWithSelection"/>
