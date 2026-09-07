@@ -1152,7 +1152,9 @@ class ConsoleViewImplTest : LightPlatformTestCase() {
   }
 
   fun testComputeTextToSendWithSnapshotHighlighters() {
-    RangeMarkerStorageImpl.usePMarkerImplementationIn<RuntimeException>() {
+    Disposer.dispose(console)
+    RangeMarkerStorageImpl.usePMarkerImplementationIn<RuntimeException> {
+      console = createConsole() // otherwise the console might be created with old tree RangeMarkers and now will try to create more snapshot-based RangeMarkers and fail
       console.print("first", ConsoleViewContentType.USER_INPUT)
       console.print("output", ConsoleViewContentType.NORMAL_OUTPUT)
       console.print("second", ConsoleViewContentType.USER_INPUT)
