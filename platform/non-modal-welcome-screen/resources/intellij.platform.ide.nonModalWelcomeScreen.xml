@@ -69,6 +69,8 @@
 
     <internalFileTemplate name="Generic Empty File"/>
     <editorSkeletonPolicy implementation="com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenEditorSkeletonPolicy"/>
+
+    <platform.ide.welcomeScreenAccessPoint implementation="com.intellij.platform.ide.nonModalWelcomeScreen.NonModalWelcomeAccessPoint"/>
   </extensions>
 
   <actions resource-bundle="messages.NonModalWelcomeScreenBundle">

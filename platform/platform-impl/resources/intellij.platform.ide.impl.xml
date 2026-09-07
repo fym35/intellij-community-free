@@ -408,6 +408,8 @@
     <extensionPoint qualifiedName="com.intellij.lookup.charFilter" interface="com.intellij.codeInsight.lookup.CharFilter" dynamic="true"/>
     <extensionPoint qualifiedName="com.intellij.registerToolWindowTaskProvider" interface="com.intellij.toolWindow.RegisterToolWindowTaskProvider"/>
     <extensionPoint qualifiedName="com.intellij.diagnostic.freezeNotifier" interface="com.intellij.diagnostic.FreezeNotifier" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.platform.ide.welcomeScreenAccessPoint"
+                    interface="com.intellij.ide.welcomeScreen.WelcomeAccessPoint" dynamic="true"/>
   </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
     <iw.actionProvider implementation="com.intellij.openapi.editor.impl.multiverse.CodeInsightContextSwitcherProvider"/>

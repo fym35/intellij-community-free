@@ -45,6 +45,9 @@ object WelcomeUtils {
   }
 
   fun getGotoWelcomeProjectAction(project: Project?): AnAction? {
+    if (!WelcomeAccessPoint.isAvailable()) {
+      return null
+    }
     if (project != null && isWelcomeProject(project)) {
       return null
     }
@@ -95,7 +98,7 @@ object WelcomeUtils {
   }
 
   fun getWelcomeProjectIcon(project: Project): Icon? {
-    if (isWelcomeProject(project)) {
+    if (WelcomeAccessPoint.isAvailable() && isWelcomeProject(project)) {
       return AllIcons.Nodes.HomeFolder
     }
     return null
