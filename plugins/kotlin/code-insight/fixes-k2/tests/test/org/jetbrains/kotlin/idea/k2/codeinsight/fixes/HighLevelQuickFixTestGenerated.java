@@ -8672,6 +8672,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             runTest("../../../idea/tests/testData/quickfix/destructingShortForm/fullFormLambdaNameMismatch.kt");
         }
 
+        @TestMetadata("fullFormValueClasses.kt")
+        public void testFullFormValueClasses() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/destructingShortForm/fullFormValueClasses.kt");
+        }
+
         @TestMetadata("fullFormWithAllUnusedVariable.kt")
         public void testFullFormWithAllUnusedVariable() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/destructingShortForm/fullFormWithAllUnusedVariable.kt");

@@ -923,9 +923,19 @@ public abstract class K2IntroduceVariableTestGenerated extends AbstractK2Introdu
             runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationComplete2.kt");
         }
 
+        @TestMetadata("IntroduceNameBasedDestructuringDeclarationCompleteValueClasses.kt")
+        public void testIntroduceNameBasedDestructuringDeclarationCompleteValueClasses() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationCompleteValueClasses.kt");
+        }
+
         @TestMetadata("IntroduceNameBasedDestructuringDeclarationNameMismatch.kt")
         public void testIntroduceNameBasedDestructuringDeclarationNameMismatch() throws Exception {
             runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationNameMismatch.kt");
+        }
+
+        @TestMetadata("IntroduceNameBasedDestructuringDeclarationNameMismatchValueClasses.kt")
+        public void testIntroduceNameBasedDestructuringDeclarationNameMismatchValueClasses() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationNameMismatchValueClasses.kt");
         }
 
         @TestMetadata("IntroduceNameBasedDestructuringDeclarationOnlySyntax.kt")
