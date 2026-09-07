@@ -30,8 +30,8 @@ public final class MacFileSystem {
    * @return the case sensitivity, or {@link FileAttributes.CaseSensitivity#UNKNOWN} when the path does not exist or the query fails
    */
   public static FileAttributes.@NotNull CaseSensitivity caseSensitivity(@NotNull String path) {
-    try (Arena arena = Arena.ofConfined()) {
-      long result = (long)Handles.PATHCONF.invokeExact(arena.allocateFrom(path), PC_CASE_SENSITIVE);
+    try (var arena = Arena.ofConfined()) {
+      var result = (long)Handles.PATHCONF.invokeExact(arena.allocateFrom(path), PC_CASE_SENSITIVE);
       if (result == 1) {
         return FileAttributes.CaseSensitivity.SENSITIVE;
       }
