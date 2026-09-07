@@ -82,8 +82,8 @@ object NamedArgumentUtils {
     context(_: KaSession)
     fun getStableNameFor(argument: KtValueArgument): Name? {
         val callElement: KtCallElement = getCallElement(argument) ?: return null
-        val resolveToCall = callElement.tryResolveCall()
-        val functionCall = resolveToCall?.single?.function ?: return null
+        val resolutionAttempt = callElement.tryResolveCall()
+        val functionCall = resolutionAttempt?.single?.function ?: return null
         if (!functionCall.symbol.hasStableParameterNames) return null
         return getNameForNameableArgument(argument, callElement, functionCall)
     }
