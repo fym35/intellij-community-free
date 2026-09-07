@@ -75,34 +75,8 @@ import static com.intellij.util.ObjectUtils.tryCast;
 public final class InlineObjectProcessorUtil {
   private InlineObjectProcessorUtil() { }
 
-  /**
-   * Computes the context to perform the "Inline Object" refactoring.
-   *
-   * @param reference - The reference to the constructor call on which the refactoring was invoked.
-   * @param method - The constructor to be inlined.
-   * @return The context, or null when the object cannot be inlined.
-   */
-  @Contract("null, _ -> null")
-  public static @Nullable InlineObjectContext createContext(PsiReference reference, PsiMethod method) {
-    if (!canInlineConstructorAndChainCall(reference, method)) {
-      return null;
-    }
-    PsiElement element = reference.getElement();
-    PsiNewExpression newExpression = tryCast(element.getParent(), PsiNewExpression.class);
-    assert newExpression != null;
-    PsiMethodCallExpression nextCall = ExpressionUtils.getCallForQualifier(newExpression);
-    assert nextCall != null;
-    PsiMethod nextMethod = nextCall.resolveMethod();
-    assert nextMethod != null;
-    PsiElement nav = nextMethod.getNavigationElement();
-    if (nav instanceof PsiMethod) {
-      nextMethod = (PsiMethod)nav;
-    }
-    return new InlineObjectContext(method, reference, newExpression, nextCall, nextMethod);
-  }
-
   @Contract("null, _ -> false")
-  private static boolean canInlineConstructorAndChainCall(PsiReference reference, PsiMethod method) {
+  static boolean canInlineConstructorAndChainCall(PsiReference reference, PsiMethod method) {
     if (reference == null) return false;
     PsiElement element = reference.getElement();
     if (!(element instanceof PsiJavaCodeReferenceElement)) return false;
@@ -416,11 +390,11 @@ public final class InlineObjectProcessorUtil {
   /**
    * Holds the values that stay the same during one "Inline Object" refactoring.
    *
-   * @param method - The constructor to be inlined.
-   * @param reference - The reference to the {@link method} to be inlined.
-   * @param newExpression - The object creation expression that holds the {@link reference}.
-   * @param nextCall - The call that is chained to the {@link newExpression}, for example {@code getX()} in {@code new Point().getX()}.
-   * @param nextMethod - The method that the {@link nextCall} resolves to.
+   * @param method The constructor to be inlined.
+   * @param reference The reference to the {@link method} to be inlined.
+   * @param newExpression The object creation expression that holds the {@link reference}.
+   * @param nextCall The call that is chained to the {@link newExpression}, for example {@code getX()} in {@code new Point().getX()}.
+   * @param nextMethod The method that the {@link nextCall} resolves to.
    */
   @ApiStatus.Internal
   public record InlineObjectContext(@NotNull PsiMethod method,
@@ -434,6 +408,21 @@ public final class InlineObjectProcessorUtil {
 
     public @NotNull Project project() {
       return method.getProject();
+    }
+
+    public static @NotNull InlineObjectContext create(@NotNull PsiMethod method, @NotNull PsiReference reference) {
+      PsiElement element = reference.getElement();
+      PsiNewExpression newExpression = tryCast(element.getParent(), PsiNewExpression.class);
+      assert newExpression != null;
+      PsiMethodCallExpression nextCall = ExpressionUtils.getCallForQualifier(newExpression);
+      assert nextCall != null;
+      PsiMethod nextMethod = nextCall.resolveMethod();
+      assert nextMethod != null;
+      PsiElement nav = nextMethod.getNavigationElement();
+      if (nav instanceof PsiMethod) {
+        nextMethod = (PsiMethod)nav;
+      }
+      return new InlineObjectContext(method, reference, newExpression, nextCall, nextMethod);
     }
   }
 }

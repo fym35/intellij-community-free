@@ -64,9 +64,16 @@ public final class InlineObjectProcessor extends BaseRefactoringProcessor {
     return JavaRefactoringBundle.message("inline.object.command.name");
   }
 
-  public static @Nullable InlineObjectProcessor create(PsiReference reference, PsiMethod method) {
-    InlineObjectContext context = InlineObjectProcessorUtil.createContext(reference, method);
+  public static @Nullable InlineObjectProcessor create(@Nullable InlineObjectContext context) {
     if (context == null) return null;
     return new InlineObjectProcessor(context);
+  }
+
+  public static @Nullable InlineObjectProcessor create(PsiReference reference, PsiMethod method) {
+    if (!InlineObjectProcessorUtil.canInlineConstructorAndChainCall(reference, method)) {
+      return null;
+    }
+    InlineObjectContext context = InlineObjectContext.create(method, reference);
+    return create(context);
   }
 }
