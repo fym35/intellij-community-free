@@ -173,7 +173,16 @@ object TreeParser {
     // deduplicates them apart and so must this.
     val key = extractPackageKey(line)
     if (isDeduplicated(line)) {
-      nodesByPackage[key]?.let { return ParseResult(it, index + 1) }
+      nodesByPackage[key]?.let { shown ->
+        val group = extractGroup(line)
+        // The group is why *this* parent needs the package, not a fact about the package, so a line that names a
+        // different one keeps its own and shares only the dependencies. Sharing it too made a package that is only
+        // ever declared through an extra look like a plain dependency, which is then reported as missing whenever
+        // that extra is not installed (PY-90174).
+        val node = if (group == shown.group) shown
+        else PackageTreeNode(shown.name, shown.children, group, extractVersion(line))
+        return ParseResult(node, index + 1)
+      }
     }
 
     val node = PackageTreeNode(PyPackageName.from(extractPackageName(line)), mutableListOf(),

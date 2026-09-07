@@ -624,6 +624,42 @@ class UvTreeParsingTest {
     }
 
     @Test
+    fun `a marked line keeps its own group`() {
+      // `sphinxcontrib-jquery` is only ever declared through the docs extra, but the tool prints it first as a plain
+      // dependency of something deeper. Sharing that line's group made it look like a dependency the environment must
+      // hold, and it was reported missing whenever the extra was not installed (PY-90174).
+      val input = """
+        devel-common v0.1.0
+        ├── sphinx v8.0.0
+        │   └── sphinxcontrib-jquery v4.1
+        └── sphinxcontrib-jquery v4.1 (extra: docs) (*)
+      """.trimIndent()
+
+      val root = parseTrees(input.lines()).single()
+      val declaring = root.children[1]
+
+      assertThat(declaring.group).isEqualTo("docs")
+      assertThat(extractDeclaredDependencies(listOf(root)).single { it.name == "sphinxcontrib-jquery" }.dependencyGroup)
+        .isEqualTo(PyDependencyGroupName("docs"))
+    }
+
+    @Test
+    fun `a marked line shares the dependencies of the line it repeats`() {
+      val input = """
+        myapp v1.0.0
+        ├── uvicorn v0.52.4
+        │   └── httptools v0.7.1
+        └── uvicorn v0.52.4 (group: dev) (*)
+      """.trimIndent()
+
+      val root = parseTrees(input.lines())
+
+      val declaring = root.single().children[1]
+      assertThat(declaring.group).isEqualTo("dev")
+      assertThat(declaring.children.map { it.name.name }).containsExactly("httptools")
+    }
+
+    @Test
     fun `a workspace member marked at its own root keeps its dependencies`() {
       val input = """
         apache-airflow v3.4.0
