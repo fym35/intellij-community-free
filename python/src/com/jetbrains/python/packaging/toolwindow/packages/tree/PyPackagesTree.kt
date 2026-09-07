@@ -12,7 +12,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.python.processOutput.common.sendOpenToolWindowByTraceUuidEvent
+import com.intellij.python.processOutput.common.ProcessOutputTopic
 import com.intellij.python.requirements.pyRequirement
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.ClientProperty
@@ -435,7 +435,7 @@ internal class PyPackagesTree(
   private fun showInstallOutput(pkg: DisplayablePackage) {
     val traceUuid = installTraceUuid(pkg) ?: return
     PyPackageCoroutine.launch(project, Dispatchers.Default) {
-      sendOpenToolWindowByTraceUuidEvent(traceUuid)
+      ProcessOutputTopic.sendOpenToolWindowByTraceUuidEvent(traceUuid)
     }
   }
 
@@ -480,7 +480,7 @@ internal class PyPackagesTree(
       val trace = TraceContext(PyBundle.message("python.toolwindow.packages.tooltip.change.version"), null)
       val details = withContext(trace) { packagingService.detailsForPackage(pkg) }
       if (details == null) {
-        sendOpenToolWindowByTraceUuidEvent(trace.uuid)
+        ProcessOutputTopic.sendOpenToolWindowByTraceUuidEvent(trace.uuid)
         return@launch
       }
       withContext(Dispatchers.EDT) {

@@ -33,7 +33,7 @@ import com.intellij.python.community.impl.installer.PySdkToInstallManager
 import com.intellij.python.community.services.systemPython.SystemPython
 import com.intellij.python.community.services.systemPython.SystemPythonService
 import com.intellij.python.hatch.impl.HATCH_TOOL_ID
-import com.intellij.python.processOutput.common.sendOpenToolWindowByTraceUuidEvent
+import com.intellij.python.processOutput.common.ProcessOutputTopic
 import com.intellij.python.pyproject.PY_PROJECT_TOML
 import com.intellij.python.pyproject.PyProjectToml
 import com.intellij.python.pytools.PyTool
@@ -930,7 +930,7 @@ private object PyEvoSdkApiImpl : PyEvoSdkApi {
   override suspend fun showToolProcessOutput(projectId: ProjectId, nodeId: String, traceId: String) {
     // Only a scope that already exists: toolScope would mint a fresh trace, which no process was ever run under.
     val trace = toolScopes.getIfPresent("$traceId|$nodeId")?.coroutineContext?.get(TraceContext) ?: return
-    sendOpenToolWindowByTraceUuidEvent(trace.uuid, openIfNotFound = true)
+    ProcessOutputTopic.sendOpenToolWindowByTraceUuidEvent(trace.uuid, openIfNotFound = true)
   }
 
   override suspend fun sdkConfigurationInProgress(projectId: ProjectId): Flow<Boolean> =

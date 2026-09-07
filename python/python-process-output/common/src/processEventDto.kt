@@ -131,38 +131,45 @@ private val PROCESS_OUTPUT_TOPIC: ApplicationRemoteTopic<ProcessOutputEventDto> 
   ApplicationRemoteTopic("PythonProcessOutputTopic", ProcessOutputEventDto.serializer())
 
 @ApiStatus.Internal
-fun sendNewProcessEvent(loggedProcessDto: LoggedProcessDto, traceHierarchy: List<TraceContextDto>) {
-  PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.NewProcess(loggedProcessDto, traceHierarchy))
+interface ProcessOutputTopicSender {
+  fun sendNewProcessEvent(loggedProcessDto: LoggedProcessDto, traceHierarchy: List<TraceContextDto>)
+  fun sendNewOutputLineEvent(processId: Int, outputLine: OutputLineDto)
+  fun sendProcessExitEvent(processId: Int, exitedAt: Instant, exitValue: Int)
+  fun sendExecErrorEvent(execErrorDto: ExecErrorDto)
+  fun sendOpenToolWindowByTraceUuidEvent(uuid: UUID, openIfNotFound: Boolean = false)
+  fun sendOpenToolWindowByTraceUuidEvent(uuid: String, openIfNotFound: Boolean = false)
 }
 
 @ApiStatus.Internal
-fun sendNewOutputLineEvent(processId: Int, outputLine: OutputLineDto) {
-  PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.NewOutputLine(processId, outputLine))
-}
+object ProcessOutputTopic : ProcessOutputTopicSender {
+  override fun sendNewProcessEvent(loggedProcessDto: LoggedProcessDto, traceHierarchy: List<TraceContextDto>) {
+    PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.NewProcess(loggedProcessDto, traceHierarchy))
+  }
 
-@ApiStatus.Internal
-fun sendProcessExitEvent(processId: Int, exitedAt: Instant, exitValue: Int) {
-  PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.ProcessExit(processId, exitedAt, exitValue))
-}
+  override fun sendNewOutputLineEvent(processId: Int, outputLine: OutputLineDto) {
+    PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.NewOutputLine(processId, outputLine))
+  }
 
-@ApiStatus.Internal
-fun sendExecErrorEvent(execErrorDto: ExecErrorDto) {
-  PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.ExecError(execErrorDto))
-}
+  override fun sendProcessExitEvent(processId: Int, exitedAt: Instant, exitValue: Int) {
+    PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.ProcessExit(processId, exitedAt, exitValue))
+  }
 
-@ApiStatus.Internal
-fun sendOpenToolWindowByTraceUuidEvent(uuid: UUID, openIfNotFound: Boolean = false) {
-  sendOpenToolWindowByTraceUuidEvent(uuid.toString(), openIfNotFound)
-}
+  override fun sendExecErrorEvent(execErrorDto: ExecErrorDto) {
+    PROCESS_OUTPUT_TOPIC.sendToClient(ProcessOutputEventDto.ExecError(execErrorDto))
+  }
 
-@ApiStatus.Internal
-fun sendOpenToolWindowByTraceUuidEvent(uuid: String, openIfNotFound: Boolean = false) {
-  PROCESS_OUTPUT_TOPIC.sendToClient(
-    ProcessOutputEventDto.OpenToolWindowByTraceUuid(
-      TraceContextUuid(uuid),
-      openIfNotFound,
+  override fun sendOpenToolWindowByTraceUuidEvent(uuid: UUID, openIfNotFound: Boolean) {
+    sendOpenToolWindowByTraceUuidEvent(uuid.toString(), openIfNotFound)
+  }
+
+  override fun sendOpenToolWindowByTraceUuidEvent(uuid: String, openIfNotFound: Boolean) {
+    PROCESS_OUTPUT_TOPIC.sendToClient(
+      ProcessOutputEventDto.OpenToolWindowByTraceUuid(
+        TraceContextUuid(uuid),
+        openIfNotFound,
+      )
     )
-  )
+  }
 }
 
 internal class ProcessOutputTopicListener : ApplicationRemoteTopicListener<ProcessOutputEventDto> {
@@ -176,7 +183,13 @@ internal class ProcessOutputTopicListener : ApplicationRemoteTopicListener<Proce
 private val eventsChannel = Channel<ProcessOutputEventDto>(capacity = UNLIMITED)
 
 @ApiStatus.Internal
+interface FrontendTopicListener {
+  val events: Flow<ProcessOutputEventDto>
+}
+
+@ApiStatus.Internal
 @Service
-class FrontendTopicService(internal val coroutineScope: CoroutineScope) {
-  val events: Flow<ProcessOutputEventDto> = eventsChannel.receiveAsFlow().shareIn(coroutineScope, SharingStarted.Eagerly)
+class FrontendTopicService(coroutineScope: CoroutineScope) : FrontendTopicListener {
+  override val events: Flow<ProcessOutputEventDto> =
+    eventsChannel.receiveAsFlow().shareIn(coroutineScope, SharingStarted.Eagerly)
 }

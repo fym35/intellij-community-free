@@ -26,7 +26,7 @@ internal class ProcessOutputUiContext(
       .apply { Disposer.register(parentDisposable, asDisposable()) }
 
   val controller: ProcessOutputController
-    get() = project.service<ProcessOutputControllerService>()
+    get() = project.service<ProcessOutputControllerService>().controller
 
   var scrollOnProcessDisplayed: ScrollOnProcessDisplayed = ScrollOnProcessDisplayed.None
   var processTree: Tree? = null

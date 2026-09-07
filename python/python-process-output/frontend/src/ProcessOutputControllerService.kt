@@ -6,6 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.python.processOutput.common.ExecErrorDto
+import com.intellij.python.processOutput.common.FrontendTopicListener
 import com.intellij.python.processOutput.common.FrontendTopicService
 import com.intellij.python.processOutput.common.LoggedProcessDto
 import com.intellij.python.processOutput.common.OutputKindDto
@@ -35,7 +36,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.util.WeakHashMap
 import javax.swing.tree.DefaultMutableTreeNode
@@ -43,8 +43,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-@ApiStatus.Internal
-object CoroutineNames {
+internal object CoroutineNames {
   const val EXIT_INFO_COLLECTOR: String = "Python.ProcessOutput.ExitInfoCollector"
   const val EVENT_PROCESSOR: String = "Python.ProcessOutput.EventProcessor"
 }
@@ -55,8 +54,7 @@ internal object ProcessOutputControllerServiceLimits {
   val OPEN_TOOL_WINDOW_BY_TRACE_UUID_TIMEOUT = 5.seconds
 }
 
-@ApiStatus.Internal
-sealed interface ProcessStatus {
+internal sealed interface ProcessStatus {
   data object Running : ProcessStatus
   data class Done(
     val exitedAt: Instant,
@@ -66,19 +64,12 @@ sealed interface ProcessStatus {
   ) : ProcessStatus
 }
 
-@ApiStatus.Internal
-data class LoggedProcess(
-  val data: LoggedProcessDto,
-  val lines: StateFlow<List<OutputLineDto>>,
-  val status: StateFlow<ProcessStatus>,
-)
-
 internal interface ProcessOutputController {
   val selectedProcess: StateFlow<LoggedProcess?>
 
   val treeSectionState: TreeSectionState
   val outputSectionState: OutputSectionState
-  val events: Flow<Event>
+  val uiEvents: Flow<UiEvent>
 
 
   fun search(query: String)
@@ -93,22 +84,27 @@ internal interface ProcessOutputController {
   fun copyOutputTagAtIndexToClipboard(loggedProcess: LoggedProcess, fromIndex: Int)
   fun copyOutputExitInfoToClipboard(loggedProcess: LoggedProcess)
 
-  sealed interface Event {
-    data class StatusUpdate(val loggedProcess: LoggedProcess) : Event
-    data class DisplayExecError(val execErrorDto: ExecErrorDto, val associatedProcess: LoggedProcess?) : Event
-    data class DisplayToolWindow(val processToSelect: LoggedProcess?) : Event
-  }
 }
 
-@ApiStatus.Internal
-data class TreeSectionState(
+internal sealed interface UiEvent {
+  data class StatusUpdate(val loggedProcess: LoggedProcess) : UiEvent
+  data class DisplayExecError(val execErrorDto: ExecErrorDto, val associatedProcess: LoggedProcess?) : UiEvent
+  data class DisplayToolWindow(val processToSelect: LoggedProcess?) : UiEvent
+}
+
+internal interface LoggedProcess {
+  val data: LoggedProcessDto
+  val lines: StateFlow<List<OutputLineDto>>
+  val status: StateFlow<ProcessStatus>
+}
+
+internal data class TreeSectionState(
   val filters: FilterActionGroupState<TreeFilter, TreeFilter.Item>,
   val searchQuery: StateFlow<String>,
   val treeRoot: StateFlow<List<ProcessTreeNode>>,
 )
 
-@ApiStatus.Internal
-class FilterActionGroupState<TFilter, TItem>(treeFilter: TFilter)
+internal class FilterActionGroupState<TFilter, TItem>(treeFilter: TFilter)
   where TItem : Enum<TItem>,
         TItem : FilterItem,
         TFilter : Filter<TItem> {
@@ -131,20 +127,17 @@ class FilterActionGroupState<TFilter, TItem>(treeFilter: TFilter)
     filterItem in active.value
 }
 
-@ApiStatus.Internal
-interface Filter<TItem>
+internal interface Filter<TItem>
   where TItem : Enum<TItem>,
         TItem : FilterItem {
   val defaultActive: Set<TItem>
 }
 
-@ApiStatus.Internal
-interface FilterItem {
+internal interface FilterItem {
   val title: @Nls String
 }
 
-@ApiStatus.Internal
-object TreeFilter : Filter<TreeFilter.Item> {
+internal object TreeFilter : Filter<TreeFilter.Item> {
   enum class Item(override val title: String) : FilterItem {
     SHOW_TIME(message("process.output.filters.tree.time")),
     SHOW_PROCESS_WEIGHT(message("process.output.filters.tree.processWeight")),
@@ -154,8 +147,7 @@ object TreeFilter : Filter<TreeFilter.Item> {
   override val defaultActive: Set<Item> = setOf(Item.SHOW_TIME, Item.SHOW_PROCESS_WEIGHT)
 }
 
-@ApiStatus.Internal
-object OutputFilter : Filter<OutputFilter.Item> {
+internal object OutputFilter : Filter<OutputFilter.Item> {
   enum class Item(override val title: String) : FilterItem {
     SHOW_TAGS(message("process.output.filters.output.tags")),
     WRAP_CONTENT(message("process.output.filters.output.wrap"));
@@ -164,8 +156,7 @@ object OutputFilter : Filter<OutputFilter.Item> {
   override val defaultActive: Set<Item> = setOf(Item.SHOW_TAGS, Item.WRAP_CONTENT)
 }
 
-@ApiStatus.Internal
-sealed class ProcessTreeNode : DefaultMutableTreeNode() {
+internal sealed class ProcessTreeNode : DefaultMutableTreeNode() {
   abstract val title: @NlsSafe String
   abstract val timestamp: Instant
 
@@ -229,29 +220,43 @@ sealed class ProcessTreeNode : DefaultMutableTreeNode() {
   }
 }
 
-@ApiStatus.Internal
-data class OutputSectionState(
+internal data class OutputSectionState(
   val filters: FilterActionGroupState<OutputFilter, OutputFilter.Item>,
   val isInfoExpanded: StateFlow<Boolean>,
   val isOutputExpanded: StateFlow<Boolean>,
 )
 
-internal class InternalLoggedProcess(
-  val data: LoggedProcessDto,
-  val lines: MutableStateFlow<List<OutputLineDto>>,
-  val status: MutableStateFlow<ProcessStatus>,
-)
-
 @Service(Service.Level.PROJECT)
-internal class ProcessOutputControllerService(private val coroutineScope: CoroutineScope) : ProcessOutputController {
+internal class ProcessOutputControllerService(coroutineScope: CoroutineScope) {
+  val controller: ProcessOutputController
+    field = ProcessOutputControllerImpl(
+      coroutineScope = coroutineScope,
+      frontendTopic = ApplicationManager.getApplication().service<FrontendTopicService>(),
+      iconMappingData = ProcessOutputIconMappingDataImpl,
+      usageCollector = ProcessOutputUsageCollectorImpl,
+      clipboardCopier = { CopyPasteManager.copyTextToClipboard(it) }
+    )
+}
+
+internal fun interface ClipboardCopier {
+  fun copyToClipboard(text: String)
+}
+
+internal class ProcessOutputControllerImpl(
+  private val coroutineScope: CoroutineScope,
+  private val frontendTopic: FrontendTopicListener,
+  iconMappingData: ProcessOutputIconMappingData,
+  private val usageCollector: ProcessOutputUsageCollector,
+  private val clipboardCopier: ClipboardCopier,
+) : ProcessOutputController {
   internal val loggedProcesses = MutableStateFlow<List<LoggedProcess>>(listOf())
 
   private val isInfoExpandedFlow = MutableStateFlow(false)
   private val isOutputExpandedFlow = MutableStateFlow(true)
   private val searchQuery = MutableStateFlow("")
-  private val processTreeState = MutableStateFlow<List<ProcessTreeNode>>(emptyList())
+  private val treeRoot = MutableStateFlow<List<ProcessTreeNode>>(emptyList())
 
-  override val events: Flow<ProcessOutputController.Event>
+  override val uiEvents: Flow<UiEvent>
     field = MutableSharedFlow()
   override val selectedProcess: StateFlow<LoggedProcess?>
     field = MutableStateFlow(null)
@@ -260,7 +265,7 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
     TreeSectionState(
       filters = FilterActionGroupState(TreeFilter),
       searchQuery = searchQuery,
-      treeRoot = processTreeState,
+      treeRoot = treeRoot,
     )
 
   override val outputSectionState: OutputSectionState = OutputSectionState(
@@ -273,8 +278,8 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
     ProcessOutputControllerServiceLimits.MAX_PROCESSES * 2,
   )
 
-  private val iconMapping = ProcessOutputIconMappingData.mapping
-  private val iconMatchers = ProcessOutputIconMappingData.matchers
+  private val iconMapping = iconMappingData.mapping
+  private val iconMatchers = iconMappingData.matchers
   private val iconCache = WeakHashMap<LoggedProcess, ProcessIcon>()
 
   init {
@@ -298,15 +303,15 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
 
     selectedProcess.value = process
 
-    ProcessOutputUsageCollector.treeProcessSelected()
+    usageCollector.log(ProcessOutputUsageEvent.ProcessSelected)
   }
 
   override fun onTreeFilterItemToggled(filterItem: TreeFilter.Item, enabled: Boolean) {
-    ProcessOutputUsageCollector.treeFilterToggled(filterItem, enabled)
+    usageCollector.log(ProcessOutputUsageEvent.TreeFilterToggled(filterItem, enabled))
   }
 
   override fun onOutputFilterItemToggled(filterItem: OutputFilter.Item, enabled: Boolean) {
-    ProcessOutputUsageCollector.outputFilterToggled(filterItem, enabled)
+    usageCollector.log(ProcessOutputUsageEvent.OutputFilterToggled(filterItem, enabled))
   }
 
   override fun toggleProcessInfo() {
@@ -314,7 +319,7 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
 
     isInfoExpandedFlow.value = !expanded
 
-    ProcessOutputUsageCollector.outputProcessInfoToggled(!expanded)
+    usageCollector.log(ProcessOutputUsageEvent.ProcessInfoRegionToggled(!expanded))
   }
 
   override fun toggleProcessOutput() {
@@ -322,7 +327,7 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
 
     isOutputExpandedFlow.value = !expanded
 
-    ProcessOutputUsageCollector.outputProcessOutputToggled(!expanded)
+    usageCollector.log(ProcessOutputUsageEvent.ProcessOutputRegionToggled(!expanded))
   }
 
   override fun copyOutputToClipboard(loggedProcess: LoggedProcess) {
@@ -372,9 +377,9 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
       }
     }
 
-    CopyPasteManager.copyTextToClipboard(stringToCopy)
+    clipboardCopier.copyToClipboard(stringToCopy)
 
-    ProcessOutputUsageCollector.outputCopyClicked()
+    usageCollector.log(ProcessOutputUsageEvent.OutputCopyClicked)
   }
 
   override fun copyOutputTagAtIndexToClipboard(
@@ -392,9 +397,9 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
         }
     }
 
-    CopyPasteManager.copyTextToClipboard(stringToCopy)
+    clipboardCopier.copyToClipboard(stringToCopy)
 
-    ProcessOutputUsageCollector.outputTagSectionCopyClicked()
+    usageCollector.log(ProcessOutputUsageEvent.TagSectionCopyClicked)
   }
 
   override fun copyOutputExitInfoToClipboard(loggedProcess: LoggedProcess) {
@@ -413,20 +418,19 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
       appendLine()
     }
 
-    CopyPasteManager.copyTextToClipboard(stringToCopy)
+    clipboardCopier.copyToClipboard(stringToCopy)
 
-    ProcessOutputUsageCollector.outputExitInfoCopyClicked()
+    usageCollector.log(ProcessOutputUsageEvent.ExitInfoCopyClicked)
   }
 
   private fun collectTopicEvents() {
-    val processMap = boundedLinkedHashMap<Int, InternalLoggedProcess>(
+    val processMap = boundedLinkedHashMap<Int, MutableLoggedProcess>(
       ProcessOutputControllerServiceLimits.MAX_PROCESSES,
     )
-    var processList = listOf<LoggedProcess>()
+    var processList = listOf<MutableLoggedProcess>()
 
     coroutineScope.launch(CoroutineName(CoroutineNames.EVENT_PROCESSOR)) {
-      val service = ApplicationManager.getApplication().service<FrontendTopicService>()
-      service.events.collect { event ->
+      frontendTopic.events.collect { event ->
         when (event) {
           is ProcessOutputEventDto.NewProcess -> {
             for (traceContext in event.traceHierarchy) {
@@ -435,18 +439,14 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
               }
             }
 
-            val internalProcess = InternalLoggedProcess(
+            val loggedProcess = MutableLoggedProcess(
               data = event.loggedProcess,
               lines = MutableStateFlow(emptyList()),
               status = MutableStateFlow(ProcessStatus.Running),
             )
 
-            processMap[event.loggedProcess.id] = internalProcess
-            processList = processList + LoggedProcess(
-              data = internalProcess.data,
-              lines = internalProcess.lines,
-              status = internalProcess.status,
-            )
+            processMap[event.loggedProcess.id] = loggedProcess
+            processList = processList + loggedProcess
 
             if (processList.size > ProcessOutputControllerServiceLimits.MAX_PROCESSES) {
               processList = processList.drop(
@@ -458,10 +458,10 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
             loggedProcesses.emit(processList)
           }
           is ProcessOutputEventDto.NewOutputLine -> {
-            val internalProcess = processMap[event.processId]
+            val process = processMap[event.processId]
 
-            if (internalProcess != null) {
-              val newLines = internalProcess.lines.value.toMutableList()
+            if (process != null) {
+              val newLines = process.lines.value.toMutableList()
 
               newLines += event.outputLine
 
@@ -469,43 +469,42 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
                 newLines.subList(0, newLines.size - ProcessOutputControllerServiceLimits.MAX_LINES).clear()
               }
 
-              internalProcess.lines.value = newLines
+              process.lines.value = newLines
             }
           }
           is ProcessOutputEventDto.ProcessExit -> {
-            val internalProcess = processMap[event.processId]
+            val process = processMap[event.processId]
 
-            if (internalProcess != null) {
-              internalProcess.status.value =
+            if (process != null) {
+              process.status.value =
                 ProcessStatus.Done(
                   exitedAt = event.exitedAt,
                   exitCode = event.exitValue,
                 )
 
-              events.emit(
-                ProcessOutputController.Event.StatusUpdate(
-                  LoggedProcess(
-                    internalProcess.data,
-                    internalProcess.lines,
-                    internalProcess.status,
-                  )
-                )
-              )
+              uiEvents.emit(UiEvent.StatusUpdate(process))
             }
           }
           is ProcessOutputEventDto.ExecError -> {
             val error = event.execErrorDto
-            val associatedProcess =
+            val process =
               error.loggedProcessId?.let { processId ->
-                loggedProcesses.value.find { process ->
-                  process.data.id == processId
-                }
+                processMap[processId]
               }
 
-            events.emit(
-              ProcessOutputController.Event.DisplayExecError(
+            process?.also {
+              when (val status = it.status.value) {
+                is ProcessStatus.Done -> {
+                  it.status.value = status.copy(additionalMessageToUser = event.execErrorDto.additionalMessageToUser)
+                }
+                ProcessStatus.Running -> {}
+              }
+            }
+
+            uiEvents.emit(
+              UiEvent.DisplayExecError(
                 execErrorDto = error,
-                associatedProcess = associatedProcess,
+                associatedProcess = process,
               )
             )
           }
@@ -523,8 +522,8 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
                 }
 
               if (process != null || event.openIfNotFound) {
-                events.emit(
-                  ProcessOutputController.Event.DisplayToolWindow(
+                uiEvents.emit(
+                  UiEvent.DisplayToolWindow(
                     processToSelect = process
                   )
                 )
@@ -539,7 +538,7 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
   private fun collectSearchStats() {
     coroutineScope.launch {
       searchQuery.collect {
-        ProcessOutputUsageCollector.treeSearchEdited()
+        usageCollector.log(ProcessOutputUsageEvent.SearchEdited)
       }
     }
   }
@@ -675,7 +674,7 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
         selectProcess(null)
       }
 
-      processTreeState.value = root.children().toList().map{ it as ProcessTreeNode}
+      treeRoot.value = root.children().toList().map { it as ProcessTreeNode }
     }.launchIn(coroutineScope)
   }
 
@@ -737,6 +736,12 @@ internal class ProcessOutputControllerService(private val coroutineScope: Corout
     return hierarchy
   }
 }
+
+private class MutableLoggedProcess(
+  override val data: LoggedProcessDto,
+  override val lines: MutableStateFlow<List<OutputLineDto>>,
+  override val status: MutableStateFlow<ProcessStatus>,
+) : LoggedProcess
 
 private fun <K, V> boundedLinkedHashMap(maxSize: Int): LinkedHashMap<K, V> =
   object : LinkedHashMap<K, V>(maxSize) {

@@ -9,6 +9,7 @@ import com.intellij.python.community.execService.DownloadConfig
 import com.intellij.python.community.execService.TtySize
 import com.intellij.python.community.execService.UploadConfig
 import com.intellij.python.community.execService.impl.LoggingProcess
+import com.intellij.python.processOutput.common.ProcessOutputTopic
 import com.jetbrains.python.Result
 import com.jetbrains.python.TraceContext
 import com.jetbrains.python.errorProcessing.Exe
@@ -36,6 +37,7 @@ internal class ProcessLauncher(
           args,
           processCommands.info.env,
           processCommands.info.target,
+          ProcessOutputTopic,
         )
       }
 
