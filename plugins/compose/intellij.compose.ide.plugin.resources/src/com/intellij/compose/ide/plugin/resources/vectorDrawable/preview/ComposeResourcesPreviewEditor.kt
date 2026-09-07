@@ -21,7 +21,7 @@ import com.intellij.compose.ide.plugin.resources.vectorDrawable.rendering.use
 import com.intellij.compose.ide.plugin.shared.ComposeIdeBundle
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
