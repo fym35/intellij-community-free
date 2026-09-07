@@ -9,7 +9,9 @@ Follow the IntelliJ Coding Guidelines with these IntelliJ-specific rules.
 
 ## Language
 
-- **ALWAYS use Kotlin for new files** - Only use Java when modifying existing Java code
+- Prefer Kotlin for new files unless the user explicitly requests Java.
+- Keep existing Java files in Java unless the task requires a language conversion.
+- Before writing or reviewing Java, read [Modern Java](references/modern-java.md).
 - Use idiomatic Kotlin: extension functions, data classes, null safety
 - Mark experimental APIs with `@ApiStatus.Experimental`
 - **Build scripts Kotlin style**: Follow `community/platform/build-scripts/kotlin-style-recommendations.md` for build-scripts code:

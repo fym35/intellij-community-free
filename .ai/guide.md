@@ -1,5 +1,3 @@
-{{PARTIAL:frontmatter}}
-
 <!-- TEMPLATE:COMMENT -->
 To regenerate, run `bazel run //.ai:render-guides`.
 <!-- /TEMPLATE:COMMENT -->
@@ -12,6 +10,10 @@ To regenerate, run `bazel run //.ai:render-guides`.
 - `*.iml` files are the source of truth. They generate the `BUILD.bazel` files.
 <!-- IF_EDITION:ULTIMATE -->- Register a new or edited JPS module `.iml` with `bun build/jps-module.mjs register <path-to-iml> --fix-iml-eof`, then run `./build/jpsModelToBazel.cmd`. Never edit `.idea/modules.xml` by hand. The command keeps both `modules.xml` files in canonical order.<!-- /IF_EDITION:ULTIMATE --><!-- IF_EDITION:COMMUNITY -->- Register a new or edited JPS module `.iml` with `bun build/jps-module.mjs register <path-to-iml> --fix-iml-eof`, then run `./build/jpsModelToBazelCommunityOnly.cmd`. Never edit `.idea/modules.xml` by hand. The command keeps `modules.xml` in canonical order.<!-- /IF_EDITION:COMMUNITY -->
 - User-visible strings belong in `*.properties` for localization.
+
+## Language
+
+- Read [Code Style](../.agents/skills/code-style/SKILL.md) before writing or reviewing Kotlin or Java.
 
 ## Writing
 
