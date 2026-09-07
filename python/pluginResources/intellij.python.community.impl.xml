@@ -475,6 +475,11 @@
                      groupPathKey="INSP.GROUP.python" groupKey="INSP.GROUP.python.type.hinting"
                      enabledByDefault="true" level="WARNING"
                      implementationClass="com.jetbrains.python.codeInsight.stubs.PyStubPackagesAdvertiser"/>
+    <localInspection language="Python" shortName="PyTypeIgnoreWithoutCodeInspection" suppressId="PyTypeIgnoreWithoutCode"
+                     bundle="messages.PyPsiBundle" key="INSP.NAME.type.ignore.without.code"
+                     groupPathKey="INSP.GROUP.python" groupKey="INSP.GROUP.python.type.hinting"
+                     enabledByDefault="false" level="WARNING"
+                     implementationClass="com.jetbrains.python.inspections.typeignore.PyTypeIgnoreWithoutCodeInspection"/>
     <localInspection language="Python" shortName="PyRelativeImportInspection" suppressId="PyPackages"
                      bundle="messages.PyPsiBundle" key="INSP.NAME.relative.import"
                      groupPathKey="INSP.GROUP.python" groupKey="INSP.GROUP.python.general"
@@ -611,12 +616,6 @@
                              id="debugger.dataViews.python.type.renderers"
                              instance="com.jetbrains.python.debugger.variablesview.usertyperenderers.PyUserTypeRenderersConfigurable"
                              key="configurable.PyUserTypeRenderersConfigurable.display.name"/> <!--id is used in PyCharmCorePluginConfigurator-->
-
-    <applicationConfigurable groupId="editor"
-                             id="com.jetbrains.python.codeInsight.PythonTypeCheckingConfigurable"
-                             instance="com.jetbrains.python.codeInsight.PythonTypeCheckingConfigurable"
-                             bundle="messages.PyBundle"
-                             key="configurable.PythonTypeCheckingConfigurable.display.name"/>
 
     <projectConfigurable groupId="tools"
                          id="com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable"
