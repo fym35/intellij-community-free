@@ -7,7 +7,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.Project

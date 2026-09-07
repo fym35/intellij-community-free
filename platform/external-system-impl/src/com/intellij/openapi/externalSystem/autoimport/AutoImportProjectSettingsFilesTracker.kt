@@ -5,11 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectTracker.Companion.isAsyncChangesProcessing
-import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.EXTERNAL
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemSettingsFilesModificationContext.Event
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemSettingsFilesModificationContext.ReloadStatus
-import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Companion.externalInvalidate
-import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Companion.externalModify
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Invalidate
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Revert
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Synchronize
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.Stamp
@@ -154,7 +152,7 @@ class AutoImportProjectSettingsFilesTracker(
     val operationStamp = Stamp.nextStamp()
     settingsFilesStatus.set(SettingsFilesStatus(state.settingsFiles.toMap()))
     when (state.isDirty) {
-      true -> projectStatus.markDirty(operationStamp, EXTERNAL)
+      true -> projectStatus.markDirty(operationStamp)
       else -> projectStatus.markSynchronized(operationStamp)
     }
   }
@@ -163,7 +161,7 @@ class AutoImportProjectSettingsFilesTracker(
     submitSettingsFilesStatusUpdate("refreshChanges") {
       isRefreshVfs = true
       syncEvent = ::Revert
-      changeEvent = ::externalInvalidate
+      changeEvent = ::Invalidate
       callback = { projectTracker.scheduleChangeProcessing() }
     }
   }
@@ -305,7 +303,7 @@ class AutoImportProjectSettingsFilesTracker(
         isRefreshVfs = true
         reloadStatus = ReloadStatus.JUST_STARTED
         syncEvent = ::Synchronize
-        changeEvent = ::externalInvalidate
+        changeEvent = ::Invalidate
       }
     }
 
@@ -314,7 +312,7 @@ class AutoImportProjectSettingsFilesTracker(
         isRefreshVfs = true
         reloadStatus = ReloadStatus.JUST_FINISHED
         syncEvent = ::Synchronize
-        changeEvent = ::externalInvalidate
+        changeEvent = ::Invalidate
         callback = { applyChangesOperation.traceFinish() }
       }
     }
@@ -323,7 +321,7 @@ class AutoImportProjectSettingsFilesTracker(
       submitSettingsFilesStatusUpdate("onSettingsFilesListChange") {
         isInvalidateCache = true
         syncEvent = ::Revert
-        changeEvent = ::externalModify
+        changeEvent = ::Invalidate
         callback = { projectTracker.scheduleChangeProcessing() }
       }
     }

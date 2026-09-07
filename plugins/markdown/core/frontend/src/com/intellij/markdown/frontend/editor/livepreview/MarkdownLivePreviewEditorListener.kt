@@ -4,7 +4,7 @@ package com.intellij.markdown.frontend.editor.livepreview
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener

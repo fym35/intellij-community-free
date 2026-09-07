@@ -30,7 +30,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManager.ConflictResolution

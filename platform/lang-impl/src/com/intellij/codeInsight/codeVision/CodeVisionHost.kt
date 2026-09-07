@@ -29,7 +29,7 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory

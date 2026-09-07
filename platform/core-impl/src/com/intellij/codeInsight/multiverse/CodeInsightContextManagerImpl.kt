@@ -6,7 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project

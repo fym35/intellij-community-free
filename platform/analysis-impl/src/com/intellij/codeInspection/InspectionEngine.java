@@ -66,7 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static com.intellij.openapi.diagnostic.LoggerKt.rethrowControlFlowException;
+import static com.intellij.diagnostic.ControlFlowExceptionsKt.rethrowControlFlowException;
 
 public final class InspectionEngine {
   private static final Logger LOG = Logger.getInstance(InspectionEngine.class);

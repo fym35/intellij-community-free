@@ -13,7 +13,7 @@ import com.intellij.grazie.text.TextChecker.ProofreadingContext
 import com.intellij.grazie.utils.getProblemsForText
 import com.intellij.grazie.utils.hasLanguage
 import com.intellij.grazie.utils.isSpelling
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.progress.util.awaitWithCheckCanceled

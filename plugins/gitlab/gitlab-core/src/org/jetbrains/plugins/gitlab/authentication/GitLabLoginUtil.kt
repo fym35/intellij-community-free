@@ -9,7 +9,7 @@ import com.intellij.collaboration.messages.CollaborationToolsBundle
 import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.NlsContexts

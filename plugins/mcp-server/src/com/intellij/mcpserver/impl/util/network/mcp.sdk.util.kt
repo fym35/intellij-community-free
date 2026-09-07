@@ -1,7 +1,7 @@
 package com.intellij.mcpserver.impl.util.network
 
 import com.intellij.openapi.diagnostic.fileLogger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.util.registry.Registry
 import io.ktor.http.HttpMethod

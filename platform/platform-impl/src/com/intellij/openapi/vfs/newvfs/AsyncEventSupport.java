@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.intellij.openapi.diagnostic.LoggerKt.rethrowControlFlowException;
+import static com.intellij.diagnostic.ControlFlowExceptionsKt.rethrowControlFlowException;
 
 @ApiStatus.Internal
 public final class AsyncEventSupport {

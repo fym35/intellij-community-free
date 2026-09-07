@@ -76,7 +76,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static com.intellij.openapi.diagnostic.LoggerKt.rethrowControlFlowException;
+import static com.intellij.diagnostic.ControlFlowExceptionsKt.rethrowControlFlowException;
 
 final class InspectionRunner {
   private static final Logger LOG = Logger.getInstance(InspectionRunner.class);

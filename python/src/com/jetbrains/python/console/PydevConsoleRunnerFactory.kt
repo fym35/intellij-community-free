@@ -43,7 +43,10 @@ open class PydevConsoleRunnerFactory : PythonConsoleRunnerFactory() {
                                            open val workingDir: String?,
                                            val envs: Map<String, String>,
                                            val consoleType: PyConsoleType,
-                                           val settingsProvider: PyConsoleSettings)
+                                           val settingsProvider: PyConsoleSettings) {
+    @ApiStatus.Internal
+    var module: Module? = null
+  }
 
   @ApiStatus.Experimental
   protected class ConstantConsoleParameters(project: Project,
@@ -81,6 +84,7 @@ open class PydevConsoleRunnerFactory : PythonConsoleRunnerFactory() {
     val workingDirFunction = getWorkingDirFunction(project, module, pathMapper, settingsProvider)
     val setupScriptFunction = createSetupScriptFunction(project, module, workingDirFunction, pathMapper, settingsProvider)
     return TargetedConsoleParameters(project, sdk, workingDirFunction, envs, PyConsoleType.PYTHON, settingsProvider, setupScriptFunction)
+      .also { it.module = module }
   }
 
   override fun createConsoleRunner(project: Project, contextModule: Module?): PydevConsoleRunner {
@@ -91,7 +95,8 @@ open class PydevConsoleRunnerFactory : PythonConsoleRunnerFactory() {
                                                              consoleParameters.envs, consoleParameters.settingsProvider,
                                                              *consoleParameters.setupFragment)
       is TargetedConsoleParameters -> PydevConsoleRunnerImpl(project, consoleParameters.sdk, consoleParameters.consoleType,
-                                                             consoleParameters.consoleType.title,
+                                                             consoleTabTitle(project, consoleParameters.module,
+                                                                             consoleParameters.consoleType.title),
                                                              consoleParameters.workingDirFunction,
                                                              consoleParameters.envs, consoleParameters.settingsProvider,
                                                              consoleParameters.setupScript)

@@ -7,7 +7,7 @@ import com.intellij.build.events.FinishBuildEvent
 import com.intellij.build.output.BuildOutputInstantReaderImpl
 import com.intellij.build.output.BuildOutputParser
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.util.function.Consumer

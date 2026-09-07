@@ -2857,6 +2857,7 @@
   ShowFilePath
   Git.Hosting.Open.In.Browser.Group
   Terminal.OpenInTerminal
+  PyOpenInPythonConsole
   Terminal.OpenInReworkedTerminal
 [group RightToolbarSideGroup]
   CompileDirty

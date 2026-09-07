@@ -41,12 +41,14 @@ import com.intellij.internal.statistic.uploader.events.ExternalSystemEvent
 import com.intellij.internal.statistic.uploader.events.ExternalUploadFileDeletedEvent
 import com.intellij.internal.statistic.uploader.events.ExternalUploadFinishedEvent
 import com.intellij.internal.statistic.config.StatisticsStringUtil
+import com.intellij.internal.statistic.uploader.EventLogUploaderOptions.SNAPSHOT_FILTERING_DISABLED
 import com.intellij.internal.statistic.uploader.events.ExternalUploadSendEvent
 import com.intellij.internal.statistic.uploader.events.ExternalUploadStartedEvent
 import com.intellij.internal.statistic.uploader.util.ExtraHTTPHeadersParser
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.util.text.Strings
 import com.intellij.util.ArrayUtil
 import com.jetbrains.fus.reporting.MetadataStorage
@@ -212,6 +214,11 @@ object EventLogExternalUploader {
     if (applicationInfo.isEAP) {
       args += EAP_OPTION
     }
+
+    if (Registry.`is`("feature.usage.event.snapshot.filtering.disabled", false)) {
+      args += SNAPSHOT_FILTERING_DISABLED
+    }
+
     return ArrayUtil.toStringArray(args)
   }
 

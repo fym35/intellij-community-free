@@ -4,7 +4,7 @@ package git4idea.actions.addCommit
 import com.intellij.dvcs.push.ui.VcsPushDialog
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vcs.VcsNotifier

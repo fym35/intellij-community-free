@@ -36,7 +36,7 @@ import com.intellij.injected.editor.EditorWindow
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorSettings
 import com.intellij.openapi.editor.FoldRegion

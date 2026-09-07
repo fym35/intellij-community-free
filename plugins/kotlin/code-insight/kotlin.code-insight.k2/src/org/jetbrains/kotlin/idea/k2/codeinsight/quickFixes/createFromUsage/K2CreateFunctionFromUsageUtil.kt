@@ -8,7 +8,7 @@ import com.intellij.lang.jvm.actions.ExpectedType
 import com.intellij.lang.jvm.actions.ExpectedTypeWithNullability
 import com.intellij.lang.jvm.actions.expectedParameter
 import com.intellij.lang.jvm.types.JvmType
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiPackage

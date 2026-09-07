@@ -157,6 +157,14 @@ internal fun findPythonSdkAndModule(project: Project, contextModule: Module?): P
     }
   }
   if (sdk == null) {
+    mainConsoleTarget(project)?.let { target ->
+      PythonSdkUtil.findPythonSdk(target.module)?.let {
+        sdk = it
+        module = target.module
+      }
+    }
+  }
+  if (sdk == null) {
     for (m in ModuleManager.getInstance(project).modules) {
       if (PythonSdkUtil.findPythonSdk(m) != null) {
         sdk = PythonSdkUtil.findPythonSdk(m)
@@ -269,7 +277,8 @@ internal fun getConsoleSdk(element: PsiElement): Sdk? {
   return containingFile?.getCopyableUserData(PydevConsoleRunner.CONSOLE_SDK)
 }
 
-internal fun getModuleToStartConsole(project: Project, moduleManager: ModuleManager): Module {
+@ApiStatus.Internal
+fun getModuleToStartConsole(project: Project, moduleManager: ModuleManager): Module {
   val selectedFiles = FileEditorManager.getInstance(project).getSelectedFiles()
   val moduleForOpenedFile = selectedFiles.firstNotNullOfOrNull {
     val isLocalFs = it.isInLocalFileSystem
@@ -281,8 +290,8 @@ internal fun getModuleToStartConsole(project: Project, moduleManager: ModuleMana
     return moduleForOpenedFile
   }
 
-  val projectLocalModule = moduleManager.modules.firstOrNull {
-    val roots = ModuleRootManager.getInstance(it).contentRoots
+  val projectLocalModule = moduleManager.modules.firstOrNull { module ->
+    val roots = ModuleRootManager.getInstance(module).contentRoots
     roots.all { it.isInLocalFileSystem }
   }
   if (projectLocalModule != null) {

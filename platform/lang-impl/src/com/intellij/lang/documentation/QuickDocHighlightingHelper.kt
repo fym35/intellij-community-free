@@ -9,7 +9,7 @@ import com.intellij.lang.documentation.DocumentationMarkup.CLASS_DEFINITION
 import com.intellij.lang.documentation.DocumentationMarkup.CLASS_SECTIONS
 import com.intellij.lang.documentation.DocumentationMarkup.CLASS_TOP
 import com.intellij.lang.documentation.DocumentationSettings.InlineCodeHighlightingMode
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.colors.TextAttributesKey

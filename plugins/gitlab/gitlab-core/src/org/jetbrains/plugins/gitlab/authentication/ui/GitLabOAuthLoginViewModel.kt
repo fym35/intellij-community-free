@@ -7,7 +7,7 @@ import com.intellij.collaboration.messages.CollaborationToolsBundle
 import com.intellij.collaboration.ui.util.ValidationBinding
 import com.intellij.collaboration.ui.util.validationBinding
 import com.intellij.collaboration.util.URIUtil
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.platform.util.coroutines.childScope

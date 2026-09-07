@@ -5,7 +5,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.path.EelPathException

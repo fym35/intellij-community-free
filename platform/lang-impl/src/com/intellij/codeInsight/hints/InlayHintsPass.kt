@@ -10,7 +10,7 @@ import com.intellij.concurrency.ConcurrentCollectionFactory
 import com.intellij.concurrency.JobLauncher
 import com.intellij.diff.tools.util.base.DiffViewerBase
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayModel

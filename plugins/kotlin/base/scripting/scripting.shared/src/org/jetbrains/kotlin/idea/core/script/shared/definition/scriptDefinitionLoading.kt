@@ -4,7 +4,7 @@ package org.jetbrains.kotlin.idea.core.script.shared.definition
 import com.intellij.diagnostic.PluginException
 import com.intellij.execution.wsl.WslPath.Companion.isWslUncPath
 import com.intellij.ide.plugins.PluginManager
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.findOrCreateDirectory
 import com.intellij.openapi.util.io.toCanonicalPath

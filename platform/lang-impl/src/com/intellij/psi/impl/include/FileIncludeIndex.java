@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.intellij.openapi.diagnostic.LoggerKt.rethrowControlFlowException;
+import static com.intellij.diagnostic.ControlFlowExceptionsKt.rethrowControlFlowException;
 
 @ApiStatus.Internal
 public final class FileIncludeIndex extends FileBasedIndexExtension<String, List<FileIncludeInfoImpl>> {

@@ -3,7 +3,7 @@ package com.intellij.build.output
 
 import com.intellij.build.events.BuildEvent
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.platform.util.coroutines.childScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers

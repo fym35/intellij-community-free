@@ -22,7 +22,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.getOrLogException
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.progress.util.SuvorovProgress
 import com.intellij.openapi.util.SystemInfo

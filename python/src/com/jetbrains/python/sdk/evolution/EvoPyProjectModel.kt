@@ -87,6 +87,14 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
      */
     fun resolve(key: String): EvoPyProject? = byKey[key]?.takeUnless { it.module.isDisposed }
 
+    /** By the module a `PyProject` resides on, which [computeSnapshot] already treats as its identity. */
+    private val byModule: Map<Module, EvoPyProject> = byKey.values.associateBy { it.module }
+
+    /**
+     * The `PyProject` residing on [module], or `null` when it is not a Python module at all.
+     */
+    fun forModule(module: Module): EvoPyProject? = byModule[module]?.takeUnless { it.module.isDisposed }
+
     /** Every `PyProject`'s own base dir — a workspace member's own, not its root's. Used to exclude sibling projects from env discovery. */
     val baseDirs: Set<Path> get() = byKey.values.mapTo(mutableSetOf()) { it.moduleBaseDir }
   }
@@ -108,6 +116,14 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
 
   /** The current structure, awaiting the first computation when it has not landed yet. */
   suspend fun snapshot(): Snapshot = state.filterNotNull().first()
+
+  /**
+   * The current structure, or `null` while the first computation is still running.
+   *
+   * For a caller that must answer without suspending, such as an action's `update`. Treat `null` as "not known yet"
+   * rather than "nothing there": the answer arrives shortly after the project opens.
+   */
+  fun snapshotOrNull(): Snapshot? = state.value
 
   /** See [Snapshot.resolve]. */
   suspend fun resolve(key: String): EvoPyProject? = snapshot().resolve(key)

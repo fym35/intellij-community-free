@@ -1,10 +1,11 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package org.intellij.plugins.markdown.preview
 
+import com.intellij.markdown.jcef.preview.impl.IncrementalDOMBuilder
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import junit.framework.TestCase
 import org.intellij.plugins.markdown.MarkdownTestingUtil
-import com.intellij.markdown.jcef.preview.impl.IncrementalDOMBuilder
+import org.intellij.plugins.markdown.ui.preview.ResourceProvider
 import java.io.File
 
 /**
@@ -42,6 +43,23 @@ class MarkdownIncrementalDOMTest : BasePlatformTestCase() {
     val js = IncrementalDOMBuilder(html, null, null).generateDomBuildCalls()
     assertGeneratedDoesNotContain(js, "referrer")
     assertGeneratedContains(js, "o('meta','name','other'")
+  }
+
+  /**
+   * The preview adds an alert icon and a run icon itself, so their `src` names a resource of the
+   * preview. Only a source that names a file keeps the rewrite. See IJPL-254292.
+   */
+  fun testSourceOfAPreviewResourceStaysAsItIs() {
+    val html = """<body><img src="alertIcons/note.png"><img src="picture.png"></body>"""
+    val document = myFixture.configureByText("document.md", "").virtualFile
+    val previewResources = object : ResourceProvider {
+      override fun canProvide(resourceName: String): Boolean = resourceName == "alertIcons/note.png"
+      override fun loadResource(resourceName: String): ResourceProvider.Resource? = null
+    }
+    val js = IncrementalDOMBuilder(html, document, previewResources, previewResources).generateDomBuildCalls()
+    assertGeneratedContains(js, "o('img','src','alertIcons%2Fnote.png')")
+    assertGeneratedDoesNotContain(js, "'src','picture.png'")
+    assertGeneratedContains(js, "'data-original-src','picture.png'")
   }
 
   private fun assertGeneratedContains(js: String, expected: String) {
