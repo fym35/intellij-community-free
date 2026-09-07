@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.diagnostic;
 
 import com.intellij.openapi.diagnostic.Attachment;
@@ -25,6 +25,7 @@ public abstract class AbstractMessage {
   private String myAppInfo;
 
   public abstract @NotNull Throwable getThrowable();
+
   public abstract @NotNull String getThrowableText();
 
   /** Returns a message passed along with a throwable to {@link com.intellij.openapi.diagnostic.Logger#error}, if present. */
@@ -35,19 +36,19 @@ public abstract class AbstractMessage {
     return List.of();
   }
 
-  public @NotNull @Unmodifiable List<Attachment> getIncludedAttachments() {
+  public final @NotNull @Unmodifiable List<Attachment> getIncludedAttachments() {
     return ContainerUtil.filter(getAllAttachments(), Attachment::isIncluded);
   }
 
-  public @NotNull Date getDate() {
+  public final @NotNull Date getDate() {
     return myDate;
   }
 
-  public boolean isRead() {
+  public final boolean isRead() {
     return myIsRead;
   }
 
-  public void setRead(boolean isRead) {
+  public final void setRead(boolean isRead) {
     myIsRead = isRead;
     if (isRead && myOnReadCallback != null) {
       myOnReadCallback.run();
@@ -55,46 +56,46 @@ public abstract class AbstractMessage {
     }
   }
 
-  public void setOnReadCallback(Runnable callback) {
+  public final void setOnReadCallback(Runnable callback) {
     myOnReadCallback = callback;
   }
 
-  public boolean isSubmitting() {
+  public final boolean isSubmitting() {
     return myIsSubmitting;
   }
 
-  public void setSubmitting(boolean isSubmitting) {
+  public final void setSubmitting(boolean isSubmitting) {
     myIsSubmitting = isSubmitting;
   }
 
-  public SubmittedReportInfo getSubmissionInfo() {
+  public final SubmittedReportInfo getSubmissionInfo() {
     return mySubmissionInfo;
   }
 
-  public void setSubmitted(SubmittedReportInfo info) {
-    myIsSubmitting = false;
-    mySubmissionInfo = info;
-  }
-
-  public boolean isSubmitted() {
+  public final boolean isSubmitted() {
     return mySubmissionInfo != null &&
            (mySubmissionInfo.getStatus() == SubmittedReportInfo.SubmissionStatus.NEW_ISSUE ||
             mySubmissionInfo.getStatus() == SubmittedReportInfo.SubmissionStatus.DUPLICATE);
   }
 
-  public String getAdditionalInfo() {
+  public final void setSubmitted(SubmittedReportInfo info) {
+    myIsSubmitting = false;
+    mySubmissionInfo = info;
+  }
+
+  public final String getAdditionalInfo() {
     return myAdditionalInfo;
   }
 
-  public void setAdditionalInfo(String additionalInfo) {
+  public final void setAdditionalInfo(String additionalInfo) {
     myAdditionalInfo = additionalInfo;
   }
 
-  protected @Nullable String getAppInfo() {
+  protected final @Nullable String getAppInfo() {
     return myAppInfo;
   }
 
-  protected void setAppInfo(String appInfo) {
+  protected final void setAppInfo(String appInfo) {
     myAppInfo = appInfo;
   }
 }
