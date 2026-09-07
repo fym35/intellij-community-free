@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.intellij.terminal.TerminalExecutionConsoleBuilderKt.DEFAULT_CONVERT_LF_TO_CRLF_FOR_PROCESS_WITHOUT_PTY;
 import static com.intellij.terminal.TerminalExecutionConsoleBuilderKt.DEFAULT_INITIAL_TERM_SIZE;
+import static com.intellij.terminal.TerminalExecutionConsoleBuilderKt.DEFAULT_KEEP_LAST_LINE_ON_CLEAR;
 import static com.intellij.terminal.TerminalExecutionConsoleBuilderKt.createDefaultConsoleSettingsProvider;
 
 public class TerminalExecutionConsole implements ConsoleView, ObservableConsoleView {
@@ -82,6 +83,7 @@ public class TerminalExecutionConsole implements ConsoleView, ObservableConsoleV
 
   private boolean myEnterKeyDefaultCodeEnabled = true;
   private boolean myConvertLfToCrlfForNonPtyProcess = DEFAULT_CONVERT_LF_TO_CRLF_FOR_PROCESS_WITHOUT_PTY;
+  private final boolean myKeepLastLineOnClear;
   private final AtomicBoolean myFirstOutput = new AtomicBoolean(false);
 
   /**
@@ -128,7 +130,8 @@ public class TerminalExecutionConsole implements ConsoleView, ObservableConsoleV
     @NotNull JBTerminalSystemSettingsProviderBase settingsProvider,
     @Nullable ProcessHandler processHandler
   ) {
-    this(project, initialTermSize, settingsProvider, DEFAULT_CONVERT_LF_TO_CRLF_FOR_PROCESS_WITHOUT_PTY, processHandler);
+    this(project, initialTermSize, settingsProvider, DEFAULT_CONVERT_LF_TO_CRLF_FOR_PROCESS_WITHOUT_PTY,
+         DEFAULT_KEEP_LAST_LINE_ON_CLEAR, processHandler);
   }
 
   TerminalExecutionConsole(
@@ -136,9 +139,11 @@ public class TerminalExecutionConsole implements ConsoleView, ObservableConsoleV
     @NotNull TermSize initialTermSize,
     @NotNull JBTerminalSystemSettingsProviderBase settingsProvider,
     boolean convertLfToCrlfForNonPtyProcess,
+    boolean keepLastLineOnClear,
     @Nullable ProcessHandler processHandler
   ) {
     myProject = project;
+    myKeepLastLineOnClear = keepLastLineOnClear;
     myDataStream = new AppendableTerminalDataStream();
     myTerminalWidget = new ConsoleTerminalWidget(project, initialTermSize.getColumns(), initialTermSize.getRows(), settingsProvider);
     myInputMessageFilter = ConsoleViewUtil.computeInputFilter(this, project, GlobalSearchScope.allScope(project));
@@ -528,7 +533,7 @@ public class TerminalExecutionConsole implements ConsoleView, ObservableConsoleV
       JBTerminalPanel panel = new JBTerminalPanel((JBTerminalSystemSettingsProviderBase)settingsProvider, textBuffer, styleState) {
         @Override
         public void clearBuffer() {
-          super.clearBuffer(false);
+          super.clearBuffer(myKeepLastLineOnClear);
         }
       };
 

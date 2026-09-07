@@ -705,6 +705,7 @@ f:com.intellij.terminal.TerminalExecutionConsoleBuilder
 - f:build():com.intellij.terminal.TerminalExecutionConsole
 - f:convertLfToCrlfForProcessWithoutPty(Z):com.intellij.terminal.TerminalExecutionConsoleBuilder
 - f:initialTermSize(com.jediterm.core.util.TermSize):com.intellij.terminal.TerminalExecutionConsoleBuilder
+- f:keepLastLineOnClear(Z):com.intellij.terminal.TerminalExecutionConsoleBuilder
 - f:settingsProvider(com.intellij.terminal.JBTerminalSystemSettingsProviderBase):com.intellij.terminal.TerminalExecutionConsoleBuilder
 f:com.intellij.terminal.TerminalExecutorServiceManagerImpl
 - com.jediterm.terminal.TerminalExecutorServiceManager
