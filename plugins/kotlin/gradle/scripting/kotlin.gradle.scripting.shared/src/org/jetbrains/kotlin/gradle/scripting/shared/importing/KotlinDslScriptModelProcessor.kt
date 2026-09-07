@@ -6,30 +6,38 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileUtil.toSystemIndependentName
+import com.intellij.openapi.util.io.PathPrefixTree
 import com.intellij.openapi.vfs.VfsUtil
 import org.gradle.tooling.model.kotlin.dsl.EditorReportSeverity
 import org.gradle.tooling.model.kotlin.dsl.KotlinDslScriptsModel
 import org.jetbrains.kotlin.gradle.scripting.shared.getGradleScriptInputsStamp
 import org.jetbrains.kotlin.gradle.scripting.shared.kotlinDslScriptsModelImportSupported
 import org.jetbrains.plugins.gradle.model.GradleBuildScriptClasspathModel
+import org.jetbrains.plugins.gradle.model.GradleLightBuild
 import org.jetbrains.plugins.gradle.service.project.ProjectResolverContext
 import java.io.File
 
 fun getKotlinDslScripts(context: ProjectResolverContext): List<KotlinDslScriptModel> = buildList {
     if (kotlinDslScriptsModelImportSupported(context.projectGradleVersion)) {
         for (buildModel in context.allBuilds) {
-            val scriptsModel = context.getBuildModel(buildModel, KotlinDslScriptsModel::class.java) ?: continue
-            val classpathModel = context.getProjectModel(buildModel.rootProject, GradleBuildScriptClasspathModel::class.java)
-            addAll(getDslScriptModels(context.project, scriptsModel, classpathModel))
+            addAll(getDslScriptModels(context, buildModel))
         }
     }
 }
 
+@Suppress("IO_FILE_USAGE")
 private fun getDslScriptModels(
-    project: Project,
-    scriptsModel: KotlinDslScriptsModel,
-    classpathModel: GradleBuildScriptClasspathModel?
+    context: ProjectResolverContext,
+    buildModel: GradleLightBuild
 ): List<KotlinDslScriptModel> {
+    val scriptsModel = context.getBuildModel(buildModel, KotlinDslScriptsModel::class.java) ?: return emptyList()
+
+    val classpathModelIndex = PathPrefixTree.createMap<GradleBuildScriptClasspathModel>()
+    for (projectModel in buildModel.projects) {
+        val classpathModel = context.getProjectModel(projectModel, GradleBuildScriptClasspathModel::class.java) ?: continue
+        classpathModelIndex.put(projectModel.projectDirectory.toPath(), classpathModel)
+    }
+
     return scriptsModel.scriptModels.mapNotNull { (file, model) ->
         val messages = mutableListOf<KotlinDslScriptModel.Message>()
 
@@ -67,7 +75,7 @@ private fun getDslScriptModels(
         val virtualFile = VfsUtil.findFile(file.toPath(), true) ?: return@mapNotNull null
 
         // todo(KT-34440): take inputs snapshot before starting import
-        val gradleScriptInputsStamp = getGradleScriptInputsStamp(project, virtualFile) ?: return@mapNotNull null
+        val gradleScriptInputsStamp = getGradleScriptInputsStamp(context.project, virtualFile) ?: return@mapNotNull null
         KotlinDslScriptModel(
             toSystemIndependentName(file.path),
             gradleScriptInputsStamp,
@@ -75,7 +83,7 @@ private fun getDslScriptModels(
             model.sourcePath.map { toSystemIndependentName(it.path) },
             model.implicitImports,
             messages,
-            classpathModel
+            classpathModelIndex.getAncestorValues(file.toPath()).lastOrNull()
         )
     }
 }
