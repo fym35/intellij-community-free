@@ -25,7 +25,7 @@ internal class SnapshotCustomWrapStorage(
   val document: DocumentImpl,
 ) {
   private val wrapsById: ConcurrentLongObjectMap<SnapshotCustomWrap> = Java11Shim.createConcurrentLongObjectMap()
-  private val rootStore = SnapshotMarkerRootStore(document, onMarkersInvalidated = ::processInvalidatedWraps)
+  private val rootStore: SnapshotMarkerRootStore = SnapshotMarkerRootStore(document, onMarkersInvalidated = ::processInvalidatedWraps)
 
   fun dispose() {
     rootStore.dispose()

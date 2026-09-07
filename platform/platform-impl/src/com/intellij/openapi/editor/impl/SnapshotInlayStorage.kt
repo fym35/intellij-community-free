@@ -39,7 +39,7 @@ internal class SnapshotInlayStorage(
   val document: DocumentImpl,
 ) {
   private val markersById: ConcurrentLongObjectMap<SnapshotInlayMarker<*>> = Java11Shim.createConcurrentLongObjectMap()
-  private val rootStore = SnapshotMarkerRootStore(
+  private val rootStore: SnapshotMarkerRootStore = SnapshotMarkerRootStore(
     document,
     onMarkersInvalidated = ::saveInvalidatedMarkers,
     onDocumentChanged = ::processInvalidatedMarkers,
@@ -243,7 +243,7 @@ internal class SnapshotInlayStorage(
       if (marker != null) markers.add(marker)
       true
     }
-    markers.sortWith(compareBy<SnapshotInlayMarker<*>>({ it.startOffset }, { it.iterationOrder }))
+    markers.sortWith(compareBy({ it.startOffset }, { it.iterationOrder }))
     return markers.mapNotNull(convert)
   }
 

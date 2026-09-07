@@ -36,7 +36,7 @@ import java.util.function.LongConsumer
  * and child creation from the same parent are linearized by atomic root operations.
  */
 object SnapshotMarkerEngineImpl : SnapshotMarkerEngine, ReferenceQueueable {
-  private val markerQueue = ReferenceQueue<SnapshotRangeMarkerImpl>()
+  private val markerQueue: ReferenceQueue<SnapshotRangeMarkerImpl> = ReferenceQueue()
   private val nextMarkerId: StripedIDGenerator = StripedIDGenerator().also { it.next() /* id must not be 0 */ }
   /** Weakly tracks snapshots whose parent edit invalidated at least one marker. */
   private val snapshotsWithInvalidatedMarkers: MutableSet<DocumentSnapshot> =
@@ -365,5 +365,5 @@ object SnapshotMarkerEngineImpl : SnapshotMarkerEngine, ReferenceQueueable {
     }
   }
 
-  private const val DISPOSED_REASON = "Marker is disposed"
+  private const val DISPOSED_REASON: String = "Marker is disposed"
 }

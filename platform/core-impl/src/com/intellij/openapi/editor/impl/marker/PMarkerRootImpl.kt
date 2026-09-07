@@ -551,8 +551,8 @@ open class PMarkerRootImpl private constructor(
     states: PersistentLongMap<StoredNode>,
     initialPersistentMarkerCount: Int,
   ) {
-    private val builder = states.builder()
-    private var persistentMarkerCount = initialPersistentMarkerCount
+    private val builder: PersistentLongMapBuilder<StoredNode> = states.builder()
+    private var persistentMarkerCount: Int = initialPersistentMarkerCount
 
     fun valid(markerId: Long): ValidNode = builder.getUnchecked(markerId) as? ValidNode
                                            ?: throw IllegalStateException("Marker $markerId is not a valid tree node")
@@ -605,9 +605,9 @@ open class PMarkerRootImpl private constructor(
   }
 
   companion object {
-    private const val ALL_FLAVOR_FLAGS = 0xFF
+    private const val ALL_FLAVOR_FLAGS: Int = 0xFF
 
-    private val ENTRY_COMPARATOR = Comparator<MarkerEntry> { first, second -> PositionKey(first).compareTo(PositionKey(second)) }
+    private val ENTRY_COMPARATOR: Comparator<MarkerEntry> = Comparator { first, second -> PositionKey(first).compareTo(PositionKey(second)) }
     private const val NULL_NODE: Long = 0
     private object EMPTY : PMarkerRootImpl(
       NULL_NODE,

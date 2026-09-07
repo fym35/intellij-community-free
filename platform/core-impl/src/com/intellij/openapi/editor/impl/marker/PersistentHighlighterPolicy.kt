@@ -85,6 +85,6 @@ enum class PersistentHighlighterPolicy(private val wholeLineRange: Boolean) : Ma
   }
 
   private companion object {
-    private const val INVALIDATED_BY_EDIT = "Marker was invalidated by a document edit"
+    private const val INVALIDATED_BY_EDIT: String = "Marker was invalidated by a document edit"
   }
 }

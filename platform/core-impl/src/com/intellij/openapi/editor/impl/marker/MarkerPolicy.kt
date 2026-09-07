@@ -128,5 +128,5 @@ object DefaultMarkerPolicy : MarkerPolicy {
     return MarkerTransformResult.Invalid(INVALIDATED_BY_EDIT)
   }
 
-  private const val INVALIDATED_BY_EDIT = "Marker was invalidated by a document edit"
+  private const val INVALIDATED_BY_EDIT: String = "Marker was invalidated by a document edit"
 }

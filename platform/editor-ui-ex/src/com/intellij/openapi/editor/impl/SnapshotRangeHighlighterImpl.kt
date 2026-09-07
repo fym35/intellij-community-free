@@ -338,7 +338,7 @@ internal class SnapshotRangeHighlighterImpl private constructor(
 
   companion object {
     @Suppress("InspectionUsingGrayColors", "UseJBColor")
-    private val NULL_COLOR = Color(0, 0, 0)
+    private val NULL_COLOR: Color = Color(0, 0, 0)
 
     @JvmStatic
     fun create(
@@ -374,7 +374,7 @@ internal class SnapshotRangeHighlighterImpl private constructor(
       else {
         PersistentHighlighterPolicy.EXACT_RANGE
       }
-      val spec = MarkerSpec(false, false, policy = policy)
+      val spec = MarkerSpec(isGreedyToLeft = false, isGreedyToRight = false, policy = policy)
       return create(storage, startOffset, endOffset, layer, targetArea, textAttributesKey, spec, persistent = true)
     }
 

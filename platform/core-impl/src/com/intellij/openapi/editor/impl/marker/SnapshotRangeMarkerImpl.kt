@@ -55,7 +55,7 @@ open class SnapshotRangeMarkerImpl private constructor(
   }
 
   @Volatile
-  private var spec = initialSpec
+  private var spec: MarkerSpec = initialSpec
 
   override fun getId(): Long {
     return markerId

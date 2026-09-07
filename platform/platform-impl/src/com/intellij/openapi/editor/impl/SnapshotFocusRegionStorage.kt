@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 /** Stores focus regions for one editor without adding them to the document marker root. */
 internal class SnapshotFocusRegionStorage(val document: DocumentImpl) {
-  private val regionQueue = ReferenceQueue<SnapshotFocusRegion>()
+  private val regionQueue: ReferenceQueue<SnapshotFocusRegion> = ReferenceQueue<SnapshotFocusRegion>()
   private val regionsById: ConcurrentLongObjectMap<RegionReference> = Java11Shim.createConcurrentLongObjectMap()
-  private val rootStore = SnapshotMarkerRootStore(document)
+  private val rootStore: SnapshotMarkerRootStore = SnapshotMarkerRootStore(document)
 
   fun dispose() {
     rootStore.dispose()

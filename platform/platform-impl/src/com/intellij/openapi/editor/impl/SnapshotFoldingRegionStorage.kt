@@ -40,7 +40,7 @@ internal class SnapshotFoldingRegionStorage(
   val document: DocumentImpl,
 ) : FoldingRegionStorage {
   private val regionsById: ConcurrentLongObjectMap<SnapshotFoldRegion> = Java11Shim.createConcurrentLongObjectMap()
-  private val rootStore = SnapshotMarkerRootStore(
+  private val rootStore: SnapshotMarkerRootStore = SnapshotMarkerRootStore(
     document,
     onMarkersInvalidated = ::processInvalidatedRegions,
     onDocumentChanged = ::documentChanged,
@@ -232,7 +232,7 @@ internal class SnapshotFoldingRegionStorage(
   }
 
   companion object {
-    private val REGION_COMPARATOR = compareBy<SnapshotFoldRegion>(
+    private val REGION_COMPARATOR: Comparator<SnapshotFoldRegion> = compareBy(
       { it.startOffset },
       { it.endOffset - it.startOffset },
       { it is SnapshotCustomFoldRegion },
@@ -357,8 +357,8 @@ internal open class SnapshotFoldRegion(
   }
 
   companion object {
-    private val MUTE_INNER_HIGHLIGHTERS = Key.create<Boolean>("mute.inner.highlighters")
-    private val SHOW_GUTTER_MARK_FOR_SINGLE_LINE = Key.create<Boolean>("show.gutter.mark.for.single.line")
+    private val MUTE_INNER_HIGHLIGHTERS: Key<Boolean?> = Key.create<Boolean>("mute.inner.highlighters")
+    private val SHOW_GUTTER_MARK_FOR_SINGLE_LINE: Key<Boolean?> = Key.create<Boolean>("show.gutter.mark.for.single.line")
 
     private fun setExpanded(
       expanded: Boolean,
