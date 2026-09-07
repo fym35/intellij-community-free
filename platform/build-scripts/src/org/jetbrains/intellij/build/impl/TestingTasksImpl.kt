@@ -1696,4 +1696,5 @@ private val COMMUNITY_AGGREGATOR_BAZEL_MIGRATED_MODULES = listOf(
   "intellij.terminal.tests",
   "intellij.tools.ide.metrics.statistics.tests",
   "intellij.python.community.junit5Tests.framework",
+  "intellij.python.venv.tests",
 )
