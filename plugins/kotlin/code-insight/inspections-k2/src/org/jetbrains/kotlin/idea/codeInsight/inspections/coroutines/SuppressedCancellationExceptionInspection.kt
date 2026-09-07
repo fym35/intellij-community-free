@@ -19,6 +19,8 @@ import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.siblings
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.components.KaImplicitReceiver
+import org.jetbrains.kotlin.analysis.api.components.KaScopeContext
 import org.jetbrains.kotlin.analysis.api.components.scopeContext
 import org.jetbrains.kotlin.analysis.api.expressions.isUsedAsExpression
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
@@ -81,6 +83,10 @@ internal class SuppressedCancellationExceptionInspection :
         abstract val rangeInElement: TextRange?
         abstract val description: @InspectionMessage String
         abstract fun createFix(): PsiUpdateModCommandQuickFix
+
+        // This is a var because we only set it at the very end of `prepareContext`.
+        // This is done because building the scope context is expensive.
+        var hasImplicitCoroutineScopeReceiver: Boolean = false
     }
 
     class RunCatchingDetection(call: KtCallExpression) : SuppressedCancellationExceptionInspectionData(call) {
@@ -89,7 +95,8 @@ internal class SuppressedCancellationExceptionInspection :
         override val description: @InspectionMessage String
             get() = KotlinBundle.message("inspection.suppressed.cancellation.exception.run.catching.description")
 
-        override fun createFix(): PsiUpdateModCommandQuickFix = AddEnsureActiveInRunCatchingQuickFix()
+        override fun createFix(): PsiUpdateModCommandQuickFix =
+            AddEnsureActiveInRunCatchingQuickFix(hasImplicitCoroutineScopeReceiver)
     }
 
     class TryCatchDetection(private val tryExpression: KtTryExpression, private val catchClause: KtCatchClause) :
@@ -102,7 +109,8 @@ internal class SuppressedCancellationExceptionInspection :
             get() = KotlinBundle.message("inspection.suppressed.cancellation.exception.try.catch.description")
 
         override fun createFix(): PsiUpdateModCommandQuickFix = AddEnsureActiveToTryCatchQuickFix(
-            tryExpression.catchClauses.indexOf(catchClause)
+            catchClauseIndex = tryExpression.catchClauses.indexOf(catchClause),
+            hasImplicitCoroutineScopeReceiver = hasImplicitCoroutineScopeReceiver
         )
     }
 
@@ -477,16 +485,35 @@ internal class SuppressedCancellationExceptionInspection :
     }
 
     /**
+     * Returns all the implicit receivers that are exposed from within the [suspendContext].
+     * Omits any implicit receivers having their origin outside the [suspendContext].
+     */
+    private fun KaScopeContext.implicitReceiversOfCurrentContext(suspendContext: KtFunction): List<KaImplicitReceiver> {
+        return implicitReceivers.filter {
+            val ownerPsi = it.ownerSymbol.psi ?: return@filter false
+            PsiTreeUtil.isAncestor(suspendContext, ownerPsi, false)
+        }
+    }
+
+    /**
      * `SequenceBuilder` and `DeepRecursive` both restrict suspension because they do not
      * actually use the Coroutines API. Instead, they only use the CPS transformation to
      * model possibly infinite runs of code.
      * In these cases, cancellation exceptions are not expected as regular suspend functions cannot be called.
      */
-    context(_: KaSession)
-    private fun KtElement.isInRestrictedSuspensionBlock(): Boolean {
-        val receivers = containingKtFile.scopeContext(this).implicitReceivers
-        return receivers.any {
+    private fun KaScopeContext.isInRestrictedSuspensionBlock(suspendContext: KtFunction): Boolean {
+        return implicitReceiversOfCurrentContext(suspendContext).any {
             it.type.symbol?.annotations?.contains(StandardClassIds.Annotations.RestrictsSuspension) == true
+        }
+    }
+
+    /**
+     * Returns whether there is an implicit receiver of type `CoroutineScope` that is exposed from within the [suspendContext].
+     */
+    context(_: KaSession)
+    private fun KaScopeContext.hasImplicitCoroutineScopeReceiver(suspendContext: KtFunction): Boolean {
+        return implicitReceiversOfCurrentContext(suspendContext).any {
+            it.type.isSubtypeOf(CoroutinesIds.CoroutineScope.ID)
         }
     }
 
@@ -496,7 +523,8 @@ internal class SuppressedCancellationExceptionInspection :
         // might be called for many elements that share the same suspend context, so caching
         // will provide a speed-up.
         val suspendContextCache = mutableMapOf<PsiElement, KtFunction?>()
-        if (!isInSuspendContext(element, suspendContextCache)) {
+        val suspendContext = getContainingSuspendContext(element, suspendContextCache)
+        if (suspendContext == null) {
             return null
         }
 
@@ -517,36 +545,51 @@ internal class SuppressedCancellationExceptionInspection :
             // The code after the `runCatching` or `catch` already potentially re-raises the CancellationException
             return null
         }
-        return detection.takeUnless { element.isInRestrictedSuspensionBlock() }
+        val scopeContext = element.containingKtFile.scopeContext(element)
+        if (scopeContext.isInRestrictedSuspensionBlock(suspendContext)) return null
+
+        detection.hasImplicitCoroutineScopeReceiver = scopeContext.hasImplicitCoroutineScopeReceiver(suspendContext)
+        return detection
     }
 }
 
 /**
- * Creates the PSI for calling `ensureActive` on the current coroutine context.
+ * Creates the PSI for calling `ensureActive` on the current coroutine context, or using
+ * the available implicit receiver if [hasImplicitCoroutineScopeReceiver] is set to true.
  * If [exceptionParameterName] is not "_", wraps the call in an `if` statement checking if the caught exception is a CancellationException.
  * Adds an import for `ensureActive` to the [ktFile] if required.
  */
-private fun createEnsureActiveCallAndImport(exceptionParameterName: String, psiFactory: KtPsiFactory, ktFile: KtFile): KtExpression {
-    val cancellationExceptionFqName = CoroutinesIds.CancellationException.ID.asSingleFqName().withRootPrefixIfNeeded()
-    val currentCoroutineContextFqName = CoroutinesIds.currentCoroutineContext.asSingleFqName().withRootPrefixIfNeeded()
+private fun createEnsureActiveCallAndImportIfNecessary(
+    exceptionParameterName: String,
+    hasImplicitCoroutineScopeReceiver: Boolean,
+    psiFactory: KtPsiFactory,
+    ktFile: KtFile
+): KtExpression {
     val ensureActiveFqName = CoroutinesIds.ensureActive.asSingleFqName()
-
     // `ensureActive` is an extension function with a receiver and needs to be imported explicitly.
     ktFile.addImportFor(ensureActiveFqName)
 
-    val ensureActiveCall =
+    val ensureActiveCall = if (hasImplicitCoroutineScopeReceiver) {
+        psiFactory.createExpressionByPattern("$0()", ensureActiveFqName.shortName())
+    } else {
+        val currentCoroutineContextFqName = CoroutinesIds.currentCoroutineContext.asSingleFqName().withRootPrefixIfNeeded()
         psiFactory.createExpressionByPattern("$0().$1()", currentCoroutineContextFqName.render(), ensureActiveFqName.shortName())
+    }
+
     if (exceptionParameterName == "_") {
         // Without exception name, we do not check the exception to be a CancellationException explicitly.
         return ensureActiveCall
     }
 
+    val cancellationExceptionFqName = CoroutinesIds.CancellationException.ID.asSingleFqName().withRootPrefixIfNeeded()
     val expressionCheck = psiFactory.createExpression("$exceptionParameterName is ${cancellationExceptionFqName.render()}")
     val thenBlock = psiFactory.createBlock(ensureActiveCall.text)
     return psiFactory.createIf(expressionCheck, thenBlock)
 }
 
-private class AddEnsureActiveInRunCatchingQuickFix : KotlinModCommandQuickFix<KtCallExpression>() {
+private class AddEnsureActiveInRunCatchingQuickFix(
+    private val hasImplicitCoroutineScopeReceiver: Boolean
+) : KotlinModCommandQuickFix<KtCallExpression>() {
     override fun getFamilyName(): @IntentionFamilyName String =
         KotlinBundle.message("check.for.cancellation.run.catching.text")
 
@@ -557,7 +600,12 @@ private class AddEnsureActiveInRunCatchingQuickFix : KotlinModCommandQuickFix<Kt
     ) {
         val psiFactory = KtPsiFactory(project)
 
-        val ifExpression = createEnsureActiveCallAndImport("it", psiFactory, element.containingKtFile)
+        val ifExpression = createEnsureActiveCallAndImportIfNecessary(
+            exceptionParameterName = "it",
+            hasImplicitCoroutineScopeReceiver = hasImplicitCoroutineScopeReceiver,
+            psiFactory = psiFactory,
+            ktFile = element.containingKtFile
+        )
         val newExpression = psiFactory.createExpressionByPattern("$0.onFailure { $1 }", element, ifExpression)
         val replaced = element.replaced(newExpression)
 
@@ -567,7 +615,8 @@ private class AddEnsureActiveInRunCatchingQuickFix : KotlinModCommandQuickFix<Kt
 }
 
 private class AddEnsureActiveToTryCatchQuickFix(
-    private val catchClauseIndex: Int
+    private val catchClauseIndex: Int,
+    private val hasImplicitCoroutineScopeReceiver: Boolean,
 ) : KotlinModCommandQuickFix<KtTryExpression>() {
     override fun getFamilyName(): @IntentionFamilyName String =
         KotlinBundle.message("check.for.cancellation.try.catch.text")
@@ -583,7 +632,12 @@ private class AddEnsureActiveToTryCatchQuickFix(
         val lbrace = catchBody.lBrace ?: return
         val parameterName = catchClause.catchParameter?.name ?: return
 
-        val ifExpression = createEnsureActiveCallAndImport(parameterName, psiFactory, element.containingKtFile)
+        val ifExpression = createEnsureActiveCallAndImportIfNecessary(
+            exceptionParameterName = parameterName,
+            hasImplicitCoroutineScopeReceiver = hasImplicitCoroutineScopeReceiver,
+            psiFactory = psiFactory,
+            ktFile = element.containingKtFile
+        )
 
         val newIfStatement = catchBody.addAfter(ifExpression, lbrace) as? KtElement
         if (newIfStatement != null) {
