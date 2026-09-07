@@ -23,17 +23,18 @@ import javax.swing.Icon
 
 class CodeFenceLanguageListCompletionProvider: CompletionProvider<CompletionParameters>() {
   override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
+    val insertHandler = MyInsertHandler(getIndentForFence(parameters))
     result.addElement(PrioritizedLookupElement.withPriority(
       LookupElementBuilder.create("")
         .withTailText(" (no language)", true)
-        .withInsertHandler(MyInsertHandler(parameters)),
+        .withInsertHandler(insertHandler),
       Double.MAX_VALUE
     ))
     for (provider in CodeFenceLanguageGuesser.customProviders) {
       val lookups = provider.getCompletionVariantsForInfoString(parameters)
       for (lookupElement in lookups) {
         val element = LookupElementDecorator.withInsertHandler(lookupElement) { context: InsertionContext, item: LookupElementDecorator<LookupElement> ->
-          MyInsertHandler(parameters).handleInsert(context, item)
+          insertHandler.handleInsert(context, item)
           lookupElement.handleInsert(context)
         }
         result.addElement(element)
@@ -41,19 +42,12 @@ class CodeFenceLanguageListCompletionProvider: CompletionProvider<CompletionPara
     }
   }
 
-  private class MyInsertHandler(private val parameters: CompletionParameters): InsertHandler<LookupElement> {
+  private class MyInsertHandler(private val fenceSplitIndent: String?): InsertHandler<LookupElement> {
     override fun handleInsert(context: InsertionContext, item: LookupElement) {
-      val originalPosition = parameters.originalPosition
-      if (isInMiddleOfUnCollapsedFence(originalPosition, context.startOffset)) {
-        // Whatever indent already precedes the fence's opening backticks on this line must carry over to the
-        // new body/closing lines. The PSI here is still a collapsed code span / lone fence-start token
-        // (pre-reparse), so there is no MarkdownCodeFence yet -- fenceStartOffset locates the same offset
-        // MarkdownCodeFenceUtils.getIndent(element) would have used, by offset instead.
-        val indent = fenceStartOffset(originalPosition)?.let { MarkdownCodeFenceUtils.getIndent(context.document, it) } ?: ""
-        val insertionOffset = context.tailOffset
-        context.document.insertString(insertionOffset, "\n$indent\n$indent")
-        context.editor.caretModel.moveToOffset(insertionOffset + 1 + indent.length)
-      }
+      val indent = fenceSplitIndent ?: return
+      val insertionOffset = context.tailOffset
+      context.document.insertString(insertionOffset, "\n$indent\n$indent")
+      context.editor.caretModel.moveToOffset(insertionOffset + 1 + indent.length)
     }
   }
 
@@ -61,6 +55,15 @@ class CodeFenceLanguageListCompletionProvider: CompletionProvider<CompletionPara
     @JvmStatic
     fun createLanguageIcon(language: Language): Icon {
       return DeferredIconImpl(null, language, true) { curLanguage: Language -> curLanguage.associatedFileType?.icon }
+    }
+
+    private fun getIndentForFence(parameters: CompletionParameters): String? {
+      val originalPosition = parameters.originalPosition
+      if (!isInMiddleOfUnCollapsedFence(originalPosition, parameters.offset)) {
+        return null
+      }
+      val fenceStart = fenceStartOffset(originalPosition) ?: return ""
+      return MarkdownCodeFenceUtils.getIndent(parameters.editor.document, fenceStart)
     }
 
     @JvmStatic
