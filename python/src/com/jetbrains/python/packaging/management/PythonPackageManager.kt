@@ -15,7 +15,6 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.psi.PsiFile
@@ -611,7 +610,6 @@ abstract class PythonPackageManager @ApiStatus.Internal constructor(
     @Topic.AppLevel
     val PACKAGE_MANAGEMENT_TOPIC: Topic<PythonPackageManagementListener> =
       Topic(PythonPackageManagementListener::class.java, Topic.BroadcastDirection.TO_DIRECT_CHILDREN)
-    val RUNNING_PACKAGING_TASKS: Key<Boolean> = Key.create("PyPackageRequirementsInspection.RunningPackagingTasks")
 
     @ApiStatus.Internal
     data class PackageManagerErrorMessage(
