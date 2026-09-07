@@ -96,15 +96,23 @@ public final class InlineMethodHandler extends JavaInlineActionHandler {
     PsiMethod realMethod = context.method();
     PsiReference reference = context.reference();
     String message = JavaRefactoringBundle.message("dialog.message.confirmation.to.process.only.implementation",
-                                                   PsiFormatUtil.formatMethod(realMethod, PsiSubstitutor.EMPTY,
-                                                                              PsiFormatUtilBase.SHOW_NAME |
-                                                                              PsiFormatUtilBase.SHOW_CONTAINING_CLASS, 0));
+                                                   formatMethod(realMethod));
     int answer = Messages.showYesNoDialog(project, message, getRefactoringName(), Messages.getQuestionIcon());
     if (answer == Messages.NO) return;
     InlineMethodProcessor processor = new InlineMethodProcessor(project, realMethod, reference, editor, true, false, false, true);
     // Without this line, conflicts view is not shown
     processor.setPrepareSuccessfulSwingThreadCallback(() -> {});
     processor.run();
+  }
+
+  /**
+   * Formats method in a way it will be displayed in the dialogs related to inline method refactoring.
+   * @param method candidate method to be formatted.
+   */
+  public static @NotNull String formatMethod(@NotNull PsiMethod method) {
+    return PsiFormatUtil.formatMethod(method, PsiSubstitutor.EMPTY,
+                                      PsiFormatUtilBase.SHOW_NAME |
+                                      PsiFormatUtilBase.SHOW_CONTAINING_CLASS, 0);
   }
 
   private static void inlineObject(ContextOrError.InlineObject inlineObject) {
