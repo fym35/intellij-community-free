@@ -172,6 +172,7 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
+import org.jetbrains.annotations.VisibleForTesting
 import java.awt.AWTEvent
 import java.awt.Color
 import java.awt.Component
@@ -446,8 +447,9 @@ open class FileEditorManagerImpl(
     processFileUpdateRequests()
   }
 
-  @RequiresEdt
-  internal suspend fun init(): kotlin.Pair<EditorsSplitters, EditorSplitterState?> {
+  @VisibleForTesting
+  @Internal
+  suspend fun init(): kotlin.Pair<EditorsSplitters, EditorSplitterState?> {
     initJob.join()
     return mainSplitters to state.getAndSet(null)
   }
