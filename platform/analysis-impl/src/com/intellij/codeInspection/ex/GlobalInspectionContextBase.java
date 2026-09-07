@@ -71,7 +71,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.intellij.openapi.diagnostic.LoggerKt.rethrowControlFlowException;
+import static com.intellij.diagnostic.ControlFlowExceptionsKt.rethrowControlFlowException;
 
 public class GlobalInspectionContextBase extends UserDataHolderBase implements GlobalInspectionContext {
   private static final Logger LOG = Logger.getInstance(GlobalInspectionContextBase.class);

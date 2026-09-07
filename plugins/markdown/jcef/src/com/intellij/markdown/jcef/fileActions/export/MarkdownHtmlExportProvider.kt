@@ -8,7 +8,7 @@ import com.intellij.markdown.jcef.preview.JCEFHtmlPanelProvider
 import com.intellij.markdown.jcef.preview.MarkdownJCEFHtmlPanel
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project

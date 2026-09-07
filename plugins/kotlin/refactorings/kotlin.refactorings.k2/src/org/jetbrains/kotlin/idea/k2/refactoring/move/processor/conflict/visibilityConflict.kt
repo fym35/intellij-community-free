@@ -2,7 +2,7 @@
 package org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict
 
 import com.intellij.openapi.diagnostic.fileLogger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMember

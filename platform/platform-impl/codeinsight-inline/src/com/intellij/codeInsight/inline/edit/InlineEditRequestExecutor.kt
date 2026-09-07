@@ -5,7 +5,7 @@ import com.intellij.codeInsight.inline.completion.exception.InlineCompletionTest
 import com.intellij.codeWithMe.ClientId
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.debug
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.checkCanceled
 import com.intellij.platform.util.coroutines.childScope

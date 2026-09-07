@@ -9,7 +9,7 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.lang.annotation.HighlightSeverity.ERROR
 import com.intellij.lang.annotation.HighlightSeverity.INFORMATION
 import com.intellij.lang.annotation.HighlightSeverity.WARNING
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement

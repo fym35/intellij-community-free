@@ -24,7 +24,7 @@ import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.impl.stores.ComponentStorageUtil
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.getOrLogException
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.options.Scheme
 import com.intellij.openapi.options.SchemeProcessor

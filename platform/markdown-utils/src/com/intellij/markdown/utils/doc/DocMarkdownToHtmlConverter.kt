@@ -6,7 +6,7 @@ import com.intellij.lang.documentation.QuickDocHighlightingHelper
 import com.intellij.markdown.utils.doc.impl.DocFlavourDescriptor
 import com.intellij.markdown.utils.doc.impl.DocTagRenderer
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange

@@ -3,7 +3,7 @@ package com.intellij.settingsSync.core
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.io.delete
 import org.jetbrains.annotations.VisibleForTesting
