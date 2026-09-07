@@ -2,6 +2,7 @@
 package com.intellij.refactoring.inline;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
@@ -14,6 +15,7 @@ import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
+import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiModifier;
@@ -23,7 +25,11 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiThisExpression;
 import com.intellij.psi.util.PsiUtil;
+import com.intellij.refactoring.RefactoringBundle;
+import com.intellij.refactoring.util.RefactoringUIUtil;
+import com.intellij.usageView.UsageInfo;
 import com.intellij.util.CommonJavaRefactoringUtil;
+import com.intellij.util.containers.MultiMap;
 import com.siyeh.ig.psiutils.ControlFlowUtils;
 import com.siyeh.ig.psiutils.ExpressionUtils;
 import com.siyeh.ig.psiutils.TypeUtils;
@@ -33,8 +39,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import static com.intellij.openapi.util.NlsContexts.DialogMessage;
 import static com.intellij.util.ObjectUtils.tryCast;
 
 /**
@@ -179,6 +187,37 @@ public final class InlineObjectProcessorUtil {
     Visitor visitor = new Visitor();
     body.accept(visitor);
     return visitor.leak;
+  }
+
+  public static UsageInfo @NotNull [] findUsages(@NotNull InlineObjectContext context) {
+    return new UsageInfo[]{new UsageInfo(context.reference())};
+  }
+
+  public static void collectConflicts(@NotNull InlineObjectContext context,
+                                      UsageInfo @NotNull [] usages,
+                                      @NotNull MultiMap<PsiElement, @DialogMessage String> conflicts) {
+    PsiMethod method = context.method();
+    final ReferencedElementsCollector collector = new ReferencedElementsCollector();
+    method.accept(collector);
+    context.nextMethod().accept(collector);
+
+    final Map<PsiMember, Set<PsiMember>> containersToReferenced =
+      InlineMethodProcessorUtil.getInaccessible(collector.myReferencedMembers, usages, method);
+
+    containersToReferenced.forEach((container, referencedInaccessible) -> {
+      for (PsiMember referenced : referencedInaccessible) {
+        if (referenced instanceof PsiField && !referenced.hasModifierProperty(PsiModifier.STATIC) &&
+            referenced.getContainingClass() == method.getContainingClass()) {
+          // Instance fields will be inlined
+          continue;
+        }
+        final String referencedDescription = RefactoringUIUtil.getDescription(referenced, true);
+        final String containerDescription = RefactoringUIUtil.getDescription(container, true);
+        String message = RefactoringBundle.message("0.that.is.used.in.inlined.method.is.not.accessible.from.call.site.s.in.1",
+                                                   referencedDescription, containerDescription);
+        conflicts.putValue(container, StringUtil.capitalize(message));
+      }
+    });
   }
 
   /**

@@ -6,7 +6,6 @@ import com.intellij.codeInsight.ChangeContextUtil;
 import com.intellij.codeInsight.editorActions.DeclarationJoinLinesHandler;
 import com.intellij.java.refactoring.JavaRefactoringBundle;
 import com.intellij.openapi.util.Ref;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.JavaTokenType;
 import com.intellij.psi.PsiAssignmentExpression;
@@ -19,7 +18,6 @@ import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiExpressionStatement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiLocalVariable;
-import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiModifier;
@@ -32,10 +30,8 @@ import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.refactoring.BaseRefactoringProcessor;
-import com.intellij.refactoring.RefactoringBundle;
 import com.intellij.refactoring.inline.InlineObjectProcessorUtil.InlineObjectContext;
 import com.intellij.refactoring.util.InlineUtil;
-import com.intellij.refactoring.util.RefactoringUIUtil;
 import com.intellij.usageView.UsageInfo;
 import com.intellij.usageView.UsageViewDescriptor;
 import com.intellij.util.ArrayUtil;
@@ -54,10 +50,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
+import static com.intellij.openapi.util.NlsContexts.DialogMessage;
 import static com.intellij.util.ObjectUtils.tryCast;
 
 /**
@@ -84,7 +79,7 @@ public final class InlineObjectProcessor extends BaseRefactoringProcessor {
 
   @Override
   protected UsageInfo @NotNull [] findUsages() {
-    return new UsageInfo[]{new UsageInfo(myContext.reference())};
+    return InlineObjectProcessorUtil.findUsages(myContext);
   }
 
   @Override
@@ -260,29 +255,9 @@ public final class InlineObjectProcessor extends BaseRefactoringProcessor {
 
   @Override
   protected boolean preprocessUsages(@NotNull Ref<UsageInfo[]> refUsages) {
-    PsiMethod method = myContext.method();
     final UsageInfo[] usagesIn = refUsages.get();
-    final MultiMap<PsiElement, String> conflicts = new MultiMap<>();
-    final ReferencedElementsCollector collector = new ReferencedElementsCollector();
-    method.accept(collector);
-    myContext.nextMethod().accept(collector);
-
-    final Map<PsiMember, Set<PsiMember>> containersToReferenced = InlineMethodProcessorUtil.getInaccessible(collector.myReferencedMembers, usagesIn, method);
-
-    containersToReferenced.forEach((container, referencedInaccessible) -> {
-      for (PsiMember referenced : referencedInaccessible) {
-        if (referenced instanceof PsiField && !referenced.hasModifierProperty(PsiModifier.STATIC) &&
-            referenced.getContainingClass() == method.getContainingClass()) {
-          // Instance fields will be inlined
-          continue;
-        }
-        final String referencedDescription = RefactoringUIUtil.getDescription(referenced, true);
-        final String containerDescription = RefactoringUIUtil.getDescription(container, true);
-        String message = RefactoringBundle.message("0.that.is.used.in.inlined.method.is.not.accessible.from.call.site.s.in.1",
-                                                   referencedDescription, containerDescription);
-        conflicts.putValue(container, StringUtil.capitalize(message));
-      }
-    });
+    final MultiMap<PsiElement, @DialogMessage String> conflicts = new MultiMap<>();
+    InlineObjectProcessorUtil.collectConflicts(myContext, usagesIn, conflicts);
     return showConflicts(conflicts, usagesIn);
   }
 
