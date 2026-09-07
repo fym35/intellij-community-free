@@ -52,6 +52,13 @@ interface RegistryManager {
 
   fun intValue(key: String, defaultValue: Int): Int
 
+  /**
+   * The string value of [key], or [defaultValue] when no loaded plugin descriptor declares [key].
+   *
+   * Unlike the single-argument form, this overload never returns `null`.
+   */
+  fun stringValue(key: String, defaultValue: String): String
+
   fun get(key: String): RegistryValue
 
   fun resetValueChangeListener()

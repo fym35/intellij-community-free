@@ -74,6 +74,15 @@ internal class RegistryManagerImpl(coroutineScope: CoroutineScope) : PersistentS
     }
   }
 
+  override fun stringValue(key: String, defaultValue: String): @NlsSafe String {
+    try {
+      return Registry._getWithoutStateCheck(key).asString()
+    }
+    catch (_: MissingResourceException) {
+      return defaultValue
+    }
+  }
+
   override fun get(key: String): RegistryValue = Registry._getWithoutStateCheck(key)
 
   override fun resetValueChangeListener() {

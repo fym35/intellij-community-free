@@ -1642,6 +1642,7 @@ com.intellij.openapi.util.registry.RegistryManager
 - a:is(java.lang.String,Z):Z
 - a:resetValueChangeListener():V
 - a:stringValue(java.lang.String):java.lang.String
+- a:stringValue(java.lang.String,java.lang.String):java.lang.String
 f:com.intellij.openapi.util.registry.RegistryManager$Companion
 - f:getInstance():com.intellij.openapi.util.registry.RegistryManager
 - f:getInstanceAsync(kotlin.coroutines.Continuation):java.lang.Object
