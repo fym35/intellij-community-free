@@ -4,6 +4,7 @@ package com.intellij.openapi.editor.impl.view;
 import com.intellij.diagnostic.PluginException;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.openapi.application.AccessToken;
+import com.intellij.openapi.diagnostic.Attachment;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.CaretModel;
@@ -303,6 +304,7 @@ public final class EditorPainter implements TextDrawingCallback {
     private MarginPositions myMarginPositions;
     private final CaretDataInView myCaretDataInView;
     private final boolean myIsBuildingCache;
+    private boolean myBrokenFragmentRangeReported;
 
     private Session(EditorView view, Graphics2D g) {
       myView = view;
@@ -1817,12 +1819,20 @@ public final class EditorPainter implements TextDrawingCallback {
           else {
             while (fragment.isRtl() ? start > end : start < end) {
               if (fragment.isRtl() ? it.getEndOffset() >= start : it.getEndOffset() <= start) {
-                assert !it.atEnd();
+                if (it.atEnd()) {
+                  // The iteration state cannot cover the rest of the fragment, and advance() would not move it.
+                  reportBrokenFragmentRange(fragment, it, fragmentStartOffset, start, it.getEndOffset(), end, visualLineEndOffset);
+                  break;
+                }
                 it.advance();
               }
               TextAttributes attributes = it.getMergedAttributes();
               boolean isSelection = it.isInSelection(false);
               int curEnd = fragment.isRtl() ? Math.max(it.getEndOffset(), end) : Math.min(it.getEndOffset(), end);
+              if (fragment.isRtl() ? curEnd >= start : curEnd <= start) {
+                reportBrokenFragmentRange(fragment, it, fragmentStartOffset, start, curEnd, end, visualLineEndOffset);
+                break;
+              }
               float xNew = fragment.offsetToX(x, start, curEnd);
               if (xNew >= myClip.getMinX()) {
                 painter.paint(fragment,
@@ -1883,6 +1893,53 @@ public final class EditorPainter implements TextDrawingCallback {
           marginWidthConsumer.process(x + (myMarginColumns - endLogicalColumn) * myView.getPlainSpaceWidth());
         }
       }
+    }
+
+    /**
+     * Reports an invalid text fragment range, and keeps the painting alive. See IJPL-176182.
+     * <p>
+     * A fragment offset comes from {@link VisualLineFragmentsIterator}, and an attribute offset comes from
+     * {@link IterationState}. The two agree only while every editor model matches the document. A model that
+     * updates late makes the range invalid. A fragment such as {@code SimpleTextFragment} then draws a negative
+     * number of characters, and the graphics rejects the range. The caller drops the rest of the fragment instead.
+     * <p>
+     * The report holds the editor state, because this state has no known reproduction.
+     * One report per paint keeps the log readable.
+     */
+    private void reportBrokenFragmentRange(
+      VisualLineFragmentsIterator.Fragment fragment,
+      IterationState it,
+      int fragmentStartOffset,
+      int start,
+      int curEnd,
+      int end,
+      int visualLineEndOffset
+    ) {
+      if (myBrokenFragmentRangeReported) {
+        return;
+      }
+      myBrokenFragmentRangeReported = true;
+      String state;
+      try {
+        state = myEditor.dumpState();
+      }
+      catch (Throwable e) {
+        // The models are already inconsistent, so the dump itself can fail. It must not replace the report.
+        state = "the editor state is not available: " + e;
+      }
+      LOG.error(
+        "Invalid text fragment range, the rest of the fragment is not painted" +
+        ": rtl=" + fragment.isRtl() +
+        ", fragmentStart=" + fragmentStartOffset +
+        ", start=" + start +
+        ", curEnd=" + curEnd +
+        ", end=" + end +
+        ", iterationStart=" + it.getStartOffset() +
+        ", iterationEnd=" + it.getEndOffset() +
+        ", iterationAtEnd=" + it.atEnd() +
+        ", visualLineEnd=" + visualLineEndOffset,
+        new Attachment("editorState.txt", state)
+      );
     }
 
     private TextAttributes getFoldRegionAttributes(FoldRegion foldRegion) {
