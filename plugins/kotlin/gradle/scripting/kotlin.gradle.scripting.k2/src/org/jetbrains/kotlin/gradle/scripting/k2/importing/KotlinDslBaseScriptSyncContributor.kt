@@ -5,7 +5,7 @@ import com.intellij.platform.workspace.storage.ImmutableEntityStorage
 import com.intellij.platform.workspace.storage.toBuilder
 import org.gradle.tooling.model.dsl.GradleDslBaseScriptModel
 import org.gradle.tooling.model.dsl.KotlinDslBaseScriptModel
-import org.jetbrains.kotlin.gradle.scripting.k2.GradleKotlinScriptEntityProvider
+import org.jetbrains.kotlin.gradle.scripting.k2.addDefinitions
 import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleKotlinScriptEntitySource
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.BaseScriptDefinition
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.ErrorGradleScriptDefinition
@@ -35,12 +35,9 @@ internal class KotlinDslBaseScriptSyncContributor : GradleSyncContributor {
         // Contribute only fallback definitions, not script entities.
         // Open scripts may be represented as generic Kotlin-owned entities by `KotlinScriptService`
         // until SCRIPT_MODEL_PHASE contributes precise Gradle-owned entities.
-        return GradleKotlinScriptEntityProvider.getInstance(context.project).getUpdatedStorage(
-            storage.toBuilder(),
-            entitySource,
-            emptyList(),
-            baseScriptDefinitions,
-        )
+        val builder = storage.toBuilder()
+        addDefinitions(builder, entitySource, baseScriptDefinitions)
+        return builder.toSnapshot()
     }
 
     private fun loadBaseScriptDefinitions(

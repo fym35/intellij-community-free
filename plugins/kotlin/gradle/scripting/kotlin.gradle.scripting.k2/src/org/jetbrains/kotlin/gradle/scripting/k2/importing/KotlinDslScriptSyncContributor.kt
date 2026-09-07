@@ -7,7 +7,8 @@ import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.utils.asNio
 import com.intellij.platform.workspace.storage.ImmutableEntityStorage
 import com.intellij.platform.workspace.storage.toBuilder
-import org.jetbrains.kotlin.gradle.scripting.k2.GradleKotlinScriptEntityProvider
+import org.jetbrains.kotlin.gradle.scripting.k2.addDefinitions
+import org.jetbrains.kotlin.gradle.scripting.k2.addScripts
 import org.jetbrains.kotlin.gradle.scripting.k2.definition.withIdeKeys
 import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleKotlinScriptEntitySource
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.GradleDefinitionsParams
@@ -71,10 +72,10 @@ internal class KotlinDslScriptSyncContributor : GradleSyncContributor {
         val definitions = loadGradleDefinitions(gradleDefinitionsParams).map { it.withIdeKeys() }
 
         val entitySource = GradleKotlinDslScriptEntitySource(context.projectPath, phase)
-        val updatedStorage = GradleKotlinScriptEntityProvider.getInstance(project)
-            .getUpdatedStorage(builder, entitySource, gradleScripts, definitions, javaHome.pathString)
+        addDefinitions(builder, entitySource, definitions)
+        addScripts(project, builder, entitySource, gradleScripts, definitions, javaHome.pathString)
         reportErrors(project, context.externalSystemTaskId, models)
-        return updatedStorage
+        return builder.toSnapshot()
     }
 }
 
@@ -86,7 +87,7 @@ class GradleScriptModel(
     val classpathModel: GradleBuildScriptClasspathModel? = null,
 )
 
-private data class GradleKotlinDslScriptEntitySource(
+internal data class GradleKotlinDslScriptEntitySource(
     override val projectPath: String,
     override val phase: GradleSyncPhase,
 ) : GradleKotlinScriptEntitySource

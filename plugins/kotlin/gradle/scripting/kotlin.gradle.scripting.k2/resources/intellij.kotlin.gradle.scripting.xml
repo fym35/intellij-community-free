@@ -95,7 +95,7 @@
   </extensions>
 
   <projectListeners>
-    <listener class="org.jetbrains.kotlin.gradle.scripting.k2.GradleKotlinScriptEntityProvider$GradleWorkspaceModelListener"
+    <listener class="org.jetbrains.kotlin.gradle.scripting.k2.GradleWorkspaceModelListener"
               topic="com.intellij.platform.backend.workspace.WorkspaceModelChangeListener"/>
   </projectListeners>
 
