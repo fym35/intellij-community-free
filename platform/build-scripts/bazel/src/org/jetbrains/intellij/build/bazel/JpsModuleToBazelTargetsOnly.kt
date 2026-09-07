@@ -144,13 +144,14 @@ internal class JpsModuleToBazelTargetsOnly {
         }
 
         val skipGenerationOfPluginTargets = shouldSkipGenerationOfPluginTargets()
+        val manuallyWrittenAttributes = ManuallyWrittenAttributes(BazelFilesLoader())
         val moduleList = generator.computeModuleList(m2Repo, skipGenerationOfPluginTargets)
-        val communityTargets = generator.generateModuleTargets(moduleList, isCommunity = true)
+        val communityTargets = generator.generateModuleTargets(moduleList, manuallyWrittenAttributes, isCommunity = true)
         val allTargets = if (ultimateRoot == null) {
           communityTargets
         }
         else {
-          communityTargets + generator.generateModuleTargets(moduleList, isCommunity = false)
+          communityTargets + generator.generateModuleTargets(moduleList, manuallyWrittenAttributes, isCommunity = false)
         }
 
         val targets = JpsModuleToBazel.saveTargets(

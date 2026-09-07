@@ -45,6 +45,9 @@ internal data class ModuleDescriptor(
     }
   }
 
+  val bazelBuildFile: Path
+    get() = bazelBuildFileDir.resolve("BUILD.bazel")
+
   val targetAsLabel = BazelLabel(targetName, this)
 }
 

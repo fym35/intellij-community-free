@@ -1,17 +1,18 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.bazel
 
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
 /** Reads and keeps the manually written attributes of a BUILD file. */
-internal class ManuallyWrittenAttributes {
+internal class ManuallyWrittenAttributes(private val bazelFilesLoader: BazelFilesLoader) {
   private val manuallyWrittenAttributes = ConcurrentHashMap<Path, List<ManuallyWrittenAttribute>>()
 
   fun getManuallyWrittenAttributes(module: ModuleDescriptor, attributeName: String): List<ManuallyWrittenAttribute> {
-    val bazelFile = module.bazelBuildFileDir.resolve("BUILD.bazel")
-    val allManuallyWrittenAttributes = manuallyWrittenAttributes.getOrPut(bazelFile) { extractManuallyWrittenAttributes(bazelFile) }
+    val bazelFile = module.bazelBuildFile
+    val allManuallyWrittenAttributes = manuallyWrittenAttributes.getOrPut(bazelFile) {
+      extractManuallyWrittenAttributes(bazelFile, bazelFilesLoader.getBuildFileContent(bazelFile))
+    }
     return allManuallyWrittenAttributes.filter { it.targetName == module.targetName && it.attributeName == attributeName }
   }
 }
@@ -35,8 +36,8 @@ private val MANUALLY_WRITTEN_ATTRIBUTES = setOf(NON_CLASSPATH_DATA_ATTRIBUTE)
 private val FUNCTION_CALL_REGEX = Regex("""([a-zA-Z_][a-zA-Z0-9_]*)\(""")
 private val ATTRIBUTE_ASSIGNMENT_REGEX = Regex(""" *([a-zA-Z_][a-zA-Z0-9_]*) = (.*)""")
 
-private fun extractManuallyWrittenAttributes(bazelFile: Path): List<ManuallyWrittenAttribute> {
-  val lines = runCatching { Files.readString(bazelFile) }.getOrNull()?.lineSequence() ?: return emptyList()
+private fun extractManuallyWrittenAttributes(bazelFile: Path, fileContent: String?): List<ManuallyWrittenAttribute> {
+  val lines = fileContent?.lineSequence() ?: return emptyList()
   var lastTargetType: String? = null
   var lastTargetName: String? = null
   var manuallyWrittenAttributeName: String? = null

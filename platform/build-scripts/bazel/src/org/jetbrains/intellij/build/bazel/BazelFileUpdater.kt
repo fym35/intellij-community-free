@@ -7,8 +7,8 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.writeText
 
-internal class BazelFileUpdater(private val file: Path) {
-  private var originalContent: String? = runCatching { Files.readString(file) }.getOrNull()
+internal class BazelFileUpdater(private val file: Path, preloadedOriginalContent: String? = null) {
+  private var originalContent: String? = preloadedOriginalContent ?: runCatching { Files.readString(file) }.getOrNull()
   private var fileContent: String? = originalContent
 
   fun removeSections(sectionNamePrefix: String) {

@@ -467,11 +467,10 @@ internal class BazelBuildFileGenerator(
     }
   }
 
-  fun generateModuleTargets(list: ModuleList, isCommunity: Boolean): List<ModuleTargets> {
+  fun generateModuleTargets(list: ModuleList, manuallyWrittenAttributes: ManuallyWrittenAttributes, isCommunity: Boolean): List<ModuleTargets> {
     validateCustomModules(list)
 
     val targetsPerModule = mutableListOf<ModuleTargets>()
-    val manuallyWrittenAttributes = ManuallyWrittenAttributes()
     for (module in (if (isCommunity) list.community else list.ultimate)) {
       if (generated.putIfAbsent(module, true) == null) {
         val buildTargetsBazel = BuildFile()
@@ -481,7 +480,12 @@ internal class BazelBuildFileGenerator(
     return targetsPerModule
   }
 
-  fun generateModuleBuildFiles(list: ModuleList, manuallyWrittenAttributes: ManuallyWrittenAttributes, isCommunity: Boolean): ModuleGenerationResult {
+  fun generateModuleBuildFiles(
+    list: ModuleList,
+    bazelFilesLoader: BazelFilesLoader,
+    manuallyWrittenAttributes: ManuallyWrittenAttributes,
+    isCommunity: Boolean,
+  ): ModuleGenerationResult {
     validateCustomModules(list)
     val targetsPerModule = mutableListOf<ModuleTargets>()
     val fileToUpdater = LinkedHashMap<Path, BazelFileUpdater>()
@@ -490,7 +494,7 @@ internal class BazelBuildFileGenerator(
 
     fun getOrCreateFileUpdater(module: ModuleDescriptor): BazelFileUpdater {
       val fileUpdater = fileToUpdater.computeIfAbsent(module.bazelBuildFileDir) {
-        val fileUpdater = BazelFileUpdater(module.bazelBuildFileDir.resolve("BUILD.bazel"))
+        val fileUpdater = BazelFileUpdater(module.bazelBuildFile, bazelFilesLoader.getBuildFileContent(module.bazelBuildFile))
         fileUpdater.removeSections("build")
         fileUpdater.removeSections("iml ")
         fileUpdater.removeSections("test")
