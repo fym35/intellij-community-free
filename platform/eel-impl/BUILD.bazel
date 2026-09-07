@@ -12,6 +12,7 @@ content_module_jar(
 ### auto-generated section `build intellij.platform.eel.impl` start
 create_kotlinc_options(
     name = "custom_eel-impl",
+    opt_in = ["com.intellij.platform.eel.channels.EelDelicateApi"],
     warn = "error",
     x_warning_level = ["DEPRECATION:warning"],
 )
