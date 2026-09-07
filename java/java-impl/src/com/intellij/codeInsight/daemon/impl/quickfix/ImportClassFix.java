@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.codeInsight.daemon.impl.quickfix;
 
@@ -12,6 +12,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiExpression;
+import com.intellij.psi.PsiExpressionList;
 import com.intellij.psi.PsiExpressionStatement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiImportList;
@@ -22,6 +23,7 @@ import com.intellij.psi.PsiImportStaticStatement;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMember;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceExpression;
@@ -143,6 +145,17 @@ public class ImportClassFix extends ImportClassFixBase<PsiJavaCodeReferenceEleme
     }
 
     return super.getRequiredMemberName(referenceElement);
+  }
+
+  @Override
+  protected @Nullable PsiExpressionList getRequiredMemberCallArguments(@NotNull PsiJavaCodeReferenceElement referenceElement) {
+    // the reference is the qualifier of the call, so the call is the parent of the member reference: AA.test(1)
+    if (referenceElement.getParent() instanceof PsiReferenceExpression memberReference &&
+        memberReference.getParent() instanceof PsiMethodCallExpression call &&
+        call.getMethodExpression() == memberReference) {
+      return call.getArgumentList();
+    }
+    return super.getRequiredMemberCallArguments(referenceElement);
   }
 
   @Override
