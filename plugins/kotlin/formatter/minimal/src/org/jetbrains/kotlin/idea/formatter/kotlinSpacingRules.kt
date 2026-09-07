@@ -21,7 +21,9 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtClassInitializer
 import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtCompanionBlock
 import org.jetbrains.kotlin.psi.KtDeclarationWithBody
+import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -39,7 +41,7 @@ val EXTEND_COLON_ELEMENTS =
     TokenSet.create(KtNodeTypes.TYPE_CONSTRAINT, KtNodeTypes.CLASS, KtNodeTypes.OBJECT_DECLARATION, KtNodeTypes.TYPE_PARAMETER,
                     KtNodeTypes.ENUM_ENTRY, KtNodeTypes.SECONDARY_CONSTRUCTOR)
 val DECLARATIONS = TokenSet.create(KtNodeTypes.PROPERTY, KtNodeTypes.FUN, KtNodeTypes.CLASS, KtNodeTypes.OBJECT_DECLARATION,
-                                   KtNodeTypes.ENUM_ENTRY, KtNodeTypes.SECONDARY_CONSTRUCTOR, KtNodeTypes.CLASS_INITIALIZER)
+                                   KtNodeTypes.ENUM_ENTRY, KtNodeTypes.SECONDARY_CONSTRUCTOR, KtNodeTypes.CLASS_INITIALIZER, KtNodeTypes.COMPANION_BLOCK)
 val TYPE_COLON_ELEMENTS = TokenSet.create(KtNodeTypes.PROPERTY, KtNodeTypes.FUN, KtNodeTypes.VALUE_PARAMETER,
                                           KtNodeTypes.DESTRUCTURING_DECLARATION_ENTRY, KtNodeTypes.FUNCTION_LITERAL)
 fun SpacingBuilder.beforeInside(element: IElementType, tokenSet: TokenSet, spacingFun: SpacingBuilder.RuleBuilder.() -> Unit) {
@@ -138,8 +140,13 @@ fun createSpacingBuilder(settings: CodeStyleSettings, builderUtil: KotlinSpacing
 
         inPosition(left = KtNodeTypes.CLASS, right = KtNodeTypes.CLASS).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.CLASS, right = KtNodeTypes.OBJECT_DECLARATION).emptyLinesIfLineBreakInLeft(1)
+        inPosition(left = KtNodeTypes.CLASS, right = KtNodeTypes.COMPANION_BLOCK).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.OBJECT_DECLARATION, right = KtNodeTypes.OBJECT_DECLARATION).emptyLinesIfLineBreakInLeft(1)
+        inPosition(left = KtNodeTypes.OBJECT_DECLARATION, right = KtNodeTypes.COMPANION_BLOCK).emptyLinesIfLineBreakInLeft(1)
+        inPosition(left = KtNodeTypes.COMPANION_BLOCK, right = KtNodeTypes.OBJECT_DECLARATION).emptyLinesIfLineBreakInLeft(1)
+        inPosition(left = KtNodeTypes.COMPANION_BLOCK, right = KtNodeTypes.COMPANION_BLOCK).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.OBJECT_DECLARATION, right = KtNodeTypes.CLASS).emptyLinesIfLineBreakInLeft(1)
+        inPosition(left = KtNodeTypes.COMPANION_BLOCK, right = KtNodeTypes.CLASS).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.FUN, right = KtNodeTypes.FUN).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.PROPERTY, right = KtNodeTypes.FUN).emptyLinesIfLineBreakInLeft(1)
         inPosition(left = KtNodeTypes.FUN, right = KtNodeTypes.PROPERTY).emptyLinesIfLineBreakInLeft(1)
@@ -160,13 +167,16 @@ fun createSpacingBuilder(settings: CodeStyleSettings, builderUtil: KotlinSpacing
           else null
         }
 
+        @OptIn(KtExperimentalApi::class)
         inPosition(parent = KtNodeTypes.CLASS_BODY, left = KtTokens.LBRACE).customRule { parent, left, right ->
           if (right.requireNode().elementType == KtTokens.RBRACE) {
             return@customRule createSpacing(0)
           }
           val classBody = parent.requireNode().psi as KtClassBody
-          val parentPsi = classBody.parent as? KtClassOrObject ?: return@customRule null
-          if (kotlinCommonSettings.BLANK_LINES_AFTER_CLASS_HEADER == 0 || parentPsi.isObjectLiteral()) {
+          val parentPsi = classBody.parent ?: return@customRule null
+          if (parentPsi !is KtClassOrObject && parentPsi !is KtCompanionBlock) return@customRule null
+          if (kotlinCommonSettings.BLANK_LINES_AFTER_CLASS_HEADER == 0 ||
+              (parentPsi is KtClassOrObject && parentPsi.isObjectLiteral())) {
             null
           }
           else {
@@ -288,6 +298,7 @@ fun createSpacingBuilder(settings: CodeStyleSettings, builderUtil: KotlinSpacing
 
         // OBJECT_DECLARATION - OBJECT_DECLARATION, CLASS - OBJECT_DECLARATION are exception
         between(KtNodeTypes.OBJECT_DECLARATION, DECLARATIONS).blankLines(1)
+        between(KtNodeTypes.COMPANION_BLOCK, DECLARATIONS).blankLines(1)
         between(KtNodeTypes.SECONDARY_CONSTRUCTOR, DECLARATIONS).blankLines(1)
         between(KtNodeTypes.CLASS_INITIALIZER, DECLARATIONS).blankLines(1)
 
@@ -305,6 +316,7 @@ fun createSpacingBuilder(settings: CodeStyleSettings, builderUtil: KotlinSpacing
         beforeInside(KtNodeTypes.FUN, TokenSet.create(KtNodeTypes.BODY, KtNodeTypes.CLASS_BODY)).lineBreakInCode()
         beforeInside(KtNodeTypes.SECONDARY_CONSTRUCTOR, TokenSet.create(KtNodeTypes.BODY, KtNodeTypes.CLASS_BODY)).lineBreakInCode()
         beforeInside(KtNodeTypes.CLASS, TokenSet.create(KtNodeTypes.BODY, KtNodeTypes.CLASS_BODY)).lineBreakInCode()
+        beforeInside(KtNodeTypes.COMPANION_BLOCK, TokenSet.create(KtNodeTypes.BODY, KtNodeTypes.CLASS_BODY)).lineBreakInCode()
         beforeInside(KtNodeTypes.OBJECT_DECLARATION, TokenSet.create(KtNodeTypes.BODY, KtNodeTypes.CLASS_BODY)).lineBreakInCode()
         beforeInside(KtNodeTypes.PROPERTY, KtNodeTypes.WHEN).spaces(0)
         beforeInside(KtNodeTypes.PROPERTY, KtNodeTypes.LABELED_EXPRESSION).spacesNoLineBreak(1)
