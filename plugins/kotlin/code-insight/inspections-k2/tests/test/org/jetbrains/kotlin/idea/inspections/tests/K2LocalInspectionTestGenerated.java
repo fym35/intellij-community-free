@@ -17535,6 +17535,16 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                     runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/runCatching_mapThenGetOrThrow.kt");
                 }
 
+                @TestMetadata("runCatching_nestedCoroutineScope.kt")
+                public void testRunCatching_nestedCoroutineScope() throws Exception {
+                    runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/runCatching_nestedCoroutineScope.kt");
+                }
+
+                @TestMetadata("runCatching_nestedRunBlocking.kt")
+                public void testRunCatching_nestedRunBlocking() throws Exception {
+                    runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/runCatching_nestedRunBlocking.kt");
+                }
+
                 @TestMetadata("runCatching_noSuspendCallInBody.kt")
                 public void testRunCatching_noSuspendCallInBody() throws Exception {
                     runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/runCatching_noSuspendCallInBody.kt");
@@ -17750,6 +17760,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                     runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/tryCatchException_inNonSuspendLambdaInsideSuspendFunction.kt");
                 }
 
+                @TestMetadata("tryCatchException_inNonSuspendLambdaWithSuspendCall.kt")
+                public void testTryCatchException_inNonSuspendLambdaWithSuspendCall() throws Exception {
+                    runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/tryCatchException_inNonSuspendLambdaWithSuspendCall.kt");
+                }
+
                 @TestMetadata("tryCatchException_inScopeLaunchInsideClass.kt")
                 public void testTryCatchException_inScopeLaunchInsideClass() throws Exception {
                     runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/tryCatchException_inScopeLaunchInsideClass.kt");
@@ -17818,6 +17833,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 @TestMetadata("tryCatchException_nestedInnerSwallows.kt")
                 public void testTryCatchException_nestedInnerSwallows() throws Exception {
                     runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/tryCatchException_nestedInnerSwallows.kt");
+                }
+
+                @TestMetadata("tryCatchException_nestedRunBlocking.kt")
+                public void testTryCatchException_nestedRunBlocking() throws Exception {
+                    runTest("testData/inspectionsLocal/coroutines/suppressedCancellationException/tryCatchException_nestedRunBlocking.kt");
                 }
 
                 @TestMetadata("tryCatchException_nonSuspendFunction.kt")

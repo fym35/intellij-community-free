@@ -56,6 +56,7 @@ import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
@@ -211,12 +212,16 @@ internal class SuppressedCancellationExceptionInspection :
      * Returns whether any call expression inside the block calls a suspend method.
      */
     context(session: KaSession)
-    private fun KtBlockExpression.callsSuspendMethod(): Boolean {
+    private fun KtBlockExpression.callsSuspendMethod(suspendContextCache: MutableMap<PsiElement, KtFunction?>): Boolean {
         val calls = descendantsOfType<KtCallExpression>()
         for (call in calls) {
             val resolvedCall = call.resolveSuccessfulCall() ?: continue
             val functionSymbol = resolvedCall.symbol as? KaNamedFunctionSymbol ?: continue
-            if (functionSymbol.isSuspend) return true
+            if (!functionSymbol.isSuspend) continue
+
+            // We only consider suspend calls in the same suspend "context"
+            val suspendContext = getContainingSuspendContext(call, suspendContextCache) ?: continue
+            if (PsiTreeUtil.isAncestor(suspendContext, this, false)) return true
         }
 
         return false
@@ -274,7 +279,10 @@ internal class SuppressedCancellationExceptionInspection :
      * and returns data about the suppression if it does.
      */
     context(session: KaSession)
-    private fun checkRunCatching(call: KtCallExpression): SuppressedCancellationExceptionInspectionData? {
+    private fun checkRunCatching(
+        call: KtCallExpression,
+        suspendContextCache: MutableMap<PsiElement, KtFunction?>
+    ): SuppressedCancellationExceptionInspectionData? {
         val resolvedCall = call.resolveSuccessfulCall() ?: return null
         if (resolvedCall.symbol.callableId != StandardKotlinNames.Result.runCatching) return null
 
@@ -293,7 +301,7 @@ internal class SuppressedCancellationExceptionInspection :
         } ?: return null
 
         // We assume that a runCatching without calling a suspend function is not relevant to check here.
-        if (!bodyExpression.callsSuspendMethod()) return null
+        if (!bodyExpression.callsSuspendMethod(suspendContextCache)) return null
 
         // If we do not use it as an expression at all, then we are definitely swallowing exceptions
         if (!call.isUsedAsExpression) return RunCatchingDetection(call)
@@ -449,13 +457,16 @@ internal class SuppressedCancellationExceptionInspection :
      * without rethrowing it and returns data about the suppression if it does.
      */
     context(session: KaSession)
-    private fun checkTryExpression(tryExpression: KtTryExpression): SuppressedCancellationExceptionInspectionData? {
+    private fun checkTryExpression(
+        tryExpression: KtTryExpression,
+        suspendContextCache: MutableMap<PsiElement, KtFunction?>
+    ): SuppressedCancellationExceptionInspectionData? {
         // First, check if there is a catch clause that handles `CancellationException`
         val handlingClause = tryExpression.findClauseCatchingCancellation() ?: return null
 
         // We only check try blocks that actually call a suspend function, but we do it after
         // because it is heavier than the check above.
-        if (!tryExpression.tryBlock.callsSuspendMethod()) return null
+        if (!tryExpression.tryBlock.callsSuspendMethod(suspendContextCache)) return null
 
         val catchBlock = handlingClause.catchBody as? KtBlockExpression ?: return null
         if (catchBlock.suppressesCancellationException()) {
@@ -481,17 +492,21 @@ internal class SuppressedCancellationExceptionInspection :
 
     context(session: KaSession)
     override fun prepareContext(element: KtExpression): SuppressedCancellationExceptionInspectionData? {
-        if (!isInSuspendContext(element)) {
+        // We use this cache in `isInSuspendContext` and `getContainingSuspendContext` which
+        // might be called for many elements that share the same suspend context, so caching
+        // will provide a speed-up.
+        val suspendContextCache = mutableMapOf<PsiElement, KtFunction?>()
+        if (!isInSuspendContext(element, suspendContextCache)) {
             return null
         }
 
         val detection = when (element) {
             is KtCallExpression -> {
-                checkRunCatching(element)
+                checkRunCatching(element, suspendContextCache)
             }
 
             is KtTryExpression -> {
-                checkTryExpression(element)
+                checkTryExpression(element, suspendContextCache)
             }
 
             else -> null
