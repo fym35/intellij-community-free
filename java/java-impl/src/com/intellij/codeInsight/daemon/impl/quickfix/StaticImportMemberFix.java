@@ -171,6 +171,11 @@ public abstract class StaticImportMemberFix<T extends PsiMember, R extends PsiEl
 
   protected abstract @Nullable PsiElement resolveRef();
 
+  /**
+   * @return the name of the reference to import, which identifies a hint the user hid with the Escape key
+   */
+  protected abstract @Nullable String getReferenceName();
+
   @Override
   public void invoke(@NotNull Project project, Editor editor, PsiFile psiFile) {
     if (!FileModificationService.getInstance().prepareFileForWrite(psiFile)
@@ -200,6 +205,10 @@ public abstract class StaticImportMemberFix<T extends PsiMember, R extends PsiEl
     if (candidates.isEmpty()) {
       return false;
     }
+    String referenceName = getReferenceName();
+    if (ImportHintDismissalTracker.isDismissed(editor, callExpression, referenceName)) {
+      return false;
+    }
 
     T firstCandidate = candidates.getFirst();
     PsiFile containingFile = callExpression.getContainingFile();
@@ -216,9 +225,9 @@ public abstract class StaticImportMemberFix<T extends PsiMember, R extends PsiEl
       QuestionAction action = createQuestionAction(candidates, containingFile.getProject(), editor);
       String hintText =
         ShowAutoImportPass.getMessage(candidates.size() > 1, getMemberKindPresentableText(), getMemberPresentableText(firstCandidate));
-      HintManager.getInstance().showQuestionHint(editor, hintText,
-                                                 textRange.getStartOffset(),
-                                                 textRange.getEndOffset(), action);
+      ImportHintDismissalTracker.showHint(editor, hintText,
+                                          textRange.getStartOffset(),
+                                          textRange.getEndOffset(), action, callExpression, referenceName);
       return true;
     }
 

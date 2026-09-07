@@ -80,6 +80,12 @@ public class StaticImportMethodFix extends StaticImportMemberFix<PsiMethod, PsiM
     return methodCallExpression != null ? methodCallExpression.resolveMethod() : null;
   }
 
+  @Override
+  protected @Nullable String getReferenceName() {
+    PsiMethodCallExpression element = myReferencePointer.getElement();
+    return element != null ? element.getMethodExpression().getReferenceName() : null;
+  }
+
   private static final class MyStaticMethodProcessor extends StaticMembersProcessor<PsiMethod> {
     private MyStaticMethodProcessor(@NotNull PsiMethodCallExpression place, boolean showMembersFromDefaultPackage, int maxResults) {
       super(place, showMembersFromDefaultPackage, maxResults);

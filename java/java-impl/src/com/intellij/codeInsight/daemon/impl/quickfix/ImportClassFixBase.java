@@ -436,10 +436,14 @@ public abstract class ImportClassFixBase<T extends PsiElement, R extends PsiRefe
     }
 
     if (allowPopup && canImportHere) {
+      String referenceName = getReferenceName(myReference);
+      if (ImportHintDismissalTracker.isDismissed(editor, myReferenceElement, referenceName)) {
+        return Result.POPUP_NOT_SHOWN;
+      }
       if (!ApplicationManager.getApplication().isUnitTestMode() && !HintManager.getInstance().hasShownHintsThatWillHideByOtherHint(true)) {
         String hintText = ShowAutoImportPass.getMessage(classes.length > 1, IdeBundle.message("go.to.class.kind.text"), classes[0].getQualifiedName());
-        HintManager.getInstance().showQuestionHint(editor, hintText, getStartOffset(myReferenceElement, myReference),
-                                                   getEndOffset(myReferenceElement, myReference), action);
+        ImportHintDismissalTracker.showHint(editor, hintText, getStartOffset(myReferenceElement, myReference),
+                                            getEndOffset(myReferenceElement, myReference), action, myReferenceElement, referenceName);
       }
       return Result.POPUP_SHOWN;
     }
