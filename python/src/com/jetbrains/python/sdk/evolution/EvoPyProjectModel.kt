@@ -3,8 +3,17 @@ package com.jetbrains.python.sdk.evolution
 
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.FileEditorManagerListener.FILE_EDITOR_MANAGER
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.project.Project
+import com.intellij.python.sdk.backend.asInterpreterRef
+import com.jetbrains.python.sdk.pythonSdk
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.backend.workspace.WorkspaceModel
 import com.intellij.platform.workspace.jps.entities.ContentRootEntity
@@ -22,6 +31,9 @@ import com.jetbrains.python.project.PyProject.Companion.getPyProjects
 import java.nio.file.Path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.filter
@@ -34,7 +46,8 @@ import kotlinx.coroutines.launch
 /**
  * The entities [PyProject] is derived from ([com.intellij.python.pyproject.model.internal.pyProject.PyProjectImpl]):
  * the module (for its type), its facets (for a Python facet on a module of another type) and its content roots (for
- * the base dir). A change to any of them can add, remove or move a `PyProject`; a change to anything else cannot.
+ * the base dir). A change to any of them can add, remove or move a `PyProject`, or repoint one at another interpreter,
+ * which a module holds among its dependencies; a change to anything else cannot.
  */
 private val PY_PROJECT_ENTITIES: List<Class<out WorkspaceEntity>> =
   listOf(ModuleEntity::class.java, FacetEntity::class.java, ContentRootEntity::class.java)
@@ -97,6 +110,10 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
 
     /** Every `PyProject`'s own base dir — a workspace member's own, not its root's. Used to exclude sibling projects from env discovery. */
     val baseDirs: Set<Path> get() = byKey.values.mapTo(mutableSetOf()) { it.moduleBaseDir }
+
+    /** The `PyProject` that resides on [module], or `null` when it is not a Python one. */
+    fun of(module: Module): EvoPyProject? = byKey.values.firstOrNull { it.module == module }
+
   }
 
   private val state = MutableStateFlow<Snapshot?>(null)
@@ -111,6 +128,20 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
         .onStart { emit(Unit) }
         .conflate()
         .collect { state.value = computeSnapshot() }
+    }
+
+    project.messageBus.connect(scope).subscribe(FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
+      override fun selectionChanged(event: FileEditorManagerEvent) {
+        selectionChanges.value++
+      }
+    })
+
+    scope.launch {
+      // Either input moving means the answer can have changed: a different file is being edited, or the structure it
+      // is resolved against was recomputed.
+      combine(state.filterNotNull(), selectionChanges) { _, _ -> }
+        .conflate()
+        .collect { interpreterState.value = interpreterFor(selectedFile()) }
     }
   }
 
@@ -128,6 +159,44 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
   /** See [Snapshot.resolve]. */
   suspend fun resolve(key: String): EvoPyProject? = snapshot().resolve(key)
 
+  /**
+   * The `PyProject` [file] belongs to, or the project's own when it belongs to none — a scratch, a file dragged in
+   * from outside, or nothing focused at all. See [EvoPyProjectDto.isMain].
+   */
+  suspend fun targetFor(file: VirtualFile?): EvoPyProject? {
+    val snapshot = snapshot()
+    val module = file?.let { readAction { ModuleUtilCore.findModuleForFile(it, project) } } ?: return snapshot.main
+    return snapshot.of(module) ?: snapshot.main
+  }
+
+  /**
+   * The interpreter every Python surface shows for [file]: the one the workspace declares when [file]'s `PyProject`
+   * takes part in one, and the one its own module carries otherwise.
+   *
+   * Nothing where [file] resolves to no `PyProject`. That is the same nothing the interpreter widget shows, and the
+   * two surfaces state one interpreter, so neither invents one the other does not have.
+   */
+  suspend fun interpreterFor(file: VirtualFile?): Sdk? {
+    val target = targetFor(file) ?: return null
+    return readAction { target.sdkModules.firstNotNullOfOrNull { it.pythonSdk } }
+  }
+
+  /**
+   * The interpreter for the file being edited, as [interpreterFor] resolves it, recomputed whenever the structure or
+   * the selected file changes.
+   *
+   * One flow so every surface shows one interpreter. Resolving it per surface let them disagree: the packages tool
+   * window followed the file's own module and cleared itself on a file whose module carried no interpreter, while the
+   * widget followed the workspace and kept showing it (PY-90174).
+   */
+  val interpreter: StateFlow<Sdk?> get() = interpreterState.asStateFlow()
+
+  private val interpreterState = MutableStateFlow<Sdk?>(null)
+
+  private val selectionChanges = MutableStateFlow(0)
+
+  private fun selectedFile(): VirtualFile? = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+
   /** The pushed structure, re-emitted on every recomputation — the backing flow of [com.intellij.python.sdk.common.evolution.PyEvoSdkApi.pyProjects]. */
   fun dtos(): Flow<List<EvoPyProjectDto>> = state.filterNotNull().map { it.dtos }
 
@@ -137,6 +206,9 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
     // One read action for the whole pass rather than one per module: each call reads the same workspace-model
     // snapshot, and taking it once also keeps the layouts consistent with each other.
     val layouts = readAction { pyProjects.associate { it.residesOnModule to it.residesOnModule.getWorkspaceLayout() } }
+    // Read with the layouts, from the same workspace-model snapshot, so a DTO never pairs one generation's structure
+    // with another's interpreters.
+    val interpreterRefs = readAction { pyProjects.associate { it.residesOnModule to it.residesOnModule.pythonSdk?.asInterpreterRef() } }
 
     // Built once per cluster and shared by its members, so the whole workspace is one object rather than one per
     // member — which is what makes "is this the same workspace" answerable by identity downstream.
@@ -161,6 +233,7 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
         name = target.module.name,
         isMain = key == mainKey,
         workspaceRootKey = target.workspace?.let { keyOf(it.root) },
+        interpreterRef = interpreterRefs[target.module],
       )
     }
     return Snapshot(byKey, mainKey?.let { byKey[it] }, dtos)

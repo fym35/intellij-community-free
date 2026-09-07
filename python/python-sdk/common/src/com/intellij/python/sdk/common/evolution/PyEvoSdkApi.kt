@@ -344,6 +344,14 @@ data class EvoPyProjectDto(
    * every directory it works with against that root — this is what lets the popup name the workspace in its title.
    */
   val workspaceRootKey: @NonNls String? = null,
+  /**
+   * The interpreter this `PyProject` uses, or `null` when it has none.
+   *
+   * Stated here so the frontend can tell two projects on one interpreter apart from two on different ones without
+   * asking about either: the widget states an interpreter, so that is what its data belongs to, and a project it has
+   * never asked about renders from what another project on the same interpreter already fetched (PY-90174).
+   */
+  val interpreterRef: PyInterpreterRef? = null,
 )
 
 /**

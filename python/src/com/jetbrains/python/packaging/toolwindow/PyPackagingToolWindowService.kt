@@ -6,25 +6,15 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.FileEditorManagerEvent
-import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.options.ex.SingleConfigurableEditor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.modules
 import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.roots.ModuleRootEvent
-import com.intellij.openapi.roots.ModuleRootListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.util.messages.MessageBusConnection
 import com.jetbrains.python.NON_INTERACTIVE_ROOT_TRACE_CONTEXT
 import com.jetbrains.python.PyBundle.message
 import com.jetbrains.python.Result
@@ -64,6 +54,7 @@ import com.jetbrains.python.packaging.pip.PipRepositoryManager
 import com.intellij.python.requirements.pyRequirement
 import com.jetbrains.python.packaging.repository.PyPiPackageRepository
 import com.jetbrains.python.packaging.repository.PyPackageRepositories
+import com.jetbrains.python.sdk.evolution.EvoPyProjectModel
 import com.jetbrains.python.packaging.repository.PyPackageRepository
 import com.jetbrains.python.packaging.repository.PyRepositoriesList
 import com.jetbrains.python.packaging.repository.checkValid
@@ -78,9 +69,6 @@ import com.jetbrains.python.packaging.toolwindow.model.PyPackagesViewData
 import com.jetbrains.python.packaging.toolwindow.model.RequirementPackage
 import com.jetbrains.python.packaging.toolwindow.model.UndeclaredPackagesGroup
 import com.jetbrains.python.packaging.toolwindow.model.WorkspaceMember
-import com.jetbrains.python.sdk.PySdkListener
-import com.jetbrains.python.sdk.legacy.PythonSdkUtil
-import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.python.statistics.PythonPackagesIdsHolder.Companion.PYTHON_PACKAGE_DELETED
 import com.jetbrains.python.statistics.PythonPackagesIdsHolder.Companion.PYTHON_PACKAGE_INSTALLED
 import kotlinx.coroutines.CoroutineScope
@@ -179,7 +167,7 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
   fun initialize(toolWindowPanel: PyPackagingToolWindowPanel) {
     this.toolWindowPanel = toolWindowPanel
     serviceScope.launch(Dispatchers.IO) {
-      val sdkToOpenOn = resolvePackagesToolWindowSdk(project)
+      val sdkToOpenOn = project.service<EvoPyProjectModel>().interpreter.value
       val boundSdk = sdkContext?.sdk
       if (shouldReplayBoundSdk(boundSdk, sdkToOpenOn)) {
         checkNotNull(boundSdk)
@@ -528,26 +516,26 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
   }
 
   private fun subscribeToChanges() {
-    subscribeToSdkChanges()
+    followSharedInterpreter()
     subscribeToPackageManagementChanges()
-    subscribeToProjectChanges()
   }
 
-  private fun subscribeToSdkChanges() {
-    ApplicationManager.getApplication().messageBus.connect(serviceScope)
-      .subscribe(PySdkListener.TOPIC, object : PySdkListener {
-        override fun moduleSdkUpdated(module: Module, prevSdk: Sdk?, newSdk: Sdk?) {
-          // `PySdkListener` fires on the application bus, so every open project's service is
-          // notified. Ignore modules that don't belong to *this* project — otherwise creating a
-          // venv in project B repoints project A's PPTW to that venv (PY-91324).
-          if (module.project != project) return
-          if (newSdk != null && newSdk == currentSdk) return
-          serviceScope.launch(Dispatchers.IO) {
-            initForSdk(newSdk)
-          }
-        }
-      })
+  /**
+   * Follows the interpreter every Python surface shows, so this view and the interpreter widget never name different
+   * ones.
+   *
+   * The resolving used to live here as well — the file's own module, the project's roots, the SDK topic — and it
+   * answered differently from the widget's: a file whose module carried no interpreter cleared this view while the
+   * widget kept showing the workspace's (PY-90174). [EvoPyProjectModel.interpreter] is the one answer now, and it
+   * already re-emits on everything those listeners watched, since a module's interpreter is part of the module entity
+   * the structure is computed from.
+   */
+  private fun followSharedInterpreter() {
+    serviceScope.launch {
+      project.service<EvoPyProjectModel>().interpreter.collect { initForSdk(it) }
+    }
   }
+
 
   private fun subscribeToPackageManagementChanges() {
     ApplicationManager.getApplication().messageBus.connect(serviceScope)
@@ -572,44 +560,8 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
       })
   }
 
-  private fun subscribeToProjectChanges() {
-    val connection = project.messageBus.connect(this)
-    subscribeToRootChanges(connection)
-    subscribeToFileEditorChanges(connection)
-  }
 
-  // Needed alongside PySdkListener: covers structural changes (module added/removed) that affect SDK availability
-  private fun subscribeToRootChanges(connection: MessageBusConnection) {
-    connection.subscribe(ModuleRootListener.TOPIC, object : ModuleRootListener {
-      override fun rootsChanged(event: ModuleRootEvent) {
-        serviceScope.launch(Dispatchers.IO) {
-          val current = currentSdk
-          val allSdks = readAction { project.modules.mapNotNull { it.pythonSdk } }
-          if (current != null && current in allSdks) return@launch
-          val sdk = allSdks.firstOrNull()
-          if (sdk != current) {
-            initForSdk(sdk)
-          }
-        }
-      }
-    })
-  }
 
-  private fun subscribeToFileEditorChanges(connection: MessageBusConnection) {
-    connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
-      override fun selectionChanged(event: FileEditorManagerEvent) {
-        event.newFile?.let { newFile ->
-          serviceScope.launch {
-            val sdk = readAction {
-              val module = ModuleUtilCore.findModuleForFile(newFile, project)
-              PythonSdkUtil.findPythonSdk(module)
-            }
-            initForSdk(sdk)
-          }
-        }
-      }
-    })
-  }
 
   suspend fun refreshInstalledPackages(showIndicator: Boolean = true) {
     if (project.isDisposed) return
@@ -1033,24 +985,6 @@ internal class PyPackagingToolWindowService(val project: Project, val serviceSco
   }
 }
 
-/**
- * The interpreter the Python Packages tool window should open on: the one belonging to the module
- * that owns the file the user is looking at, falling back to any module's interpreter when the
- * editor gives no answer.
- *
- * Scanning `modules.firstNotNullOfOrNull { it.pythonSdk }` outright is only correct in a
- * single-module project. Across independent subprojects it picks whichever module happens to come
- * first, so the tool window opens on a foreign subproject's environment while the user is editing
- * another one, and only starts agreeing with the editor once the next selection change reaches
- * `PyPackagingToolWindowService`'s `FileEditorManagerListener` — the "switch between subprojects to
- * make it refresh" half of PY-91300.
- */
-internal suspend fun resolvePackagesToolWindowSdk(project: Project): Sdk? = readAction {
-  val selectedFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
-  val selectedModule = selectedFile?.let { ModuleUtilCore.findModuleForFile(it, project) }
-  selectedModule?.let { PythonSdkUtil.findPythonSdk(it) }
-  ?: project.modules.firstNotNullOfOrNull { it.pythonSdk }
-}
 
 /**
  * Whether a tool window attaching to an already-bound [PyPackagingToolWindowService] should have the
@@ -1058,7 +992,7 @@ internal suspend fun resolvePackagesToolWindowSdk(project: Project): Sdk? = read
  *
  * The service is a project service and outlives the tool window, so it can already be bound by the
  * time a panel is built — the install dialog and the pyproject.toml "+ Add package" inlay call
- * `initForSdk` directly, and the editor / roots / `PySdkListener` subscriptions keep that binding
+ * `initForSdk` directly, and [EvoPyProjectModel.interpreter] keeps that binding
  * fresh. Handing the same SDK back to `initForSdk` would hit its "same SDK" short-circuit and the
  * new panel would learn nothing at all: no path in the header, no module selection, empty package
  * tree. Binding and rendering are separate concerns, so the rendering half is replayed explicitly.

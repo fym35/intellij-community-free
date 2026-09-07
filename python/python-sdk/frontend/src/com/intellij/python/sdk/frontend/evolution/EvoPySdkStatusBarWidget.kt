@@ -116,6 +116,28 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
 
     /** Display name of the workspace [target] takes part in, or `null` when it is standalone. */
     fun workspaceRootName(target: EvoPyProjectDto): String? = target.workspaceRootKey?.let { byKey[it] }?.name
+
+    /**
+     * The project the widget asks about on [target]'s behalf: the root of the workspace it takes part in, or itself
+     * when it is standalone.
+     *
+     * A workspace has one interpreter, so every member answers the same and one of them can answer for all.
+     */
+    fun askedProjectOf(target: EvoPyProjectDto): String = target.workspaceRootKey?.takeIf { it in byKey } ?: target.key
+
+    /**
+     * The key [target]'s data is held under: its interpreter, or the project it is asked about when it has none.
+     *
+     * The widget states an interpreter, so its data belongs to that interpreter. Held per project, two projects on one
+     * interpreter each fetched their own, and moving between them put the widget back into its loading state with
+     * nothing to load (PY-90174). The snapshot states the interpreter, so this needs no fetch to answer — a project
+     * the widget has never asked about renders from what another on the same interpreter already fetched.
+     */
+    fun dataKeyOf(target: EvoPyProjectDto): String =
+      target.interpreterRef?.let { "interpreter:$it" } ?: askedProjectOf(target)
+
+    /** Every key [dataKeyOf] can return, so an entry no project can reach any more is dropped. */
+    val dataKeys: Set<String> get() = byKey.values.mapTo(mutableSetOf()) { dataKeyOf(it) }
   }
 
   /** Current Eel interpreter (for display) + popup data (nodes, associated interpreters, shortcuts), fetched asynchronously over RPC. */
@@ -139,9 +161,10 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   )
 
   /**
-   * Data for every target the user has visited, by [EvoPyProjectDto.key] — so switching back and forth between two
-   * files' projects renders from memory instead of re-running the whole fetch each time. Entries are validated on read
-   * against the project-model [Cached.stamp], and evicted when their key leaves the [Structure].
+   * Data for every interpreter the user has visited, by the key [Structure.dataKeyOf] gives it — so switching back
+   * and forth between two files renders from memory instead of re-running the whole fetch, and two projects on one
+   * interpreter share the entry. Entries are validated on read against the project-model [Cached.stamp], and evicted
+   * once no project can reach them.
    */
   private val cache = ConcurrentHashMap<String, Cached>()
 
@@ -176,6 +199,18 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
    */
   private var expandToolsOnce: Boolean = false
 
+  /**
+   * Forgets the built tree when it was built from the data held under [dataKey].
+   *
+   * The tree is keyed by the target it shows and the data by that target's interpreter, so the two keys differ, and
+   * comparing them directly left a tree standing on data that had just been replaced.
+   */
+  private fun dropPopupTreeBuiltFrom(dataKey: String) {
+    val structure = this.structure ?: return
+    val treeTarget = popupTreeKey?.let { structure[it] } ?: return
+    if (structure.dataKeyOf(treeTarget) == dataKey) dropPopupTree()
+  }
+
   /** Forgets the built tree, so the next open rebuilds it against current data. */
   private fun dropPopupTree() {
     popupTree = null
@@ -188,9 +223,11 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
    * each new [Structure], which is the only thing that can retire a key.
    */
   private fun evictUnknown() {
-    val known = structure?.keys ?: return
-    cache.keys.removeIf { it !in known }
-    if (popupTreeKey?.let { it !in known } == true) dropPopupTree()
+    val structure = this.structure ?: return
+    // An entry is held under an interpreter, which is not a structure key, so ask the structure which keys it can reach.
+    val reachable = structure.dataKeys
+    cache.keys.removeIf { it !in reachable }
+    if (popupTreeKey?.let { it !in structure.keys } == true) dropPopupTree()
   }
 
   /**
@@ -251,23 +288,25 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   }
 
   override fun getWidgetState(file: VirtualFile?): WidgetState {
+    val structure = this.structure ?: return hidden()
     val target = targetFor(file) ?: return hidden()
     shownKey = target.key
-
-    val cached = cache[target.key]
+    val askedProject = structure.askedProjectOf(target)
+    val dataKey = structure.dataKeyOf(target)
+    val cached = cache[dataKey]
     // Nothing fetched yet, or out of date (an SDK changed under us) — fetch behind whatever we are showing, so the
     // widget never blinks out. Unlike before, there is no "is this Python at all" question to wait on: the target came
     // out of the structure, so it *is* a PyProject and the widget can show its loading state right away.
-    if (cached == null || cached.stamp != modelStamp()) refresh(target.key)
+    if (cached == null || cached.stamp != modelStamp()) refresh(askedProject, dataKey)
     // The suggestions the popup would show go stale on their own, without anything the checks above can see. Re-read
     // them here, where the widget is told about the edits that change them, so the next open is built from a fresh list.
     else if (cached.current == null && System.currentTimeMillis() - cached.shortcutsAt > SHORTCUTS_TTL_MS) {
-      refreshShortcuts(target.key)
+      refreshShortcuts(askedProject, dataKey)
     }
     // A probe that found no tools is not an answer, it is a probe that ran too early. Ask again rather than wait for
     // the user to open the popup twice.
     else if (cached.nodes.isEmpty() && System.currentTimeMillis() - cached.nodesAt > EMPTY_NODES_RETRY_MS) {
-      refreshNodes(target.key)
+      refreshNodes(askedProject, dataKey)
     }
 
     if (configuring) {
@@ -281,7 +320,7 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
     }
 
     val interpreter = cached?.current
-    if (interpreter == null && target.key in loading) {
+    if (interpreter == null && askedProject in loading) {
       // The interpreter is still being fetched — a neutral animated "loading" state, not the "No interpreter" warning.
       return WidgetState(
         PySdkFrontendBundle.message("evo.sdk.loading.description"),
@@ -304,45 +343,45 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   }
 
   /**
-   * (Re)loads the widget data for [key]. The current interpreter — all the status bar needs to render — is fetched
+   * (Re)loads the widget data for [askedProject]. The current interpreter — all the status bar needs to render — is fetched
    * first and shown immediately, and the slower popup data loads afterwards. The previous value stays visible until the
    * new one arrives, so neither the initial load nor a refresh ever flashes "No interpreter".
    */
-  private fun refresh(key: String) {
-    if (!loading.add(key)) return // already in flight
+  private fun refresh(askedProject: String, dataKey: String) {
+    if (!loading.add(askedProject)) return // already in flight
     scope.launch {
       // Read the generation before fetching, so a model change *during* the fetch leaves the result marked stale
       // rather than passing for current.
       val stamp = modelStamp()
       val projectId = project.projectId()
-      val prev = cache[key]
+      val prev = cache[dataKey]
       fun publish(entry: Cached) {
-        cache[key] = entry
-        if (popupTreeKey == key) dropPopupTree() // the tree was built from what we just replaced
+        cache[dataKey] = entry
+        dropPopupTreeBuiltFrom(dataKey) // the tree was built from what we just replaced
         update()
       }
       try {
         // The tools a machine has and the interpreter a project uses are unrelated questions, so they are asked at the
         // same time rather than one after the other.
-        val nodesAsync = async { evoRpcOrNull { requestEvoNodes(projectId, key) }.orEmpty() }
+        val nodesAsync = async { evoRpcOrNull { requestEvoNodes(projectId, askedProject) }.orEmpty() }
 
         // Published as soon as it is known, so the widget shows the interpreter without waiting on the tool probes.
         // Waiting for all of it instead means one slow probe leaves the widget loading for as long as it takes.
-        val interpreter = evoRpcOrNull { requestEvoCurrentInterpreter(projectId, key) }
+        val interpreter = evoRpcOrNull { requestEvoCurrentInterpreter(projectId, askedProject) }
         publish(Cached(stamp, interpreter, prev?.nodes.orEmpty(), prev?.associated.orEmpty(),
                        prev?.nodesAt ?: 0, prev?.shortcuts.orEmpty(), prev?.shortcutsAt ?: 0))
 
         // The "Shortcuts" autoconfigure suggestions are only shown (and only worth computing) when there is no interpreter.
-        val shortcuts = if (interpreter == null) evoRpcOrNull { requestEvoShortcuts(projectId, key) }.orEmpty() else emptyList()
+        val shortcuts = if (interpreter == null) evoRpcOrNull { requestEvoShortcuts(projectId, askedProject) }.orEmpty() else emptyList()
         val now = System.currentTimeMillis()
         publish(Cached(stamp, interpreter, nodesAsync.await(), prev?.associated.orEmpty(), now, shortcuts, now))
         // The associated interpreters fill a submenu, so the widget and the popup never wait for them: reading one
         // costs a look at its interpreter, and a project with several system Pythons among them used to hold up the
         // whole load for as long as that took (PY-91967).
-        refreshAssociated(key)
+        refreshAssociated(askedProject, dataKey)
       }
       finally {
-        loading.remove(key)
+        loading.remove(askedProject)
         update()
       }
     }
@@ -357,22 +396,22 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   private var refreshingAssociated: Boolean = false
 
   /**
-   * Re-reads the associated interpreters for [key], keeping everything else that is shown.
+   * Re-reads the associated interpreters for [askedProject], keeping everything else that is shown.
    *
    * They fill a submenu of the popup, so this is deliberately fired and not awaited: nothing the status bar or the
    * popup's own rows show depends on it, and reading one asks its interpreter for a version.
    */
-  private fun refreshAssociated(key: String) {
+  private fun refreshAssociated(askedProject: String, dataKey: String) {
     if (refreshingAssociated) return
     refreshingAssociated = true
     scope.launch {
       try {
-        val associated = evoRpcOrNull { requestEvoAssociatedInterpreters(project.projectId(), key) }.orEmpty()
-        val base = cache[key] ?: return@launch
+        val associated = evoRpcOrNull { requestEvoAssociatedInterpreters(project.projectId(), askedProject) }.orEmpty()
+        val base = cache[dataKey] ?: return@launch
         // Compare by what a row names, not by the DTOs: an IconId is not guaranteed to be equal across fetches.
         if (base.associated.map { it.ref } == associated.map { it.ref }) return@launch
-        cache[key] = base.copy(associated = associated)
-        if (popupTreeKey == key) dropPopupTree()
+        cache[dataKey] = base.copy(associated = associated)
+        dropPopupTreeBuiltFrom(dataKey)
         update()
       }
       finally {
@@ -382,23 +421,23 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   }
 
   /**
-   * Re-probes just the available tool nodes for [key] (keeping the shown interpreter and the associated list), so a
+   * Re-probes just the available tool nodes for [askedProject] (keeping the shown interpreter and the associated list), so a
    * tool installed since the last scan appears without redoing the heavier current-interpreter and associated-SDK
    * scans of a full [refresh]. If the node set actually changed, the built tree is dropped so the next open rebuilds
    * from the fresh nodes. Skipped while a full refresh or another node re-probe is in flight.
    */
-  private fun refreshNodes(key: String) {
-    if (key in loading || refreshingNodes) return
+  private fun refreshNodes(askedProject: String, dataKey: String) {
+    if (askedProject in loading || refreshingNodes) return
     refreshingNodes = true
     scope.launch {
       try {
-        val nodes = evoRpcOrNull { requestEvoNodes(project.projectId(), key) }.orEmpty()
-        val base = cache[key] ?: return@launch
+        val nodes = evoRpcOrNull { requestEvoNodes(project.projectId(), askedProject) }.orEmpty()
+        val base = cache[dataKey] ?: return@launch
         // Compare by node ids (stable identity) — a newly available or removed tool changes this set; icon/label
         // identity is irrelevant and IconId equality is not guaranteed across fetches.
         if (base.nodes.map { it.id } == nodes.map { it.id }) return@launch
-        cache[key] = base.copy(nodes = nodes, nodesAt = System.currentTimeMillis())
-        if (popupTreeKey == key) dropPopupTree()
+        cache[dataKey] = base.copy(nodes = nodes, nodesAt = System.currentTimeMillis())
+        dropPopupTreeBuiltFrom(dataKey)
         update()
       }
       finally {
@@ -412,24 +451,24 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
   private var refreshingShortcuts: Boolean = false
 
   /**
-   * Re-reads the "Shortcuts" suggestions for [key] once their [SHORTCUTS_TTL_MS] window has run out, keeping everything
+   * Re-reads the "Shortcuts" suggestions for [askedProject] once their [SHORTCUTS_TTL_MS] window has run out, keeping everything
    * else the entry holds. The read stamps the entry whatever it finds, so an unchanged list costs one call per window;
    * only a changed list drops the built tree and repaints, so the popup opens on what the IDE would suggest now.
    *
    * Skipped while a full [refresh] or another re-read is in flight.
    */
-  private fun refreshShortcuts(key: String) {
-    if (key in loading || refreshingShortcuts) return
+  private fun refreshShortcuts(askedProject: String, dataKey: String) {
+    if (askedProject in loading || refreshingShortcuts) return
     refreshingShortcuts = true
     scope.launch {
       try {
-        val shortcuts = evoRpcOrNull { requestEvoShortcuts(project.projectId(), key) }.orEmpty()
-        val base = cache[key] ?: return@launch
-        cache[key] = base.copy(shortcuts = shortcuts, shortcutsAt = System.currentTimeMillis())
+        val shortcuts = evoRpcOrNull { requestEvoShortcuts(project.projectId(), askedProject) }.orEmpty()
+        val base = cache[dataKey] ?: return@launch
+        cache[dataKey] = base.copy(shortcuts = shortcuts, shortcutsAt = System.currentTimeMillis())
         // Compare by what a row says and what it does: an IconId is not guaranteed to be equal across fetches, so the
         // DTOs themselves cannot answer this.
         if (base.shortcuts.map { it.title to it.ref } == shortcuts.map { it.title to it.ref }) return@launch
-        if (popupTreeKey == key) dropPopupTree()
+        dropPopupTreeBuiltFrom(dataKey)
         update()
       }
       finally {
@@ -458,7 +497,9 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
     // and opening it would fail every row with "Python project not found".
     val structure = this.structure ?: return null
     val target = shownKey?.let { structure[it] } ?: return null
-    val cached = cache[target.key] ?: return null
+    val askedProject = structure.askedProjectOf(target)
+    val dataKey = structure.dataKeyOf(target)
+    val cached = cache[dataKey] ?: return null
     // Reuse the tree only for the target it was built from, and only within the window measured from the last close,
     // so a quick reopen after a mis-click doesn't rescan; otherwise rebuild. The window restarts on each close.
     val reusable = popupTree?.takeIf { popupTreeKey == target.key && System.currentTimeMillis() - popupClosedAt < popupTreeTtlMs() }
@@ -466,7 +507,7 @@ private class EvoPySdkStatusBarWidget(project: Project, scope: CoroutineScope) :
     // Settings | Python | Tools) shows up — otherwise the node list would stay cached for the widget's whole life.
     // The re-probe is async (takes effect from the next open) and availability is backed by PyExecutableCache, so a
     // warm cache makes it near-instant; it only does real work after an install invalidated that cache.
-    if (reusable == null) refreshNodes(target.key)
+    if (reusable == null) refreshNodes(askedProject, dataKey)
     PyEvoWidgetCollector.popupOpened(project, hasInterpreter = cached.current != null, toolCount = cached.nodes.size)
     val expandTools = expandToolsOnce
     expandToolsOnce = false
