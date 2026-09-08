@@ -39,6 +39,7 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       "intellij.libraries.kotlinc.analysis.api.impl.base",
       "intellij.libraries.kotlinc.analysis.api.k2",
       "intellij.libraries.kotlinc.analysis.api.platform.interface",
+      "intellij.libraries.kotlinc.kotlin.compiler.fe10",
       "intellij.libraries.kotlinc.kotlin.compiler.fir",
       "intellij.libraries.kotlinc.kotlin.compiler.ir",
       "intellij.libraries.kotlinc.kotlin.jps.common",
@@ -69,7 +70,6 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
     )
 
     private val LIBRARIES = java.util.List.of(
-      "kotlinc.kotlin-compiler-fe10",
       "vavr",
       "javax-inject",
     )
@@ -156,7 +156,7 @@ abstract class KotlinPluginBuilder(val kind: KotlinPluginKind = System.getProper
       spec.withModule("intellij.kotlin.jsr223")
 
       withKotlincKotlinCompilerCommonLibrary(spec, mainModuleName)
-      spec.withProjectLibrary("kotlinc.kotlin-compiler-fe10")
+      spec.withModule("intellij.libraries.kotlinc.kotlin.compiler.fe10")
       withKotlincInPluginDirectory(spec = spec)
 
       addition?.invoke(spec)

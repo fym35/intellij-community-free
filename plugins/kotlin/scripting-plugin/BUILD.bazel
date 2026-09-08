@@ -7,14 +7,15 @@ dev_dist_plugin(
     content_modules = [
         # do not sort,
         "intellij.libraries.kotlinc.kotlin.compiler.common",
+        "intellij.libraries.kotlinc.kotlin.compiler.fe10",
         "intellij.libraries.kotlinc.kotlin.script.runtime",
         "intellij.libraries.kotlinc.kotlin.scripting.common",
         "intellij.libraries.kotlinc.kotlin.scripting.jvm",
     ],
     libraries = [
-        "@lib//:kotlinc-kotlin-compiler-fe10",
         "@lib//:kotlinc-kotlin-dist",
         "@lib//:libraries-kotlinc-kotlin-compiler-common-kotlinc-kotlin-compiler-common",
+        "@lib//:libraries-kotlinc-kotlin-compiler-fe10-kotlinc-kotlin-compiler-fe10",
         "@lib//:libraries-kotlinc-kotlin-script-runtime-kotlinc-kotlin-script-runtime",
         "@lib//:libraries-kotlinc-kotlin-scripting-common-kotlinc-kotlin-scripting-common",
         "@lib//:libraries-kotlinc-kotlin-scripting-jvm-kotlinc-kotlin-scripting-jvm",

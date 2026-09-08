@@ -39,7 +39,7 @@ jvm_library(
         ["resources/**/*"],
     ),
     visibility = ["//visibility:public"],
-    runtime_deps = ["@lib//:kotlinc-kotlin-compiler-fe10"],
+    runtime_deps = ["//libraries/kotlinc/kotlin-compiler-fe10:libraries-kotlinc-kotlin-compiler-fe10"],
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
@@ -143,6 +143,7 @@ jvm_library(
         "//libraries/kotlinc/analysis-api-impl-base:libraries-kotlinc-analysis-api-impl-base_test_lib",
         "//libraries/kotlinc/symbol-light-classes:libraries-kotlinc-symbol-light-classes_test_lib",
         "//libraries/fastutil:fastutil_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-fe10:libraries-kotlinc-kotlin-compiler-fe10_test_lib",
     ],
 )
 ### auto-generated section `build intellij.kotlin.base.projectStructure` end
@@ -178,7 +179,7 @@ jvm_library(
     ),
     module_name = "intellij.kotlin.base.projectStructure.tests",
     visibility = ["//visibility:public"],
-    runtime_deps = ["@lib//:kotlinc-kotlin-compiler-fe10"],
+    runtime_deps = ["//libraries/kotlinc/kotlin-compiler-fe10:libraries-kotlinc-kotlin-compiler-fe10"],
 )
 
 jvm_library(
@@ -202,6 +203,7 @@ jvm_library(
         # do not sort,
         ":kotlin-base-projectStructure-tests",
         "//platform/platform-impl:ide-impl_test_lib",
+        "//libraries/kotlinc/kotlin-compiler-fe10:libraries-kotlinc-kotlin-compiler-fe10_test_lib",
     ],
     deps = [
         # do not sort,
