@@ -10943,6 +10943,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
                 runTest("../../../idea/tests/testData/quickfix/modifiers/openObject.kt");
             }
 
+            @TestMetadata("openValueClass.kt")
+            public void testOpenValueClass() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/modifiers/openValueClass.kt");
+            }
+
             @TestMetadata("openVarWithPrivateSetter1.kt")
             public void testOpenVarWithPrivateSetter1() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/modifiers/openVarWithPrivateSetter1.kt");
