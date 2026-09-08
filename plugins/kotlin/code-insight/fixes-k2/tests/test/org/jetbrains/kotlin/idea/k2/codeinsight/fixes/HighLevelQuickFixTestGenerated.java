@@ -11018,6 +11018,16 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
                 runTest("../../../idea/tests/testData/quickfix/modifiers/packageMemberCannotBeProtected.kt");
             }
 
+            @TestMetadata("privateConstInInterfaceRemoveConst.kt")
+            public void testPrivateConstInInterfaceRemoveConst() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/modifiers/privateConstInInterfaceRemoveConst.kt");
+            }
+
+            @TestMetadata("privateConstInInterfaceRemovePrivate.kt")
+            public void testPrivateConstInInterfaceRemovePrivate() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/modifiers/privateConstInInterfaceRemovePrivate.kt");
+            }
+
             @TestMetadata("redundantOpenInInterface.kt")
             public void testRedundantOpenInInterface() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/modifiers/redundantOpenInInterface.kt");

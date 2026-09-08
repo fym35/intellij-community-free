@@ -40,6 +40,7 @@ import org.jetbrains.kotlin.lexer.KtTokens.OPEN_KEYWORD
 import org.jetbrains.kotlin.lexer.KtTokens.OPERATOR_KEYWORD
 import org.jetbrains.kotlin.lexer.KtTokens.OUT_KEYWORD
 import org.jetbrains.kotlin.lexer.KtTokens.OVERRIDE_KEYWORD
+import org.jetbrains.kotlin.lexer.KtTokens.PRIVATE_KEYWORD
 
 class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
     private val keywords = KtQuickFixesListBuilder.registerPsiQuickFix {
@@ -61,6 +62,11 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerPsiQuickFixes(KaFirDiagnostic.NothingToOverride::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(OVERRIDE_KEYWORD))
         registerPsiQuickFixes(KaFirDiagnostic.NothingToInline::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(INLINE_KEYWORD))
         registerPsiQuickFixes(KaFirDiagnostic.ConstValNotTopLevelOrObject::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(CONST_KEYWORD))
+        registerPsiQuickFixes(
+            KaFirDiagnostic.PrivateConstInInterface::class,
+            RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(PRIVATE_KEYWORD),
+            RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(CONST_KEYWORD)
+        )
         registerPsiQuickFixes(KaFirDiagnostic.FunInterfaceWrongCountOfAbstractMembers::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(FUN_KEYWORD))
         registerPsiQuickFixes(KaFirDiagnostic.TypeCantBeUsedForConstVal::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(CONST_KEYWORD))
         registerPsiQuickFixes(KaFirDiagnostic.InapplicableLateinitModifier::class, RemoveModifierFixBase.createRemoveModifierFromListOwnerPsiBasedFactory(LATEINIT_KEYWORD))
