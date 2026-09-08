@@ -19,7 +19,6 @@ import com.intellij.util.IconUtil;
 import com.intellij.util.LazyInitializer;
 import com.intellij.util.ObjectUtils;
 import com.intellij.util.concurrency.AppExecutorUtil;
-import com.intellij.util.net.ssl.CertificateListener;
 import com.intellij.util.net.ssl.CertificateManager;
 import com.intellij.util.ui.UIUtil;
 import org.cef.CefBrowserSettings;
@@ -72,7 +71,6 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -132,9 +130,6 @@ public abstract class JBCefBrowserBase implements JBCefDisposable {
   private final @NotNull PropertiesHelper myPropertiesHelper = new PropertiesHelper();
   private final @NotNull AtomicBoolean myIsCreateStarted = new AtomicBoolean(false);
   private @Nullable CefRequestHandler myHrefProcessingRequestHandler;
-
-  private final @Nullable CertificateListener myCertificateListener;
-  private final @Nullable CompletableFuture<Void> myCertificateListenerRegistration;
 
   /**
    * Obtaining the {@link CertificateManager} instance is a heavy-weight operation see IJPL-236137
@@ -340,40 +335,6 @@ public abstract class JBCefBrowserBase implements JBCefDisposable {
     }
 
     if (builder.myCreateImmediately) createImmediately();
-
-    if (myUseCertManager) {
-      myCertificateListener = new CertificateListener() {
-        @Override
-        public void certificateAdded(X509Certificate certificate) { }
-
-        @Override
-        public void certificateRemoved(X509Certificate certificate) {
-          CefRequestContext context = getCefBrowser().getRequestContext();
-          if (context != null) {
-            context.ClearCertificateExceptions(null);
-            context.CloseAllConnections(null);
-          }
-          else {
-            getCefBrowser().createImmediately();
-            // It's a trick to wait until the browser is ready. TODO: introduce CefBrowser#getRequestContextAsync
-            CompletableFuture<String> browserReadyFuture = getCefBrowser().getDevToolsClient().executeDevToolsMethod("");
-            browserReadyFuture.thenRun(() -> {
-              CefRequestContext context1 = Objects.requireNonNull(getCefBrowser().getRequestContext());
-              context1.ClearCertificateExceptions(null);
-              context1.CloseAllConnections(null);
-            });
-          }
-        }
-      };
-
-      myCertificateListenerRegistration = ourCertificateManager.get().thenAcceptAsync(
-        certificateManager -> certificateManager.getCustomTrustManager().addListener(myCertificateListener),
-        AppExecutorUtil.getAppExecutorService());
-    }
-    else {
-      myCertificateListener = null;
-      myCertificateListenerRegistration = null;
-    }
 
     myCefClient.addKeyboardHandler(myKeyboardHandler = new CefKeyboardHandlerAdapter() {
       @Override
@@ -651,19 +612,6 @@ public abstract class JBCefBrowserBase implements JBCefDisposable {
       if (myHrefProcessingRequestHandler != null) getJBCefClient().removeRequestHandler(myHrefProcessingRequestHandler, getCefBrowser());
       if (myContextMenuHandler != null) getJBCefClient().removeContextMenuHandler(myContextMenuHandler, getCefBrowser());
       // There is also a CefLifeSpanHandler(see the class constructor) that has to remove himself at onBeforeClose()
-
-      if (myCertificateListenerRegistration != null) {
-        myCertificateListenerRegistration.whenCompleteAsync((v, e) -> {
-          if (e == null) {
-            try {
-              ourCertificateManager.get().join().getCustomTrustManager().removeListener(myCertificateListener);
-            }
-            catch (Throwable ex) {
-              LOG.warn("Failed to remove certificate listener", ex);
-            }
-          }
-        }, AppExecutorUtil.getAppExecutorService());
-      }
 
       myCefBrowser.stopLoad();
       myCefBrowser.setCloseAllowed();
