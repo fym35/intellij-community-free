@@ -5,7 +5,6 @@ import com.intellij.application.options.schemes.SchemeNameGenerator
 import com.intellij.execution.ExecutionBundle
 import com.intellij.ide.DataManager
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.idea.ActionsBundle
 import com.intellij.openapi.actionSystem.ActionManager
@@ -16,6 +15,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.keymap.KeyMapBundle
 import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.KeymapManager
@@ -23,12 +23,14 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.keymap.ex.KeymapManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
 import org.jetbrains.annotations.ApiStatus
 import java.awt.Component
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
+import java.util.function.Consumer
 import javax.swing.KeyStroke
 
 @ApiStatus.Internal
@@ -41,13 +43,16 @@ object TerminalCmdKShortcutDialog {
   private const val COMMIT_OPTION = 0
   private const val CLEAR_TERMINAL_OPTION = 1
 
+  private var isDialogScheduled = false
+
   @JvmStatic
   @JvmOverloads
+  @RequiresEdt
   fun handleIfNeeded(
     project: Project?,
     component: Component,
     keyEvent: KeyEvent,
-    clearClassicTerminalAction: Runnable? = null,
+    clearClassicTerminalAction: Consumer<KeyEvent>? = null,
   ): Boolean {
     if (project == null ||
         !isCmdK(keyEvent) ||
@@ -55,19 +60,40 @@ object TerminalCmdKShortcutDialog {
       return false
     }
 
-    val shortcut = KeyboardShortcut(KeyStroke.getKeyStrokeForEvent(keyEvent), null)
-    if (!hasActionShortcut(CHECKIN_PROJECT_ACTION_ID, shortcut))
-      return false
-
     val actionManager = ActionManager.getInstance()
     val checkinAction = actionManager.getAction(CHECKIN_PROJECT_ACTION_ID) ?: return false
-    val clearTerminalAction = actionManager.getAction(TERMINAL_CLEAR_ACTION_ID)
-    val checkinActionText = checkinAction.templatePresentation.text ?: ActionsBundle.message("action.CheckinProject.text")
-    val clearTerminalActionText = clearTerminalAction?.templatePresentation?.text ?: IdeBundle.message("terminal.action.ClearBuffer.text")
+    val clearTerminalAction = actionManager.getAction(TERMINAL_CLEAR_ACTION_ID) ?: return false
 
-    val dataContext = DataManager.getInstance().getDataContext(component)
-    val eventQueue = IdeEventQueue.getInstance()
-    val savedEventCount = eventQueue.eventCount
+    val shortcut = KeyboardShortcut(KeyStroke.getKeyStrokeForEvent(keyEvent), null)
+    if (!hasShortcutConflict(shortcut)) return false
+
+    if (isDialogScheduled) return true
+    val actionKeyEvent = copyKeyEvent(keyEvent, component)
+    isDialogScheduled = true
+    ApplicationManager.getApplication().invokeLater {
+      try {
+        showDialog(project, component, shortcut, actionKeyEvent, checkinAction, clearTerminalAction, clearClassicTerminalAction)
+      }
+      finally {
+        isDialogScheduled = false
+      }
+    }
+    return true
+  }
+
+  private fun showDialog(
+    project: Project,
+    component: Component,
+    shortcut: KeyboardShortcut,
+    keyEvent: KeyEvent,
+    checkinAction: AnAction,
+    clearTerminalAction: AnAction,
+    clearClassicTerminalAction: Consumer<KeyEvent>?,
+  ) {
+    if (project.isDisposed) return
+
+    val checkinActionText = checkinAction.templatePresentation.text ?: ActionsBundle.message("action.CheckinProject.text")
+    val clearTerminalActionText = clearTerminalAction.templatePresentation.text ?: IdeBundle.message("terminal.action.ClearBuffer.text")
     val choice = Messages.showDialog(
       project,
       ExecutionBundle.message("terminal.cmd.k.shortcut.dialog.message", checkinActionText, clearTerminalActionText),
@@ -76,8 +102,8 @@ object TerminalCmdKShortcutDialog {
       COMMIT_OPTION,
       Messages.getInformationIcon(),
     )
-    eventQueue.eventCount = savedEventCount
 
+    val dataContext = DataManager.getInstance().getDataContext(component)
     when (choice) {
       COMMIT_OPTION -> {
         removeClearBufferShortcut(shortcut)
@@ -85,15 +111,13 @@ object TerminalCmdKShortcutDialog {
         performAction(checkinAction, dataContext, keyEvent)
       }
       CLEAR_TERMINAL_OPTION -> {
-        updateActionShortcut(TERMINAL_CLEAR_ACTION_ID, shortcut, replaceExistingShortcuts = false)
         rememberChoice()
         if (clearClassicTerminalAction != null)
-          clearClassicTerminalAction.run()
+          clearClassicTerminalAction.accept(keyEvent)
         else
-          clearTerminalAction?.let { performAction(it, dataContext, keyEvent) }
+          performAction(clearTerminalAction, dataContext, keyEvent)
       }
     }
-    return true
   }
 
   @JvmStatic
@@ -116,6 +140,10 @@ object TerminalCmdKShortcutDialog {
     return KeymapUtil.getActiveKeymapShortcuts(actionId).shortcuts.any { it == shortcut }
   }
 
+  private fun hasShortcutConflict(shortcut: KeyboardShortcut): Boolean =
+    hasActionShortcut(CHECKIN_PROJECT_ACTION_ID, shortcut) &&
+    hasActionShortcut(TERMINAL_CLEAR_ACTION_ID, shortcut)
+
   private fun removeClearBufferShortcut(shortcut: KeyboardShortcut) {
     val actionId = TERMINAL_CLEAR_ACTION_ID
     if (!hasActionShortcut(actionId, shortcut))
@@ -126,6 +154,18 @@ object TerminalCmdKShortcutDialog {
 
   private fun rememberChoice() {
     PropertiesComponent.getInstance().setValue(SHORTCUT_CHOICE_PROPERTY, true)
+  }
+
+  private fun copyKeyEvent(keyEvent: KeyEvent, component: Component): KeyEvent {
+    return KeyEvent(
+      component,
+      keyEvent.id,
+      keyEvent.`when`,
+      keyEvent.modifiersEx,
+      keyEvent.keyCode,
+      keyEvent.keyChar,
+      keyEvent.keyLocation,
+    )
   }
 
   private fun performAction(action: AnAction, dataContext: DataContext, keyEvent: KeyEvent) {

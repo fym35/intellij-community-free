@@ -170,6 +170,7 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
   }
 
   private static boolean skipAction(@NotNull KeyEvent e, @Nullable List<? extends AnAction> actionsToSkip) {
+    // The Classic Terminal handles Clear Buffer as a local action. Route Cmd+K to the terminal instead of the Commit action.
     if (TerminalCmdKShortcutDialog.hasClearTerminalShortcut(e))
       return false;
 
@@ -413,15 +414,16 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
     @Override
     public boolean dispatch(@NotNull AWTEvent e) {
       if (e instanceof KeyEvent) {
-        return dispatchKeyEvent((KeyEvent)e);
+        dispatchKeyEvent((KeyEvent)e);
       }
       return false;
     }
 
-    private boolean dispatchKeyEvent(@NotNull KeyEvent e) {
-      if (TerminalCmdKShortcutDialog.handleIfNeeded(getContextProject(), JBTerminalPanel.this, e, () -> invokeClearBufferAction(e))) {
+    private void dispatchKeyEvent(@NotNull KeyEvent e) {
+      if (TerminalCmdKShortcutDialog.handleIfNeeded(getContextProject(), JBTerminalPanel.this, e,
+                                                    JBTerminalPanel.this::invokeClearBufferAction)) {
         e.consume();
-        return true;
+        return;
       }
 
       if (e.getID() == KeyEvent.KEY_PRESSED && !skipKeyEvent(e)) {
@@ -431,14 +433,13 @@ public class JBTerminalPanel extends TerminalPanel implements FocusListener, Ter
                       getDebugTerminalPanelName() + ", unregistering");
           }
           unregister();
-          return false;
+          return;
         }
         if (LOG.isDebugEnabled()) {
           LOG.debug("Consuming " + KeyStroke.getKeyStrokeForEvent(e) + ", registered:" + myRegistered);
         }
         JBTerminalPanel.this.dispatchEvent(e);
       }
-      return false;
     }
 
     void register() {

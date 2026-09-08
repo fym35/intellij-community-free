@@ -82,12 +82,12 @@ private class TerminalEventDispatcher(
   override fun dispatch(e: AWTEvent): Boolean {
     if (e is KeyEvent) {
       val timedEvent = TimedKeyEvent(e)
-      return dispatchKeyEvent(timedEvent)
+      dispatchKeyEvent(timedEvent)
     }
     return false
   }
 
-  private fun dispatchKeyEvent(e: TimedKeyEvent): Boolean {
+  private fun dispatchKeyEvent(e: TimedKeyEvent) {
     LOG.trace { "Key event received: ${e.original}" }
 
     // Special handling for Escape shortcut - show notification about behavior change.
@@ -100,7 +100,7 @@ private class TerminalEventDispatcher(
     if (TerminalCmdKShortcutDialog.handleIfNeeded(editor.project, editor.contentComponent, keyEvent)) {
       keyEvent.consume()
       ignoreNextKeyTypedEvent = true
-      return true
+      return
     }
 
     if (isAllowedActionShortcut(e.original)) {
@@ -122,7 +122,6 @@ private class TerminalEventDispatcher(
         LOG.trace { "Key event skipped (key typed ignored): ${e.original}" }
       }
     }
-    return false
   }
 
   fun registerIfNeeded() {
