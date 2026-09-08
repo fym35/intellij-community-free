@@ -74,10 +74,10 @@ object SnapshotMarkerEngineImpl : SnapshotMarkerEngine, ReferenceQueueable {
   /**
    * Derives and publishes the marker root for [afterSnapshot].
    *
-   * The current root of [beforeSnapshot] is captured with one atomic read. Consequently:
+   * The caller supplies the root that it captured before constructing [afterSnapshot]. Consequently:
    *
-   * - a marker inserted before this operation is inherited by the child;
-   * - a marker inserted after this operation is not inherited by the child;
+   * - a marker inserted before the capture is inherited by the child;
+   * - a marker inserted after the capture is not inherited by the child;
    * - the root belonging to [beforeSnapshot] is not changed.
    *
    * [afterSnapshot] must not become visible before this method completes. Otherwise, marker creation may race with
@@ -87,7 +87,7 @@ object SnapshotMarkerEngineImpl : SnapshotMarkerEngine, ReferenceQueueable {
     validatePatch(beforeSnapshot, afterSnapshot, patch)
     var hasInvalidatedMarkers = false
     val invalidatedMarkerConsumer = LongConsumer { hasInvalidatedMarkers = true }
-    val beforeRoot = markerRoot(beforeSnapshot).get()
+    val beforeRoot = markerRoot(afterSnapshot).get()
     val afterRoot = beforeRoot.applyPatch(patch, beforeSnapshot.text(), afterSnapshot.text(), invalidatedMarkerConsumer)
     processQueue()
     require(afterSnapshot !== beforeSnapshot) {

@@ -27,9 +27,8 @@ interface SnapshotMarkerEngine {
   /**
    * Derives and stores the marker root for [afterSnapshot].
    *
-   * The implementation obtains the current root associated with
-   * [beforeSnapshot], calls [PMarkerRoot.applyPatch], and stores the returned
-   * root in [afterSnapshot].
+   * The caller initializes [afterSnapshot] with the marker root that it captured from [beforeSnapshot]. The implementation
+   * calls [PMarkerRoot.applyPatch] on that captured root and stores the returned root in [afterSnapshot].
    *
    * The root associated with [beforeSnapshot] is not changed.
    *

@@ -59,15 +59,16 @@ internal class DocumentSnapshotImpl private constructor(
     if (newText === text && newModState === modState && !canAffectSputniks) {
       return this
     }
+    val beforeMarkerRoot = markerRoot.get()
     val newSnapshot = if (newText === text && newModState === modState) {
       this
     }
     else {
-      DocumentSnapshotImpl(newText, newModState, sputniks, markerRoot.get())
+      DocumentSnapshotImpl(newText, newModState, sputniks, beforeMarkerRoot)
     }
     val after = if (canAffectSputniks && (sputniks !== DocumentSputniksImpl.EMPTY || op is DocumentOp.SetSputnik)) {
       sputniks.applyOp(this, newSnapshot, op) { newSputniks ->
-        DocumentSnapshotImpl(newText, newModState, newSputniks, markerRoot.get())
+        DocumentSnapshotImpl(newText, newModState, newSputniks, beforeMarkerRoot)
       }
     }
     else {
