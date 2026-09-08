@@ -60,7 +60,8 @@ open class TeamCityCIServer(
 
   override fun reportTestFailure(
     testName: String, message: String, details: String, linkToLogs: String?,
-    kind: SyntheticTestKind, generifyTestName: Boolean
+    kind: SyntheticTestKind, generifyTestName: Boolean,
+    additionalMetadata: List<TestMetadata>
   ) {
     val metadata = buildList {
       linkToLogs?.let { add(TestMetadata(name = "Link to Logs and artifacts", value = it, type = TeamCityReporter.MetadataType.LINK)) }
@@ -68,6 +69,7 @@ open class TeamCityCIServer(
       if (isJetbrainsBuildserver) {
         add(bisectMetadata())
       }
+      addAll(additionalMetadata)
     }
     TeamCityReporter.reportTestLifecycle(testName, TestOutcome.FAILED, message, details,
                                          owner = codeOwnerResolver.getOwnerGroupName(),
