@@ -1,8 +1,9 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.completion;
 
 import com.intellij.application.options.CodeStyle;
 import com.intellij.codeInsight.ExpectedTypeInfo;
+import com.intellij.codeInsight.JavaIdeCodeInsightSettings;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementPresentation;
 import com.intellij.codeInsight.lookup.TypedLookupItem;
@@ -52,6 +53,10 @@ final class ArgumentSuggester {
       stream =
         stream.filter(element -> ContainerUtil.exists(expectedTypeInfos, info -> info.getType().isAssignableFrom(element.getType())));
     }
+    if (JavaIdeCodeInsightSettings.getInstance().sortOverloadsByParameterCount) {
+      // The priority would put the item above every overload and break the order of the overloads.
+      return List.copyOf(stream.toList());
+    }
     return stream.map(element -> PrioritizedLookupElement.withPriority(element, 1)).toList();
   }
 
@@ -62,7 +67,7 @@ final class ArgumentSuggester {
     });
   }
 
-  private static class MethodWithArgument extends LookupElement implements TypedLookupItem {
+  static class MethodWithArgument extends LookupElement implements TypedLookupItem {
     private final @NotNull PsiMethod myMethod;
     private final @NotNull PsiType myType;
     private final @NotNull String myArgument;
