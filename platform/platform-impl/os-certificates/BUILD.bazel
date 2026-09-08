@@ -1,4 +1,9 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+### auto-generated section `dev intellij.platform.ide.osCertificates` start
+content_module_jar(module = ":os-certificates")
+### auto-generated section `dev intellij.platform.ide.osCertificates` end
 
 ### auto-generated section `build intellij.platform.ide.osCertificates` start
 jvm_library(

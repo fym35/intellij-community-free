@@ -556,6 +556,7 @@ jvm_library(
     runtime_deps = [
         # do not sort,
         ":main-tests",
+        "//platform/platform-util-io-native:ide-util-io-native-tests_test_lib",
         "//platform/non-modal-welcome-screen:non-modal-welcome-screen_test_lib",
         "//platform/platform-impl/concurrency:ide-concurrency-tests_test_lib",
         "//platform/non-modal-welcome-screen:ide-nonModalWelcomeScreen-tests_test_lib",
@@ -647,6 +648,7 @@ jvm_library(
         "//plugins/properties/property-tests:propertyBased-tests_test_lib",
         "//platform/execution-impl:execution-tests",
         "//platform/execution-impl:execution-tests_test_lib",
+        "//platform/platform-util-io-native:ide-util-io-native-tests",
         "//plugins/commander",
         "//plugins/commander:commander_test_lib",
         "//plugins/configuration-script",
