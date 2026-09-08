@@ -22,12 +22,6 @@
     <plugin id="com.intellij.modules.java-capable"/>
   </dependencies>
 
-  <extensionPoints>
-    <extensionPoint name="supportsKotlinPluginMode" dynamic="true"
-                    beanClass="org.jetbrains.kotlin.idea.base.plugin.SupportsKotlinPluginMode">
-    </extensionPoint>
-  </extensionPoints>
-
   <content namespace="jetbrains">
     <module name="intellij.kotlin.base.projectModel" loading="required"/>
     <module name="intellij.kotlin.base.analysis.platform"/>
