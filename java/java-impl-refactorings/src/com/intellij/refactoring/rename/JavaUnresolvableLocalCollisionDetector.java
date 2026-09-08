@@ -1,4 +1,4 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.refactoring.rename;
 
 import com.intellij.openapi.diagnostic.Logger;
@@ -54,7 +54,7 @@ public final class JavaUnresolvableLocalCollisionDetector {
         if (!methodParameter &&
             helper.resolveAccessibleReferencedVariable(newName, element) != collidingVariable &&
             helper.resolveAccessibleReferencedVariable(oldName, collidingVariable) != element) return;
-        LocalHidesRenamedLocalUsageInfo collision = new LocalHidesRenamedLocalUsageInfo(collidingVariable, element);
+        UnresolvableLocalCollisionUsageInfo collision = new UnresolvableLocalCollisionUsageInfo(collidingVariable, element);
         result.add(collision);
       }
     };

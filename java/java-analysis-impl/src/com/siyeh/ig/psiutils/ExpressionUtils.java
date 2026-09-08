@@ -1037,6 +1037,7 @@ public final class ExpressionUtils {
         }
         while (containingClass != null && !InheritanceUtil.isInheritorOrSelf(containingClass, memberClass, true));
         if (containingClass != null) {
+          if (containingClass instanceof PsiImplicitClass) return null;
           String thisQualifier = containingClass.getQualifiedName();
           if (thisQualifier == null) {
             if (PsiUtil.isLocalClass(containingClass)) {

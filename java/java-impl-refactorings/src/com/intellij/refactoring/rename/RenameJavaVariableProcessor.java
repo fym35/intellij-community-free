@@ -1,9 +1,10 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.refactoring.rename;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
+import com.intellij.psi.JavaResolveResult;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiCompiledElement;
 import com.intellij.psi.PsiElement;
@@ -36,6 +37,7 @@ import com.intellij.util.CommonJavaRefactoringUtil;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.MultiMap;
+import com.siyeh.ig.psiutils.ExpressionUtils;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -285,7 +287,7 @@ public class RenameJavaVariableProcessor extends RenameJavaMemberProcessor {
   }
 
   private static void findLocalHidesFieldCollisions(PsiElement element, String newName, Map<? extends PsiElement, String> allRenames,
-                                                    List<? super UsageInfo> result) {
+                                                    List<? super UsageInfo> collisions) {
     PsiElement scopeElement;
     if (element instanceof PsiLocalVariable local) {
       scopeElement = CommonJavaRefactoringUtil.getVariableScope(local);
@@ -305,11 +307,13 @@ public class RenameJavaVariableProcessor extends RenameJavaMemberProcessor {
       @Override public void visitReferenceExpression(@NotNull PsiReferenceExpression expression) {
         super.visitReferenceExpression(expression);
         if (!expression.isQualified()) {
-          PsiElement resolved = expression.resolve();
-          if (resolved instanceof PsiField field) {
+          JavaResolveResult result = expression.advancedResolve(false);
+          if (result.isValidResult() && result.getElement() instanceof PsiField field) {
             String fieldNewName = allRenames.containsKey(field) ? allRenames.get(field) : field.getName();
             if (newName.equals(fieldNewName)) {
-              result.add(new LocalHidesFieldUsageInfo(expression, element));
+              collisions.add(ExpressionUtils.getEffectiveQualifier(expression) == null
+                         ? new UnresolvableLocalCollisionUsageInfo(field, element)
+                         : new LocalHidesFieldUsageInfo(expression, element));
             }
           }
         }
