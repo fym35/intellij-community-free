@@ -848,6 +848,32 @@ class SnapshotMarkerEngineImplTest {
   }
 
   @Test
+  fun `root reports only affected valid markers`() {
+    val invalidatedMarkerIds = ArrayList<Long>()
+    val affectedMarkerIds = ArrayList<Long>()
+    val invalidatingPolicy = MarkerPolicy { entry, _, _, _ ->
+      MarkerTransformResult.Invalid("Invalidated by test marker policy", entry)
+    }
+    val root = PMarkerRootImpl.empty()
+      .insert(1, 0, 1, nonGreedySpec(), flavorFlags = 0)
+      .insert(2, 1, 6, nonGreedySpec(), flavorFlags = 0)
+      .insert(3, 3, 5, nonGreedySpec(), flavorFlags = 0)
+      .insert(4, 7, 9, nonGreedySpec(), flavorFlags = 0)
+      .insert(5, 3, 4, nonGreedySpec().copy(policy = invalidatingPolicy), flavorFlags = 0)
+
+    applyPatch(
+      root,
+      "abcdefghij",
+      textPatch(startOffset = 3, endOffset = 4, newFragment = ""),
+      LongConsumer(invalidatedMarkerIds::add),
+      LongConsumer(affectedMarkerIds::add),
+    )
+
+    assertEquals(listOf(5L), invalidatedMarkerIds)
+    assertEquals(listOf(2L, 3L), affectedMarkerIds.sorted())
+  }
+
+  @Test
   fun `root flavor filtering survives edits removals and flavor updates`() {
     val firstFlavor: Byte = 1
     val secondFlavor: Byte = 2
@@ -1165,10 +1191,11 @@ class SnapshotMarkerEngineImplTest {
     before: String,
     patch: DocumentTextPatch,
     invalidatedMarkerConsumer: LongConsumer = PMarkerRoot.EMPTY_LONG_CONSUMER,
+    affectedMarkerConsumer: LongConsumer = PMarkerRoot.EMPTY_LONG_CONSUMER,
   ): PMarkerRoot {
     val beforeText = DocumentImpl(before, true).core.snapshot().text()
     val afterText = beforeText.applyOp(patch)
-    return root.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer)
+    return root.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer)
   }
 
   private class Fixture(initialText: String) {

@@ -11,6 +11,7 @@ import com.intellij.util.containers.CollectionFactory
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongList
 import it.unimi.dsi.fastutil.longs.LongLists
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicReference
@@ -25,15 +26,19 @@ class SnapshotMarkerRootStore @JvmOverloads constructor(
   private val emptyRoot: PMarkerRoot = PMarkerRootImpl.empty(),
   private val onMarkersInvalidated: ((LongList) -> Unit)? = null,
   private val onDocumentChanged: ((DocumentEvent) -> Unit)? = null,
+  private val onMarkersAffected: ((LongList) -> Unit)? = null,
 ) {
   private val roots: ConcurrentMap<DocumentSnapshot, RootState> = CollectionFactory.createConcurrentWeakIdentityMap()
 
-  private val documentListener: PrioritizedDocumentListener? = if (onMarkersInvalidated != null || onDocumentChanged != null) {
+  private val documentListener: PrioritizedDocumentListener? =
+    if (onMarkersInvalidated != null || onDocumentChanged != null || onMarkersAffected != null) {
     object : PrioritizedDocumentListener {
       override fun getPriority(): Int = EditorDocumentPriorities.RANGE_MARKER
 
       override fun documentChanged(event: DocumentEvent) {
-        onMarkersInvalidated?.invoke(roots[document.core.snapshot()]?.invalidatedMarkerIds ?: LongLists.EMPTY_LIST)
+        val rootState = roots[document.core.snapshot()]
+        onMarkersInvalidated?.invoke(rootState?.invalidatedMarkerIds ?: LongLists.EMPTY_LIST)
+        onMarkersAffected?.invoke(rootState?.affectedMarkerIds ?: LongLists.EMPTY_LIST)
         onDocumentChanged?.invoke(event)
       }
     }
@@ -83,13 +88,27 @@ class SnapshotMarkerRootStore @JvmOverloads constructor(
     else {
       LongConsumer { invalidatedMarkerIds.add(it) }
     }
+    val affectedMarkerIds: LongArrayList? = if (onMarkersAffected == null) null else LongArrayList()
+    val affectedMarkerConsumer = if (affectedMarkerIds == null) {
+      PMarkerRoot.EMPTY_LONG_CONSUMER
+    }
+    else {
+      val affectedMarkerIdSet = LongOpenHashSet()
+      LongConsumer { markerId ->
+        if (affectedMarkerIdSet.add(markerId)) affectedMarkerIds.add(markerId)
+      }
+    }
     val afterRoot = beforeRoots.rootReference.get().applyPatch(
       patch,
       beforeSnapshot.text(),
       afterSnapshot.text(),
       invalidatedMarkerConsumer,
+      affectedMarkerConsumer,
     )
-    roots.putIfAbsent(afterSnapshot, RootState(afterRoot, invalidatedMarkerIds ?: LongLists.EMPTY_LIST))
+    roots.putIfAbsent(
+      afterSnapshot,
+      RootState(afterRoot, invalidatedMarkerIds ?: LongLists.EMPTY_LIST, affectedMarkerIds ?: LongLists.EMPTY_LIST),
+    )
   }
 
   internal fun inherit(beforeSnapshot: DocumentSnapshot, afterSnapshot: DocumentSnapshot) {
@@ -122,6 +141,7 @@ class SnapshotMarkerRootStore @JvmOverloads constructor(
   private class RootState(
     root: PMarkerRoot,
     val invalidatedMarkerIds: LongList = LongLists.EMPTY_LIST,
+    val affectedMarkerIds: LongList = LongLists.EMPTY_LIST,
   ) {
     val rootReference = AtomicReference(root)
   }

@@ -184,6 +184,7 @@ open class PMarkerRootImpl private constructor(
     beforeText: DocumentText,
     afterText: DocumentText,
     invalidatedMarkerConsumer: LongConsumer,
+    affectedMarkerConsumer: LongConsumer,
   ): PMarkerRoot {
     validatePatch(patch, beforeText, afterText)
     val editStart = patch.startOffset()
@@ -192,7 +193,7 @@ open class PMarkerRootImpl private constructor(
     val newLength = patch.newFragment().length
     if (oldLength == 0 && newLength == 0 || rootId == NULL_NODE) return this
     if (persistentMarkerCount > 0 && PersistentMarkerPolicy.requiresFullTraversal(patch, beforeText, afterText)) {
-      return applyPatchWithFullTraversal(patch, beforeText, afterText, invalidatedMarkerConsumer)
+      return applyPatchWithFullTraversal(patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer)
     }
 
     val delta = newLength - oldLength
@@ -201,13 +202,15 @@ open class PMarkerRootImpl private constructor(
     val (before, fromEditStart) = splitByStart(editor, rootId, editStart, equalGoesLeft = false)
     val (middle, after) = splitByStart(editor, fromEditStart, editEnd, equalGoesLeft = true)
 
-    val updatedBefore = updateMarkersStartingBeforeEdit(editor, before, patch, beforeText, afterText, invalidatedMarkerConsumer)
+    val updatedBefore = updateMarkersStartingBeforeEdit(
+      editor, before, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer
+    )
     val middleEntries = ArrayList<MarkerEntry>()
     collectEntries(editor, middle, 0, middleEntries)
 
     val transformedMiddle = ArrayList<MarkerEntry>(middleEntries.size)
     for (entry in middleEntries) {
-      when (val update = transform(editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer)) {
+      when (val update = transform(editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer)) {
         is MarkerTransformResult.Valid -> transformedMiddle.add(update.entry)
         is MarkerTransformResult.Invalid -> editor.putInvalid(update.entry ?: entry, update.reason)
       }
@@ -226,7 +229,7 @@ open class PMarkerRootImpl private constructor(
       val moveStart = patch.moveOffset()
       val moveEnd = moveStart + newLength
       newRoot = retargetContainedMarkers(
-        editor, newRoot, moveStart, moveEnd, editStart - moveStart, afterText, invalidatedMarkerConsumer
+        editor, newRoot, moveStart, moveEnd, editStart - moveStart, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer
       )
     }
     editor.setParent(newRoot, NULL_NODE)
@@ -238,6 +241,7 @@ open class PMarkerRootImpl private constructor(
     beforeText: DocumentText,
     afterText: DocumentText,
     invalidatedMarkerConsumer: LongConsumer,
+    affectedMarkerConsumer: LongConsumer,
   ): PMarkerRoot {
     val editor = MapBatchEditor(states, persistentMarkerCount)
     val entries = ArrayList<MarkerEntry>()
@@ -245,7 +249,7 @@ open class PMarkerRootImpl private constructor(
 
     val transformedEntries = ArrayList<MarkerEntry>(entries.size)
     for (entry in entries) {
-      when (val update = transform(editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer)) {
+      when (val update = transform(editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer)) {
         is MarkerTransformResult.Valid -> transformedEntries.add(update.entry)
         is MarkerTransformResult.Invalid -> editor.putInvalid(update.entry ?: entry, update.reason)
       }
@@ -258,7 +262,8 @@ open class PMarkerRootImpl private constructor(
       val moveStart = patch.moveOffset()
       val moveEnd = moveStart + patch.newFragment().length
       newRoot = retargetContainedMarkers(
-        editor, newRoot, moveStart, moveEnd, patch.startOffset() - moveStart, afterText, invalidatedMarkerConsumer
+        editor, newRoot, moveStart, moveEnd, patch.startOffset() - moveStart, afterText,
+        invalidatedMarkerConsumer, affectedMarkerConsumer
       )
     }
     editor.setParent(newRoot, NULL_NODE)
@@ -947,6 +952,7 @@ open class PMarkerRootImpl private constructor(
       beforeText: DocumentText,
       afterText: DocumentText,
       invalidatedMarkerConsumer: LongConsumer,
+      affectedMarkerConsumer: LongConsumer,
     ): Long {
       if (rootId == NULL_NODE) return NULL_NODE
       val initial = editor.valid(rootId)
@@ -958,10 +964,16 @@ open class PMarkerRootImpl private constructor(
       val entry = root.entry
       detachAsLeaf(editor, rootId)
 
-      val newLeft = updateMarkersStartingBeforeEdit(editor, leftId, patch, beforeText, afterText, invalidatedMarkerConsumer)
-      val newRight = updateMarkersStartingBeforeEdit(editor, rightId, patch, beforeText, afterText, invalidatedMarkerConsumer)
+      val newLeft = updateMarkersStartingBeforeEdit(
+        editor, leftId, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer
+      )
+      val newRight = updateMarkersStartingBeforeEdit(
+        editor, rightId, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer
+      )
 
-      return when (val update = transform(editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer)) {
+      return when (val update = transform(
+        editor, entry, patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer
+      )) {
         is MarkerTransformResult.Valid -> {
           check(update.entry.startOffset == entry.startOffset) {
             "An edit changed the start of a marker that starts before the edit"
@@ -1007,6 +1019,7 @@ open class PMarkerRootImpl private constructor(
       offsetDelta: Int,
       afterText: DocumentText,
       invalidatedMarkerConsumer: LongConsumer,
+      affectedMarkerConsumer: LongConsumer,
     ): Long {
       val affected = ArrayList<MarkerEntry>()
       collectContainedEntries(editor, rootId, 0, moveStart, moveEnd, affected)
@@ -1018,7 +1031,7 @@ open class PMarkerRootImpl private constructor(
           startOffset = entry.startOffset + offsetDelta,
           endOffset = entry.endOffset + offsetDelta,
         )
-        when (val update = afterRetarget(editor, retargeted, afterText, invalidatedMarkerConsumer)) {
+        when (val update = afterRetarget(editor, retargeted, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer)) {
           is MarkerTransformResult.Valid -> {
             val updatedEntry = update.entry
             editor.putValid(
@@ -1049,12 +1062,14 @@ open class PMarkerRootImpl private constructor(
       entry: MarkerEntry,
       afterText: DocumentText,
       invalidatedMarkerConsumer: LongConsumer,
+      affectedMarkerConsumer: LongConsumer,
     ): MarkerTransformResult {
       return processTransformResult(
         editor,
         entry,
         entry.spec.policy.afterRetarget(entry, afterText),
         invalidatedMarkerConsumer,
+        affectedMarkerConsumer,
       )
     }
 
@@ -1063,6 +1078,7 @@ open class PMarkerRootImpl private constructor(
       entry: MarkerEntry,
       result: MarkerTransformResult,
       invalidatedMarkerConsumer: LongConsumer,
+      affectedMarkerConsumer: LongConsumer,
     ): MarkerTransformResult {
       val updatedEntry = when (result) {
         is MarkerTransformResult.Valid -> result.entry
@@ -1075,6 +1091,7 @@ open class PMarkerRootImpl private constructor(
       }
       if (result is MarkerTransformResult.Valid) {
         editor.replacePolicy(entry.spec.policy, result.entry.spec.policy)
+        affectedMarkerConsumer.accept(entry.markerId)
       }
       else {
         invalidatedMarkerConsumer.accept(entry.markerId)
@@ -1160,12 +1177,14 @@ open class PMarkerRootImpl private constructor(
       beforeText: DocumentText,
       afterText: DocumentText,
       invalidatedMarkerConsumer: LongConsumer,
+      affectedMarkerConsumer: LongConsumer,
     ): MarkerTransformResult {
       return processTransformResult(
         editor,
         entry,
         entry.spec.policy.transform(entry, patch, beforeText, afterText),
         invalidatedMarkerConsumer,
+        affectedMarkerConsumer,
       )
     }
   }

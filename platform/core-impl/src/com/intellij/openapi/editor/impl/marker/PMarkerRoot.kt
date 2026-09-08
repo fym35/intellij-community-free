@@ -42,12 +42,14 @@ interface PMarkerRoot {
    *
    * Already-invalid markers normally remain invalid.
    * [invalidatedMarkerConsumer] receives each marker ID that changes from valid to invalid.
+   * [affectedMarkerConsumer] receives each marker ID that remains valid after its marker policy processes the patch.
    */
   fun applyPatch(
     patch: DocumentTextPatch,
     beforeText: DocumentText,
     afterText: DocumentText,
     invalidatedMarkerConsumer: LongConsumer = EMPTY_LONG_CONSUMER,
+    affectedMarkerConsumer: LongConsumer = EMPTY_LONG_CONSUMER,
   ): PMarkerRoot
 
   /**

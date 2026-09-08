@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference
 private const val FOLD_REGION_FLAVOR: Int = 1
 private const val CUSTOM_FOLD_REGION_FLAVOR: Int = 2
 
-/** Stores fold regions for one editor in a snapshot marker root. */
+/** Stores fold regions for one editor in the snapshot marker [rootStore]. */
 internal class SnapshotFoldingRegionStorage(
   internal val model: FoldingModelImpl,
   internal val editor: EditorImpl,
@@ -43,7 +43,7 @@ internal class SnapshotFoldingRegionStorage(
   private val rootStore: SnapshotMarkerRootStore = SnapshotMarkerRootStore(
     document,
     onMarkersInvalidated = ::processInvalidatedRegions,
-    onDocumentChanged = ::documentChanged,
+    onMarkersAffected = ::processAffectedRegions,
   )
   private var sizesBeforeUpdate: Map<Long, Int> = emptyMap()
 
@@ -166,16 +166,24 @@ internal class SnapshotFoldingRegionStorage(
     return region
   }
 
-  private fun documentChanged(@Suppress("UNUSED_PARAMETER") event: DocumentEvent) {
-    removeDuplicateRegions()
-    for (region in collectRegions(0, document.textLength, CUSTOM_FOLD_REGION_FLAVOR)) {
-      model.addAffectedCustomRegions(region as SnapshotCustomFoldRegion)
+  private fun processAffectedRegions(markerIds: LongList) {
+    val regions = ArrayList<SnapshotFoldRegion>(markerIds.size)
+    @Suppress("ReplaceManualRangeWithIndicesCalls")
+    for (index in 0 until markerIds.size) {
+      val region = regionsById.get(markerIds.getLong(index)) ?: continue
+      regions.add(region)
+    }
+    regions.sortWith(REGION_COMPARATOR)
+    removeDuplicateRegions(regions)
+    for (region in regions) {
+      if (region is SnapshotCustomFoldRegion && regionsById.get(region.id) === region) {
+        model.addAffectedCustomRegions(region)
+      }
     }
     sizesBeforeUpdate = emptyMap()
   }
 
-  private fun removeDuplicateRegions() {
-    val regions = collectRegions(0, document.textLength)
+  private fun removeDuplicateRegions(regions: List<SnapshotFoldRegion>) {
     var index = 0
     while (index < regions.size) {
       val first = regions[index]

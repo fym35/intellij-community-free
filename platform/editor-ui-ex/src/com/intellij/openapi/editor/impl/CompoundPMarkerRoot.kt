@@ -43,10 +43,11 @@ class CompoundPMarkerRoot private constructor(
     beforeText: DocumentText,
     afterText: DocumentText,
     invalidatedMarkerConsumer: LongConsumer,
+    affectedMarkerConsumer: LongConsumer,
   ): PMarkerRoot {
     return withRoots(
-      exactRangeRoot.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer),
-      linesInRangeRoot.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer),
+      exactRangeRoot.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer),
+      linesInRangeRoot.applyPatch(patch, beforeText, afterText, invalidatedMarkerConsumer, affectedMarkerConsumer),
     )
   }
 
