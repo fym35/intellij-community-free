@@ -1,10 +1,16 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.lsp.ui.settings
 
+import com.intellij.codeInsight.template.impl.TemplateEditorUtil
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.json.JsonLanguage
 import com.intellij.lsp.ui.LspUiBundle
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.runReadActionBlocking
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.options.ConfigurationException
@@ -14,23 +20,38 @@ import com.intellij.openapi.ui.NamedConfigurable
 import com.intellij.platform.lsp.api.LspIntegrationProvider
 import com.intellij.platform.lsp.impl.LspPluginServerConfiguration
 import com.intellij.platform.lsp.impl.LspServerSettingsProvider
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.COLUMNS_LARGE
 import com.intellij.ui.dsl.builder.MutableProperty
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.bindText
-import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.builder.rows
 import com.intellij.util.execution.ParametersListUtil
+import com.intellij.util.ui.JBDimension
 
 internal class PluginLspServerConfigurable(
   private val project: Project,
   var configuration: LspPluginServerConfiguration,
   private val pluginDescriptor: PluginDescriptor,
 ) : BoundConfigurable(configuration.name) {
+  private lateinit var initializationOptionsEditor: Editor
+
   override fun createPanel(): DialogPanel {
+    val jsonFile = PsiFileFactory.getInstance(project).createFileFromText(
+      "dummy.json",
+      JsonLanguage.INSTANCE,
+      configuration.initializationOptions,
+      true,
+      false,
+    )
+    val jsonDocument = runReadActionBlocking { PsiDocumentManager.getInstance(project).getDocument(jsonFile) }
+    initializationOptionsEditor = TemplateEditorUtil.createEditor(false, jsonDocument, project)
+    initializationOptionsEditor.settings.additionalLinesCount = 0
+    initializationOptionsEditor.component.preferredSize = JBDimension(200, 100)
+
     return panel {
       row {
         checkBox(LspUiBundle.message("lsp.settings.server.enable"))
@@ -79,7 +100,22 @@ internal class PluginLspServerConfigurable(
             )
             .comment(LspUiBundle.message("lsp.settings.server.arguments.comment"))
             .align(AlignX.FILL)
-          .resizableColumn()
+            .resizableColumn()
+          panel {}
+        }
+
+        row(LspUiBundle.message("lsp.settings.server.environment.variables")) {
+          cell(EnvironmentVariablesTextFieldWithBrowseButton(project))
+            .bind(
+              componentGet = { component -> component.data },
+              componentSet = { component, data -> component.data = data },
+              MutableProperty(
+                getter = { configuration.environmentVariables },
+                setter = { configuration = configuration.copy(environmentVariables = it) },
+              )
+            )
+            .align(AlignX.FILL)
+            .resizableColumn()
           panel {}
         }
       }
@@ -106,30 +142,23 @@ internal class PluginLspServerConfigurable(
         label(LspUiBundle.message("lsp.settings.server.init"))
       }
       row {
-        textArea()
-          .bindText(
-            { configuration.initializationOptions },
-            { configuration = configuration.copy(initializationOptions = it) },
-          )
-          .rows(5)
-          .comment(LspUiBundle.message("lsp.settings.server.init.comment"))
-          .columns(COLUMNS_LARGE)
-      }
-
-      row(LspUiBundle.message("lsp.settings.server.environment.variables")) {
-        cell(EnvironmentVariablesTextFieldWithBrowseButton(project))
-          .bind(
-            componentGet = { component -> component.data },
-            componentSet = { component, data -> component.data = data },
-            MutableProperty(
-              getter = { configuration.environmentVariables },
-              setter = { configuration = configuration.copy(environmentVariables = it) },
-            )
-          )
-          .align(AlignX.FILL)
+        cell(initializationOptionsEditor.component)
+          .align(Align.FILL)
           .resizableColumn()
+          .comment(LspUiBundle.message("lsp.settings.server.init.comment"))
+          .onApply { configuration = configuration.copy(initializationOptions = initializationOptionsEditor.document.text) }
+          .onIsModified { configuration.initializationOptions != initializationOptionsEditor.document.text }
+          .onReset {
+            WriteAction.run<Throwable> { initializationOptionsEditor.document.setText(configuration.initializationOptions) }
+          }
         panel {}
-      }
+      }.resizableRow()
+    }
+  }
+
+  override fun disposeUIResources() {
+    if (::initializationOptionsEditor.isInitialized) {
+      EditorFactory.getInstance().releaseEditor(initializationOptionsEditor)
     }
   }
 }

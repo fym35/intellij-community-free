@@ -19,7 +19,9 @@
     <module name="intellij.platform.frontend"/>
     <module name="intellij.platform.ide.core"/>
     <module name="intellij.platform.ide.impl"/>
+    <module name="intellij.json"/>
     <module name="intellij.platform.lang"/>
+    <module name="intellij.platform.lang.impl"/>
     <module name="intellij.platform.lsp.impl"/>
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.statistics"/>

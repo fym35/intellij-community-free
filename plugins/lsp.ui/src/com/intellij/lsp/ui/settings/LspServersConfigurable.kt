@@ -103,7 +103,7 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
   }
 
   private fun addServerNode(config: LspServerConfiguration): MyNode {
-    val configurable = LspServerNamedConfigurable(config, TREE_UPDATER)
+    val configurable = LspServerNamedConfigurable(project, config, TREE_UPDATER)
     val node = MyNode(configurable)
     Disposer.register(this, configurable)
     addNode(node, myRoot)
@@ -211,6 +211,7 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
   }
 
   private class LspServerNamedConfigurable(
+    private val project: Project,
     private val serverConfiguration: LspServerConfiguration,
     private val updateTree: Runnable,
   ) : NamedConfigurable<LspServerConfiguration>(), Disposable {
@@ -249,7 +250,7 @@ internal class LspServersConfigurable(private val project: Project) : MasterDeta
 
     private fun getServerConfigurable(): LspServerConfigurable {
       if (serverConfigurable == null) {
-        serverConfigurable = LspServerConfigurable(serverConfiguration)
+        serverConfigurable = LspServerConfigurable(project, serverConfiguration)
       }
       return serverConfigurable!!
     }
