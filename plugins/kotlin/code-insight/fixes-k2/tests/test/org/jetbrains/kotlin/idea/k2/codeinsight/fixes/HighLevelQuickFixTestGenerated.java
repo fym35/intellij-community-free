@@ -18191,6 +18191,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
                 runTest("../../../idea/tests/testData/quickfix/variables/removeValVarFromParameter/parameterWithComment.kt");
             }
 
+            @TestMetadata("sealedValueClassConstructorParameter.kt")
+            public void testSealedValueClassConstructorParameter() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/variables/removeValVarFromParameter/sealedValueClassConstructorParameter.kt");
+            }
+
             @TestMetadata("secondaryConstructorParameter.kt")
             public void testSecondaryConstructorParameter() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/variables/removeValVarFromParameter/secondaryConstructorParameter.kt");
