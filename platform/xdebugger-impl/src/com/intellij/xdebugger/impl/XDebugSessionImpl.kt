@@ -135,7 +135,7 @@ class XDebugSessionImpl @JvmOverloads constructor(
   val tabCoroutineScope: CoroutineScope = debuggerManager.coroutineScope.childScope("XDebugger session tab $sessionName")
 
   val id: XDebugSessionId = storeGlobally(coroutineScope)
-  private val sessionBreakpointManager = XDebugSessionBreakpointManager(this, debuggerManager)
+  private val sessionBreakpointManager = XDebugSessionBreakpointManager(this, debuggerManager.breakpointManager)
 
   private var myDebugProcess: XDebugProcess? = null
 
