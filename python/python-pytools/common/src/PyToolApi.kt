@@ -62,12 +62,17 @@ data class PyToolStateDto(
   val descriptor: PyToolDescriptorDto,
   val enabled: Boolean,
   val path: PyToolPathDto?,
+  /** Set only when the tool manager already knows the version of the resolved file; see [PyToolApi.getVersion]. */
   val version: String?,
   val canInstall: Boolean,
   val latestVersion: String? = null,
   val configuration: PyToolConfigurationDto? = null,
   val selectedAsTypeEngine: Boolean = false,
 )
+
+/** The resolved path of one tool, without the version or the manager data that a full state carries. */
+@Serializable
+data class PyToolPathStateDto(val toolId: PyToolId, val path: PyToolPathDto?)
 
 @Serializable
 data class PyToolPathRequest(val tool: PyToolRequest, val path: String)
@@ -123,6 +128,22 @@ interface PyToolApi : RemoteApi<Unit> {
   suspend fun observeEnabledStates(projectId: ProjectId): Flow<List<PyToolEnabledStateDto>>
   suspend fun getConfiguration(request: PyToolRequest): PyToolConfigurationDto?
   suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto>
+  /**
+   * The resolved paths only, so the settings pages can show a known path at once.
+   *
+   * [getStates] runs the tool manager and a `--version` process per tool, which takes seconds. This
+   * call reads the custom path and the detection cache, and it probes no version.
+   */
+  suspend fun getPaths(request: PyToolsRequest): List<PyToolPathStateDto>
+
+  /**
+   * The version of one tool's resolved executable, or `null` when the tool resolves nowhere or reports no
+   * usable version.
+   *
+   * Ask for it where the version is shown. It is free when the tool manager already knows the file, and
+   * costs a `<path> --version` run otherwise, which is why [getStates] never resolves it on its own.
+   */
+  suspend fun getVersion(request: PyToolRequest): String?
   suspend fun setEnabled(request: PyToolSetEnabledRequest): PyToolStateDto
   suspend fun setConfiguration(request: PyToolSetConfigurationRequest): PyToolStateDto
   suspend fun validatePath(request: PyToolPathRequest): PyToolValidationDto

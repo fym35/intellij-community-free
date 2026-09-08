@@ -1,12 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.python.pytools.frontend.ui.configuration
 
+import com.intellij.ide.setToolTipText
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.Version
 import com.intellij.openapi.util.text.HtmlBuilder
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
@@ -22,6 +24,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.SwingConstants
 import javax.swing.UIManager
 import kotlin.math.max
 
@@ -127,6 +130,41 @@ internal fun pathDetailsTooltip(row: ToolRow): HtmlChunk? {
   return if (has) builder.wrapWith(HtmlChunk.html()) else null
 }
 
+/**
+ * The executable-path label of a tool row, shared by the External Tools and the Package Managers page.
+ *
+ * The backend detects the path asynchronously, so a row starts with a null [ToolRow.pathFieldValue].
+ * The label then shows a spinner and the "Detecting" text. It must not say "Not found", because the
+ * user reads that as a finished detection.
+ */
+internal fun pathValueLabel(row: ToolRow): JComponent {
+  val detected = row.pathFieldValue
+  if (detected == null) {
+    return JBLabel(
+      PyToolsUiBundle.message("settings.external.tools.path.detecting"),
+      AnimatedIcon.Default.INSTANCE,
+      SwingConstants.LEADING,
+    ).apply {
+      foreground = UIUtil.getInactiveTextColor()
+    }
+  }
+  val (text, muted) = when (detected) {
+    is PathFieldValue.Custom -> detected.path to false
+    is PathFieldValue.AutoDetected -> detected.path to true
+    PathFieldValue.NotFound -> PyToolsUiBundle.message("settings.external.tools.path.not.found") to true
+  }
+  @NlsSafe val valueText = text
+  return JBLabel(valueText).apply {
+    foreground = when {
+      row.pathError != null -> JBColor.RED
+      row.belowMinVersionMessage != null -> JBColor.ORANGE
+      muted -> UIUtil.getInactiveTextColor()
+      else -> UIUtil.getLabelForeground()
+    }
+    pathDetailsTooltip(row)?.let { setToolTipText(it) }
+  }
+}
+
 /** Text for the Upgrade action link: "Upgrade to X.Y.Z" when the target version is known, else "Upgrade". */
 @Nls
 internal fun upgradeLinkText(latestVersion: Version?): String =
@@ -140,10 +178,18 @@ internal fun upgradeLinkText(latestVersion: Version?): String =
  */
 internal fun installedVersionLabel(row: ToolRow): JComponent? {
   val resolved = row.pathFieldValue is PathFieldValue.Custom || row.pathFieldValue is PathFieldValue.AutoDetected
+  if (!resolved) return null
   val version = row.version
-  if (!resolved || version == null) return null
-  @NlsSafe val text = "v$version"
-  return JBLabel(text).apply { foreground = UIUtil.getInactiveTextColor() }
+  if (version != null) {
+    @NlsSafe val text = "v$version"
+    return JBLabel(text).apply { foreground = UIUtil.getInactiveTextColor() }
+  }
+  // The path is resolved and the version is still on its way: it is asked for separately, and for a file the
+  // tool manager does not know it needs a `--version` run. Without a mark here it appears out of nowhere.
+  if (row.versionLoaded) return null
+  return JBLabel(AnimatedIcon.Default.INSTANCE).apply {
+    setToolTipText(HtmlChunk.text(PyToolsUiBundle.message("settings.external.tools.path.detecting")))
+  }
 }
 
 /**

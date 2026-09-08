@@ -277,22 +277,7 @@ internal class PyExternalToolRowPanel(
 
   private fun pathLine(): JComponent = horizontalLine().apply {
     val detected = row.pathFieldValue
-    val (text, muted) = when (detected) {
-      is PathFieldValue.Custom -> detected.path to false
-      is PathFieldValue.AutoDetected -> detected.path to true
-      PathFieldValue.NotFound, null -> PyToolsUiBundle.message("settings.external.tools.path.not.found") to true
-    }
-    @NlsSafe val valueText = text
-    val valueLabel = JBLabel(valueText).apply {
-      foreground = when {
-        row.pathError != null -> JBColor.RED
-        row.belowMinVersionMessage != null -> JBColor.ORANGE
-        muted -> UIUtil.getInactiveTextColor()
-        else -> UIUtil.getLabelForeground()
-      }
-      pathDetailsTooltip(row)?.let { setToolTipText(it) }
-    }
-    add(valueLabel)
+    add(pathValueLabel(row))
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(8)))
 

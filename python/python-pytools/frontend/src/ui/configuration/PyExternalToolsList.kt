@@ -176,6 +176,8 @@ internal class PyExternalToolsList(
     // Keep one row open at a time. Many open rows make the page hard to read.
     rowPanels.forEach { (other, panel) -> if (other !== row) panel.collapse() }
     probeRow(row)
+    // The expanded body is the only place this page shows a version, so this is where it is asked for.
+    scope?.let { row.loadVersion(it, project, ::refreshRow) }
   }
 
   override fun browsePath(row: ToolRow) {
@@ -206,20 +208,36 @@ internal class PyExternalToolsList(
     // Clear any leftover ✓ from a previous settings session — keeping it would mislead the user
     // about whether the underlying tool state is still up to date.
     rows.forEach { it.lastSuccessMessage = null }
-    scope.launch { loadInitialStates() }
+    // Per row, and the path before the state: a row shows its own path as soon as the backend resolves
+    // it, and no row waits for the slowest one. The path is cached on the backend, while a state also
+    // needs the tool listing and, for a path the listing does not cover, a `--version` run.
+    rows.forEach { row ->
+      scope.launch { loadPath(row) }
+      scope.launch { loadState(row) }
+    }
     scope.launch { probeAllSdks() }
   }
 
-  private suspend fun loadInitialStates() {
-    val states = PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), rows.map { it.tool.toolId })).associateBy { it.toolId }
-    rows.forEach { row ->
-      states[row.tool.toolId]?.let {
-        row.applyBackendState(it, updateStagedPath = true, updateStagedEnabled = true)
-        if (!row.staged.enabled && isEngineFor(row.tool)) row.staged = row.staged.copy(enabled = true)
-        persistedPaths[row.tool.toolId] = row.persistedCustomPath
-      }
-      refreshRow(row)
+  private suspend fun loadPath(row: ToolRow) {
+    val path = PyToolApi.getInstance().getPaths(
+      PyToolsRequest(project.projectId(), listOf(row.tool.toolId)),
+    ).singleOrNull() ?: return
+    if (!row.applyBackendPath(path)) return
+    // Keep the modified/apply baseline in step with the staged path this just set.
+    persistedPaths[row.tool.toolId] = row.persistedCustomPath
+    refreshRow(row)
+  }
+
+  private suspend fun loadState(row: ToolRow) {
+    val state = PyToolApi.getInstance().getStates(
+      PyToolsRequest(project.projectId(), listOf(row.tool.toolId)),
+    ).singleOrNull()
+    if (state != null) {
+      row.applyBackendState(state, updateStagedPath = true, updateStagedEnabled = true)
+      if (!row.staged.enabled && isEngineFor(row.tool)) row.staged = row.staged.copy(enabled = true)
+      persistedPaths[row.tool.toolId] = row.persistedCustomPath
     }
+    refreshRow(row)
   }
 
   /**
@@ -341,7 +359,12 @@ internal class PyExternalToolsList(
 
   private fun probeRow(row: ToolRow, isCustomEdit: Boolean = false) {
     val scope = scope ?: return
-    row.probeVersion(scope, project, isCustomEdit, onUpdated = ::refreshRow)
+    row.probeVersion(scope, project, isCustomEdit) { updated ->
+      refreshRow(updated)
+      // A state that resolved another path dropped the version with it, so ask for the new one. A no-op
+      // when the row already holds the version of the path it now shows.
+      updated.loadVersion(scope, project, ::refreshRow)
+    }
   }
 
   /** Re-render a single row's dynamic content (path, SDK list, chain, summary, action state). */

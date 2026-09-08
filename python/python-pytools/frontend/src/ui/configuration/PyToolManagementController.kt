@@ -211,8 +211,13 @@ internal class PyToolManagementController(
       }
     }
 
+  /**
+   * Whether uvx resolves to an executable. This asks for the path alone: a full state also runs the
+   * tool manager and a `--version` process, which the pages already pay for once through their own
+   * state call.
+   */
   private suspend fun refreshUvAvailability() {
-    val state = PyToolApi.getInstance().getStates(
+    val state = PyToolApi.getInstance().getPaths(
       PyToolsRequest(project.projectId(), listOf(PyToolId("uvx"))),
     ).singleOrNull()
     uvAvailable.set(state?.path != null)

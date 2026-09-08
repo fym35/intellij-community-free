@@ -3,21 +3,18 @@ package com.intellij.python.pytools.frontend.ui.packagemanagers
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.setToolTipText
-import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.python.pytools.frontend.ui.PyToolsUiBundle
-import com.intellij.python.pytools.frontend.ui.configuration.PathFieldValue
 import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel
 import com.intellij.python.pytools.frontend.ui.configuration.installedVersionLabel
-import com.intellij.python.pytools.frontend.ui.configuration.pathDetailsTooltip
 import com.intellij.python.pytools.frontend.ui.configuration.pathActionLink
+import com.intellij.python.pytools.frontend.ui.configuration.pathValueLabel
 import com.intellij.python.pytools.frontend.ui.configuration.searchSpotlightBorderColor
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Cursor
 import java.awt.event.MouseAdapter
@@ -76,21 +73,7 @@ internal class PyPackageManagerRowPanel(
     layout = BoxLayout(this, BoxLayout.X_AXIS)
     isOpaque = false
     val detected = row.pathFieldValue
-    val (text, muted) = when (detected) {
-      is PathFieldValue.Custom -> detected.path to false
-      is PathFieldValue.AutoDetected -> detected.path to true
-      PathFieldValue.NotFound, null -> PyToolsUiBundle.message("settings.external.tools.path.not.found") to true
-    }
-    @NlsSafe val valueText = text
-    add(JBLabel(valueText).apply {
-      foreground = when {
-        row.pathError != null -> JBColor.RED
-        row.belowMinVersionMessage != null -> JBColor.ORANGE
-        muted -> UIUtil.getInactiveTextColor()
-        else -> UIUtil.getLabelForeground()
-      }
-      pathDetailsTooltip(row)?.let { setToolTipText(it) }
-    })
+    add(pathValueLabel(row))
     installedVersionLabel(row)?.let { add(Box.createHorizontalStrut(JBUI.scale(6))); add(it) }
     add(Box.createHorizontalStrut(JBUI.scale(10)))
     pathActionLink(row, detected, host)?.let { add(it) }

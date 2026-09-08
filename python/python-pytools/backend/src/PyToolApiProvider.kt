@@ -21,6 +21,7 @@ import com.intellij.python.pytools.common.PyToolSetConfigurationRequest
 import com.intellij.python.pytools.common.PyToolOperationResultDto
 import com.intellij.python.pytools.common.PyToolPathDto
 import com.intellij.python.pytools.common.PyToolPathKind
+import com.intellij.python.pytools.common.PyToolPathStateDto
 import com.intellij.python.pytools.common.PyToolPathRequest
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSdkInstallRequest
@@ -36,6 +37,9 @@ import com.intellij.python.requirements.PyPackageVersionComparator
 import com.jetbrains.python.Result
 import com.jetbrains.python.errorProcessing.PyResult
 import fleet.rpc.remoteApiDescriptor
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.nio.file.Path
 
 internal class PyToolApiProvider : RemoteApiProvider {
@@ -67,19 +71,61 @@ private object PyToolApiImpl : PyToolApi {
   override suspend fun getStates(request: PyToolsRequest): List<PyToolStateDto> {
     val project = request.projectId.findProject()
     val eel = project.getEelDescriptor().toEelApi()
-    val installed = GenericPyToolManagerProvider.managerFor(eel)?.list().orEmpty().mapKeys { (tool, _) -> tool.fusId }
-    return request.toolIds.mapNotNull { id ->
-      PyTool.findExecutable(id.value)?.let { executable ->
-        val info = installed[executable.fusId]
-        state(
-          project,
-          executable,
-          latestVersion = info?.latestVersion?.takeIf {
-            PyPackageVersionComparator.STR_COMPARATOR.compare(it, info.installedVersion) > 0
-          },
-        )
-      }
+    val installed = PyToolProbeCache.getInstance().listing(eel)
+    val executables = request.toolIds.mapNotNull { id -> PyTool.findExecutable(id.value) }
+    // One coroutine per tool: a state resolves a path and, for a path the manager does not know, runs
+    // `<path> --version`. In a sequence every tool waits for the ones before it, so the pages showed no
+    // version until the slowest tool had answered.
+    return coroutineScope {
+      executables.map { executable ->
+        async { state(project, executable, installed = (executable as? PyTool<*>)?.let { installed[it] }) }
+      }.awaitAll()
     }
+  }
+
+  override suspend fun getPaths(request: PyToolsRequest): List<PyToolPathStateDto> {
+    val project = request.projectId.findProject()
+    val descriptor = project.getEelDescriptor()
+    val executables = request.toolIds.mapNotNull { id -> PyTool.findExecutable(id.value) }
+    // One coroutine per tool: a cache hit returns at once, and a cold cache detects every tool in parallel.
+    return coroutineScope {
+      executables.map { executable ->
+        async {
+          val custom = executable.getCustomExecutablePath(descriptor)
+          val path = custom ?: PyExecutableCache.getInstance().get(descriptor, executable)
+          PyToolPathStateDto(
+            toolId = PyToolId(executable.fusId),
+            path = when {
+              custom != null -> PyToolPathDto(custom.toString(), PyToolPathKind.CUSTOM)
+              path != null -> PyToolPathDto(path.toString(), PyToolPathKind.DETECTED)
+              else -> null
+            },
+          )
+        }
+      }.awaitAll()
+    }
+  }
+
+  override suspend fun getVersion(request: PyToolRequest): String? {
+    val project = request.projectId.findProject()
+    val descriptor = project.getEelDescriptor()
+    val executable = PyTool.findExecutable(request.toolId.value) ?: return null
+    val path = executable.getCustomExecutablePath(descriptor)
+               ?: PyExecutableCache.getInstance().get(descriptor, executable)
+               ?: return null
+    return resolveVersion(project, executable, path)
+  }
+
+  /**
+   * The version of [executable] at [path]: free from the manager listing when it covers that exact file, and a
+   * cached `<path> --version` run otherwise.
+   */
+  private suspend fun resolveVersion(project: Project, executable: PyExecutable, path: Path): String? {
+    val tool = executable as? PyTool<*> ?: return null
+    val descriptor = project.getEelDescriptor()
+    val managed = PyToolProbeCache.getInstance().listing(descriptor.toEelApi())[tool]
+      ?.takeIf { it.path.normalize() == path.normalize() }
+    return managed?.installedVersion ?: PyToolProbeCache.getInstance().version(descriptor, tool, path)?.value
   }
 
   override suspend fun validatePath(request: PyToolPathRequest): PyToolValidationDto {
@@ -151,7 +197,12 @@ private object PyToolApiImpl : PyToolApi {
     val project = request.projectId.findProject()
     val tool = requireTool(request)
     return when (val result = operation(project, tool)) {
-      is Result.Success -> PyToolOperationResultDto.Success(state(project, tool, knownPath = result.result))
+      is Result.Success -> {
+        val path = result.result
+        val dto = state(project, tool, knownPath = path)
+        // The user just asked for this install or upgrade, so resolving the new version here is worth a process.
+        PyToolOperationResultDto.Success(dto.takeIf { it.version != null } ?: dto.copy(version = resolveVersion(project, tool, path)))
+      }
       is Result.Failure -> PyToolOperationResultDto.Failure(result.error.toString())
     }
   }
@@ -160,19 +211,22 @@ private object PyToolApiImpl : PyToolApi {
     project: Project,
     executable: PyExecutable,
     knownPath: Path? = null,
-    latestVersion: String? = null,
+    installed: InstalledInfo? = null,
   ): PyToolStateDto {
     val descriptor = project.getEelDescriptor()
     val custom = executable.getCustomExecutablePath(descriptor)
     val path = custom ?: knownPath ?: PyExecutableCache.getInstance().get(descriptor, executable)
+    // What the manager reports counts only when the path resolved above is the very file it installed. Another
+    // path can hold a different build of the tool, or another program altogether, and an upgrade through the
+    // manager would not touch it. A path the manager reports through a symlink compares unequal here, which
+    // costs a version probe but never reports a version or an upgrade of a different file.
+    val managed = installed?.takeIf { path != null && it.path.normalize() == path.normalize() }
     val details = when (executable) {
       is PyTool<*> -> PyToolDetails(
-        version = path?.let {
-          when (val result = executable.validateCustomPath(it)) {
-            is Result.Success -> result.result.value
-            is Result.Failure -> null
-          }
-        },
+        // Only the version the manager already knows. Running `<path> --version` for every tool of a page
+        // costs a process per tool, so a version the manager cannot supply is asked for through getVersion,
+        // where the page shows it.
+        version = managed?.installedVersion,
         minimumSupportedVersion = executable.minimumSupportedVersion?.toCompactString(),
         canInstall = executable.manager?.canInstall(descriptor) == true,
         configuration = executable.configurationState(project),
@@ -191,7 +245,11 @@ private object PyToolApiImpl : PyToolApi {
       },
       version = details.version,
       canInstall = details.canInstall,
-      latestVersion = latestVersion,
+      // `uv tool list --outdated` repeats the installed version when a tool is up to date; report an
+      // upgrade only when the latest one is actually newer.
+      latestVersion = managed?.latestVersion?.takeIf {
+        PyPackageVersionComparator.STR_COMPARATOR.compare(it, managed.installedVersion) > 0
+      },
       configuration = details.configuration,
       selectedAsTypeEngine = details.selectedAsTypeEngine,
     )

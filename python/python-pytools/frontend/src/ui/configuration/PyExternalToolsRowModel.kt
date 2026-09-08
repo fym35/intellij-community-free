@@ -13,6 +13,7 @@ import com.intellij.python.pytools.common.PyToolConfigurationDto
 import com.intellij.python.pytools.common.PyToolDescriptorDto
 import com.intellij.python.pytools.common.PyToolPathKind
 import com.intellij.python.pytools.common.PyToolPathRequest
+import com.intellij.python.pytools.common.PyToolPathStateDto
 import com.intellij.python.pytools.common.PyToolRequest
 import com.intellij.python.pytools.common.PyToolSdkStateDto
 import com.intellij.python.pytools.common.PyToolStateDto
@@ -49,13 +50,22 @@ internal class ToolRow(
   var pathError: String? = null,
   /** Currently-running validation coroutine; cancelled on the next edit. */
   var validationJob: Job? = null,
-  /** Version reported by `<path> --version` for [versionedFor]; null if probe is pending or failed. */
+  /** Version of the resolved executable; null while [versionLoaded] is false, or when the probe found none. */
   var version: Version? = null,
-  /** Path for which [version] was probed. Used to skip re-probing the same binary on repaint. */
+  /**
+   * True once a version answer has arrived for this row, even a `null` one. The version comes after the
+   * path, and for a file the tool manager does not know it costs a process, so this separates "the version
+   * is still on its way" from "there is none".
+   */
+  var versionLoaded: Boolean = false,
+  /**
+   * The path [version] belongs to. A version is an answer about one file, so a state that resolves another
+   * path drops it, while a state that carries no version of its own leaves the known one alone.
+   */
   var versionedFor: String? = null,
   /**
    * Currently-detected path snapshot, populated asynchronously. `null` means the initial detection
-   * is still in flight, so the cell renders empty until then.
+   * is still in flight, so the cell renders the spinner of [pathValueLabel] until then.
    */
   var pathFieldValue: PathFieldValue? = null,
   /**
@@ -180,6 +190,7 @@ internal fun ToolRow.probeVersion(
   validationJob = scope.launch {
     if (isCustomEdit && customPath != null) {
       pathFieldValue = PathFieldValue.Custom(customPath)
+      versionLoaded = false
       versionedFor = customPath
       when (val result = PyToolApi.getInstance().validatePath(
         PyToolPathRequest(PyToolRequest(project.projectId(), tool.toolId), customPath),
@@ -194,6 +205,7 @@ internal fun ToolRow.probeVersion(
         }
       }
       belowMinVersionMessage = computeBelowMinMessage(tool, minimumSupportedVersion, version)
+      versionLoaded = true
       onUpdated(this@probeVersion)
       return@launch
     }
@@ -203,6 +215,57 @@ internal fun ToolRow.probeVersion(
     applyBackendState(state, updateStagedPath = !isCustomEdit)
     onUpdated(this@probeVersion)
   }
+}
+
+/**
+ * Fill the row's path from the cheap paths-only backend call, and report whether it did.
+ *
+ * The full state call runs at the same time and carries the version, the manager data, and the
+ * enable flag. This call only fills the initial hole, so a row that already knows its path, or that
+ * the user has edited, keeps what it has whichever answer lands first.
+ */
+internal fun ToolRow.applyBackendPath(state: PyToolPathStateDto): Boolean {
+  if (pathFieldValue != null) return false
+  val path = state.path
+  val customPath = when (path?.kind) {
+    PyToolPathKind.CUSTOM -> path.value
+    PyToolPathKind.DETECTED, null -> null
+  }
+  persistedCustomPath = customPath
+  staged = staged.copy(customPath = customPath)
+  pathFieldValue = when (path?.kind) {
+    PyToolPathKind.CUSTOM -> PathFieldValue.Custom(path.value)
+    PyToolPathKind.DETECTED -> PathFieldValue.AutoDetected(path.value)
+    null -> PathFieldValue.NotFound
+  }
+  return true
+}
+
+/**
+ * Fetch the version of the row's resolved executable, unless the row already has an answer.
+ *
+ * Kept apart from the state on purpose: for a file the tool manager does not know this runs
+ * `<path> --version`, so it happens where the version is shown — on the Package Managers page for every
+ * row, and on the External Tools page when the user expands a row.
+ */
+internal fun ToolRow.loadVersion(scope: CoroutineScope, project: Project, onUpdated: (ToolRow) -> Unit) {
+  val resolvedPath = pathFieldValue.pathOrNull()
+  if (versionLoaded && versionedFor == resolvedPath) return
+  scope.launch {
+    val reported = PyToolApi.getInstance().getVersion(PyToolRequest(project.projectId(), tool.toolId))
+    version = reported?.let(Version::parseVersion)
+    versionLoaded = true
+    versionedFor = pathFieldValue.pathOrNull()
+    belowMinVersionMessage = computeBelowMinMessage(tool, minimumSupportedVersion, version)
+    onUpdated(this@loadVersion)
+  }
+}
+
+/** The resolved executable path, or `null` while none is resolved. */
+internal fun PathFieldValue?.pathOrNull(): String? = when (this) {
+  is PathFieldValue.Custom -> path
+  is PathFieldValue.AutoDetected -> path
+  PathFieldValue.NotFound, null -> null
 }
 
 internal fun ToolRow.applyBackendState(
@@ -224,8 +287,21 @@ internal fun ToolRow.applyBackendState(
     PyToolPathKind.DETECTED -> PathFieldValue.AutoDetected(path.value)
     null -> PathFieldValue.NotFound
   }
-  versionedFor = path?.value
-  version = state.version?.let(Version::parseVersion)
+  // A state carries a version only when the tool manager already knew it. One that carries none says nothing
+  // about the version, so it may not drop an answer this row already has for the same file.
+  val reported = state.version
+  when {
+    reported != null -> {
+      version = Version.parseVersion(reported)
+      versionLoaded = true
+      versionedFor = path?.value
+    }
+    versionedFor != path?.value -> {
+      version = null
+      versionLoaded = false
+      versionedFor = null
+    }
+  }
   pathError = null
   descriptor = state.descriptor
   minimumSupportedVersion = descriptor.minimumSupportedVersion?.let(Version::parseVersion)

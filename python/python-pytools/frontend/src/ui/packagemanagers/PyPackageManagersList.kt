@@ -19,10 +19,12 @@ import com.intellij.python.pytools.frontend.ui.configuration.PathActionHost
 import com.intellij.python.pytools.frontend.ui.configuration.RowState
 import com.intellij.python.pytools.frontend.ui.configuration.ToolRow
 import com.intellij.python.pytools.frontend.ui.configuration.browseExecutablePath
+import com.intellij.python.pytools.frontend.ui.configuration.applyBackendPath
 import com.intellij.python.pytools.frontend.ui.configuration.applyBackendState
 import com.intellij.python.pytools.frontend.ui.configuration.checkNoPathErrors
 import com.intellij.python.pytools.frontend.ui.configuration.fixedWidthPanel
 import com.intellij.python.pytools.frontend.ui.configuration.headerText
+import com.intellij.python.pytools.frontend.ui.configuration.loadVersion
 import com.intellij.python.pytools.frontend.ui.configuration.probeVersion
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.JBColor
@@ -107,11 +109,24 @@ internal class PyPackageManagersList(
   fun onShown(scope: CoroutineScope) {
     this.scope = scope
     rows.forEach { it.lastSuccessMessage = null }
-    scope.launch {
-      val states = PyToolApi.getInstance().getStates(PyToolsRequest(project.projectId(), rows.map { it.tool.toolId })).associateBy { it.toolId }
-      rows.forEach { row ->
-        states[row.tool.toolId]?.let { row.applyBackendState(it, updateStagedPath = true) }
+    // Per row, and the path before the state: a row shows its own path as soon as the backend resolves
+    // it, and no row waits for the slowest one. The path is cached on the backend, while a state also
+    // needs the tool listing and, for a path the listing does not cover, a `--version` run.
+    rows.forEach { row ->
+      scope.launch {
+        val path = PyToolApi.getInstance().getPaths(
+          PyToolsRequest(project.projectId(), listOf(row.tool.toolId)),
+        ).singleOrNull() ?: return@launch
+        if (row.applyBackendPath(path)) refreshRow(row)
+      }
+      scope.launch {
+        val state = PyToolApi.getInstance().getStates(
+          PyToolsRequest(project.projectId(), listOf(row.tool.toolId)),
+        ).singleOrNull()
+        state?.let { row.applyBackendState(it, updateStagedPath = true) }
         refreshRow(row)
+        // This page shows every row's version, so every row asks for it.
+        row.loadVersion(this, project, ::refreshRow)
       }
     }
   }
@@ -174,7 +189,12 @@ internal class PyPackageManagersList(
 
   private fun probeRow(row: ToolRow, isCustomEdit: Boolean = false) {
     val scope = scope ?: return
-    row.probeVersion(scope, project, isCustomEdit, onUpdated = ::refreshRow)
+    row.probeVersion(scope, project, isCustomEdit) { updated ->
+      refreshRow(updated)
+      // A state that resolved another path dropped the version with it, so ask for the new one. A no-op
+      // when the row already holds the version of the path it now shows.
+      updated.loadVersion(scope, project, ::refreshRow)
+    }
   }
 
   fun refreshRow(row: ToolRow) {

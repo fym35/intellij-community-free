@@ -36,28 +36,32 @@ suspend fun findExecutableInPath(eelApi: EelApi, executableName: String): Path? 
  * next lookup re-detects the freshly installed binaries instead of returning the stale (often negative) result
  * [PyExecutableCache] keeps for its TTL. Without this a just-installed tool can stay invisible to callers — the
  * Settings page and the interpreter widget both resolve availability through the cache — for minutes.
+ *
+ * The tool listing and the versions [PyToolProbeCache] holds for that machine go for the same reason: an install
+ * adds a tool to the listing, and an upgrade changes the version behind an unchanged path.
  */
-private fun PyTool<*>.invalidateDetectionAfter(result: PyResult<Path>, eel: EelApi) {
+private fun PyTool<*>.invalidateCachesAfter(result: PyResult<Path>, eel: EelApi) {
   if (result !is Result.Success) return
   val cache = PyExecutableCache.getInstance()
   executables.forEach { cache.invalidate(eel.descriptor, it) }
+  PyToolProbeCache.getInstance().invalidate(eel.descriptor)
 }
 
 /**
  * Installs this tool's executable into the environment described by [eel] via the tool's [PyTool.manager]
  * (by default a `uv tool install` / pip install; conda uses its own). Returns the resolved executable
  * path, or an error when the tool has no installer ([PyTool.manager] is `null`). On success the tool's cached
- * detection is invalidated ([invalidateDetectionAfter]) so callers see the new binary immediately.
+ * detection is invalidated ([invalidateCachesAfter]) so callers see the new binary immediately.
  */
 suspend fun PyTool<*>.performToolInstallation(eel: EelApi): PyResult<Path> =
   (manager?.install(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
-    .also { invalidateDetectionAfter(it, eel) }
+    .also { invalidateCachesAfter(it, eel) }
 
 /**
  * Upgrades this tool to the latest version in the environment described by [eel] via the tool's
  * [PyTool.manager]. Returns the resolved executable path, or an error when the tool has no installer. On success
- * the tool's cached detection is invalidated ([invalidateDetectionAfter]) so a moved/upgraded binary is re-resolved.
+ * the tool's cached detection is invalidated ([invalidateCachesAfter]) so a moved/upgraded binary is re-resolved.
  */
 suspend fun PyTool<*>.performToolUpgrade(eel: EelApi): PyResult<Path> =
   (manager?.upgrade(this, eel) ?: PyResult.localizedError(message("python.tool.install.no.installer", packageName.name)))
-    .also { invalidateDetectionAfter(it, eel) }
+    .also { invalidateCachesAfter(it, eel) }

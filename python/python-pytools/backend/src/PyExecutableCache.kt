@@ -14,6 +14,9 @@ import java.nio.file.Path
  * Callers that change what detection would find (installing a tool, or writing a custom path) call
  * [invalidate] so the change is seen immediately instead of after the TTL. The implementation is a
  * hidden application service — obtain the instance via [getInstance].
+ *
+ * This cache answers where an executable is, and nothing else. The version of a resolved executable, and
+ * what the environment's tool manager reports about a tool, live in [PyToolProbeCache].
  */
 @ApiStatus.Internal
 interface PyExecutableCache {
