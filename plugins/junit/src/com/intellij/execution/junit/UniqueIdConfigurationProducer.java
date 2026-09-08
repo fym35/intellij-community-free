@@ -32,15 +32,10 @@ public final class UniqueIdConfigurationProducer extends JUnitConfigurationProdu
                                                   @NotNull Ref<PsiElement> sourceElement) {
     String[] nodeIds = getNodeIds(context);
     if (nodeIds == null || nodeIds.length == 0) return false;
-    final JUnitConfiguration.Data data = configuration.getPersistentData();
-    data.setUniqueIds(nodeIds);
-    data.TEST_OBJECT = JUnitConfiguration.TEST_UNIQUE_ID;
+    configuration.beUniqueIdConfiguration(nodeIds);
     AbstractTestProxy selectedProxy = context.getDataContext().getData(AbstractTestProxy.DATA_KEY);
     if (selectedProxy != null) {
       configuration.setName(getGeneratedName(selectedProxy, configuration));
-    }
-    else {
-      configuration.setGeneratedName();
     }
     setupConfigurationModule(context, configuration);
     return true;
