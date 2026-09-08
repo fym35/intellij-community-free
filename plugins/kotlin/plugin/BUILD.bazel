@@ -158,6 +158,7 @@ dev_dist_plugin(
         "intellij.kotlin.injection",
         "intellij.kotlin.internal",
         "intellij.kotlin.j2k",
+        "intellij.kotlin.j2k.mcp",
         "intellij.kotlin.jvm.debugger.coroutines",
         "intellij.kotlin.jvm.debugger.evaluation",
         "kotlin.jvm-debugger.evaluation",

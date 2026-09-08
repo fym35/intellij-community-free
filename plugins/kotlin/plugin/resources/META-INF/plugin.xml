@@ -132,6 +132,7 @@
     <module name="kotlin.base.injection"/>
 
     <module name="intellij.kotlin.j2k"/>
+    <module name="intellij.kotlin.j2k.mcp"/>
     <module name="intellij.kotlin.internal"/>
 
     <module name="intellij.kotlin.performanceExtendedPlugin"/>
