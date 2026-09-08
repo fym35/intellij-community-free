@@ -294,7 +294,8 @@ public final class InlineMethodHandler extends JavaInlineActionHandler {
     /**
      * Result in which the refactoring can inline the object creation together with the chained call.
      * For example, {@code new Point(12, 34).getX()}.
-     * @param context - Context of the object to be inlined. See the Javadoc of the corresponding class.
+     * @param method - Constructor of the object to be inlined.
+     * @param reference - Reference to the constructor call on which inline refactoring was invoked.
      */
     record InlineObject(@NotNull PsiMethod method, @NotNull PsiReference reference) implements ContextOrError {
     }
