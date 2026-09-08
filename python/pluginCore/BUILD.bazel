@@ -38,6 +38,7 @@ dev_dist_plugin(
         "intellij.python.community",
         "intellij.python.community.impl.pipenv.frontend",
         "intellij.python.community.impl.pipenv",
+        "intellij.python.community.plugin.frontend",
         "intellij.python.community.plugin.impl",
         "intellij.python.community.plugin.java",
         "intellij.python.community.plugin.minor",

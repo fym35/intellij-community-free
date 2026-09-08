@@ -13,6 +13,7 @@ dev_dist_plugin(
         "intellij.platform.ide.nonModalWelcomeScreen.frontend",
         "intellij.platform.whatsNew",
         "intellij.pycharm.community.customization.backend",
+        "intellij.pycharm.community.customization.frontend",
         "intellij.pycharm.community.ide.impl",
         "intellij.pycharm.community.ide.implTraining",
         "intellij.pycharm.community.newUiOnboarding",

@@ -1775,6 +1775,7 @@ python/conda/frontend
 python/huggingFace
 python/ide-common/ide-customization
 python/ide/customization.backend
+python/ide/customization.frontend
 python/ide/customization.shared
 python/ide/impl
 python/ide/impl/intellij.pycharm.community.ide.impl.promotion
@@ -1791,6 +1792,7 @@ python/openapi
 python/pipenv
 python/pipenv/frontend
 python/pluginCore
+python/pluginCore/frontend
 python/pluginCore/impl
 python/pluginJava
 python/pluginMinor
