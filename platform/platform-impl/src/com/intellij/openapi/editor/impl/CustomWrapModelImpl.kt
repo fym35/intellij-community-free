@@ -22,7 +22,7 @@ import org.jetbrains.annotations.TestOnly
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, CustomWrapModel.Mutator, PrioritizedDocumentListener,
                                                                      Dumpable, Disposable {
   private val document = editor.elfDocument
-  private val tree: CustomWrapTree? = if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) null else CustomWrapTree(document)
+  private val tree: CustomWrapTree? = if (RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION) null else CustomWrapTree(document)
   @Volatile
   private var snapshotStorage: SnapshotCustomWrapStorage? = null
   private val eventDispatcher = EventDispatcher.create(CustomWrapModel.Listener::class.java)

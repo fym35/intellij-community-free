@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.ex.DocumentEventDispatcher;
 import com.intellij.openapi.editor.ex.DocumentEx;
 import com.intellij.openapi.editor.ex.MarkupIterator;
 import com.intellij.openapi.editor.ex.RangeMarkerEx;
-import com.intellij.openapi.editor.ex.RangeMarkerStorage;
+import com.intellij.openapi.editor.ex.RangeMarkers;
 import com.intellij.openapi.editor.impl.marker.DefaultMarkerPolicy;
 import com.intellij.openapi.editor.impl.marker.MarkerSpec;
 import com.intellij.openapi.editor.impl.marker.PMarker;
@@ -27,12 +27,12 @@ import org.jetbrains.annotations.TestOnly;
 import java.util.Objects;
 
 @ApiStatus.Internal
-public final class RangeMarkerStorageImpl implements RangeMarkerStorage {
+public final class RangeMarkersImpl implements RangeMarkers {
   private final @Nullable RangeMarkerTree<RangeMarkerEx> myRangeMarkers;
   private final @Nullable RangeMarkerTree<RangeMarkerEx> myPersistentRangeMarkers;
   private final @NotNull DocumentImpl myDocument;
 
-  RangeMarkerStorageImpl(@NotNull DocumentEventDispatcher dispatcher, @NotNull DocumentImpl document) {
+  RangeMarkersImpl(@NotNull DocumentEventDispatcher dispatcher, @NotNull DocumentImpl document) {
     if (Holder.USE_PMARKER_IMPLEMENTATION) {
       myRangeMarkers = null;
       myPersistentRangeMarkers = null;

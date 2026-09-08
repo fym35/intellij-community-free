@@ -18,15 +18,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/// Storage for guarded blocks. Uses [RangeMarkerStorageImpl] for them
+/// Storage for guarded blocks. Uses [RangeMarkersImpl] for them
 final class GuardedBlocksImpl implements GuardedBlocks {
   private static final Logger LOG = Logger.getInstance(GuardedBlocksImpl.class);
 
-  @NotNull private final RangeMarkerStorageImpl myRangeMarkerStorage;
+  @NotNull private final RangeMarkersImpl myRangeMarkers;
   private final CachedBlocks myCachedGuardedBlocks;
 
-  GuardedBlocksImpl(@NotNull RangeMarkerStorageImpl rangeMarkerStorage, @NotNull DocumentEventDispatcher dispatcher) {
-    myRangeMarkerStorage = rangeMarkerStorage;
+  GuardedBlocksImpl(@NotNull RangeMarkersImpl rangeMarkers, @NotNull DocumentEventDispatcher dispatcher) {
+    myRangeMarkers = rangeMarkers;
     myCachedGuardedBlocks = new CachedBlocks(dispatcher);
   }
 
@@ -55,7 +55,7 @@ final class GuardedBlocksImpl implements GuardedBlocks {
   public @NotNull RangeMarkerEx createGuardedBlock(@NotNull DocumentEx hostDocument, int startOffset, int endOffset) {
     LOG.assertTrue(startOffset <= endOffset, "Should be startOffset <= endOffset");
     RangeMarkerEx block;
-    if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+    if (RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
       block = SnapshotGuardedBlock.create((DocumentImpl)hostDocument, startOffset, endOffset);
     }
     else {
@@ -93,7 +93,7 @@ final class GuardedBlocksImpl implements GuardedBlocks {
   @Override
   public @Nullable RangeMarker getRangeGuard(int start, int end) {
     Ref<RangeMarker> blockRef = new Ref<>();
-    myRangeMarkerStorage.processDeliciousRangeMarkersOverlappingWith(start, end, GuardedBlock.GUARD_BLOCK_FLAVOR_FLAG, block -> {
+    myRangeMarkers.processDeliciousRangeMarkersOverlappingWith(start, end, GuardedBlock.GUARD_BLOCK_FLAVOR_FLAG, block -> {
       if (rangesIntersect(start, end, true, true,
                           block.getStartOffset(), block.getEndOffset(),
                           block.isGreedyToLeft(),
@@ -108,7 +108,7 @@ final class GuardedBlocksImpl implements GuardedBlocks {
 
   private @NotNull @UnmodifiableView List<RangeMarker> collectAllGuardedBlocks() {
     List<RangeMarker> blocks = new ArrayList<>();
-    myRangeMarkerStorage.processDeliciousRangeMarkersOverlappingWith(0, Integer.MAX_VALUE, GuardedBlock.GUARD_BLOCK_FLAVOR_FLAG, block -> blocks.add(block));
+    myRangeMarkers.processDeliciousRangeMarkersOverlappingWith(0, Integer.MAX_VALUE, GuardedBlock.GUARD_BLOCK_FLAVOR_FLAG, block -> blocks.add(block));
     // prevent the users from being misled that modifying this list affects actual guarded blocks
     return Collections.unmodifiableList(blocks);
   }

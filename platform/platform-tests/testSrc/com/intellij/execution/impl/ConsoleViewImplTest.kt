@@ -30,7 +30,7 @@ import com.intellij.openapi.editor.actionSystem.EditorActionManager
 import com.intellij.openapi.editor.actionSystem.TypedAction
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.DocumentMarkupModel
-import com.intellij.openapi.editor.impl.RangeMarkerStorageImpl
+import com.intellij.openapi.editor.impl.RangeMarkersImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.extensions.impl.ExtensionPointImpl
 import com.intellij.openapi.project.Project
@@ -1153,7 +1153,7 @@ class ConsoleViewImplTest : LightPlatformTestCase() {
 
   fun testComputeTextToSendWithSnapshotHighlighters() {
     Disposer.dispose(console)
-    RangeMarkerStorageImpl.usePMarkerImplementationIn<RuntimeException> {
+    RangeMarkersImpl.usePMarkerImplementationIn<RuntimeException> {
       console = createConsole() // otherwise the console might be created with old tree RangeMarkers and now will try to create more snapshot-based RangeMarkers and fail
       console.print("first", ConsoleViewContentType.USER_INPUT)
       console.print("output", ConsoleViewContentType.NORMAL_OUTPUT)

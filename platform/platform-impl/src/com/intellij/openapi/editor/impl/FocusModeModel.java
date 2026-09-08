@@ -56,7 +56,7 @@ public final class FocusModeModel implements Disposable {
   @ApiStatus.Internal
   public FocusModeModel(@NotNull EditorImpl editor) {
     myEditor = editor;
-    myFocusMarkerTree = RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION ? null : new RangeMarkerTree<>(editor.getElfDocument());
+    myFocusMarkerTree = RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION ? null : new RangeMarkerTree<>(editor.getElfDocument());
 
     myEditor.getScrollingModel().addVisibleAreaListener(_ -> {
       AWTEvent event = IdeEventQueue.getInstance().getTrueCurrentEvent();

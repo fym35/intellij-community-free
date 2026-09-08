@@ -50,7 +50,7 @@ public final class RMTreeReference extends WeakReference<RangeMarkerTree<RangeMa
                                                                      boolean persistent) {
     int estimatedLength = RangeMarkerImpl.estimateDocumentLength(file);
     offset = Math.min(offset, estimatedLength);
-    if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+    if (RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
       return SnapshotMarkerEngineImpl.INSTANCE.createRangeMarkerForVirtualFile(
         file, offset, startLine, startCol, endLine, endCol, persistent
       );

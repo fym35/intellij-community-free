@@ -50,7 +50,7 @@ public class MarkupModelImpl extends UserDataHolderBase implements MarkupModelEx
   @ApiStatus.Internal
   protected MarkupModelImpl(@NotNull DocumentEx document) {
     myDocument = document;
-    if (document instanceof DocumentImpl documentImpl && RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+    if (document instanceof DocumentImpl documentImpl && RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
       myHighlighterTree = null;
       myHighlighterTreeForLines = null;
       mySnapshotHighlighterStorage = new SnapshotHighlighterStorage(this, documentImpl);

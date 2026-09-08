@@ -41,7 +41,7 @@ public final class DocumentImpl extends VersionedUserDataHolderBase implements D
    * Actual document implementation hidden behind an interface
    */
   private final DocumentCore impl;
-  private final RangeMarkerStorageImpl rangeMarkers;
+  private final RangeMarkersImpl rangeMarkers;
   private final GuardedBlocks guardedBlocks;
 
   /**
@@ -95,7 +95,7 @@ public final class DocumentImpl extends VersionedUserDataHolderBase implements D
   public DocumentImpl(@NotNull DocumentCore impl, @Nullable DocumentImpl hostDocument) {
     this.impl = impl;
     this.hostDocument = hostDocument;
-    rangeMarkers = new RangeMarkerStorageImpl(impl.dispatcher(), hostDocument());
+    rangeMarkers = new RangeMarkersImpl(impl.dispatcher(), hostDocument());
     guardedBlocks = new GuardedBlocksImpl(rangeMarkers, impl.dispatcher());
   }
 

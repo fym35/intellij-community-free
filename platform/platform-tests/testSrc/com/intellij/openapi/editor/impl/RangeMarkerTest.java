@@ -2014,7 +2014,7 @@ public class RangeMarkerTest extends LightPlatformTestCase {
 
   public void testRangeMarkerImplThrowsWhenSnapshotEngineIsEnabled() {
     DocumentEx document = (DocumentEx)EditorFactory.getInstance().createDocument("");
-    if (RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
+    if (RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION) {
       assertThrows(AssertionError.class, () -> new RangeMarkerImpl(document, 0, 0, true, false));
     }
     else {

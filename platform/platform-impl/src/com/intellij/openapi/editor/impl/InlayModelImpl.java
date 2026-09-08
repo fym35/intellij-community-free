@@ -103,7 +103,7 @@ public final class InlayModelImpl implements InlayModel, InlayModelEx, Prioritiz
   InlayModelImpl(@NotNull EditorImpl editor) {
     myEditor = editor;
     myDocument = editor.getElfDocument();
-    mySnapshotMarkerStorage = myDocument instanceof DocumentImpl document && RangeMarkerStorageImpl.Holder.USE_PMARKER_IMPLEMENTATION
+    mySnapshotMarkerStorage = myDocument instanceof DocumentImpl document && RangeMarkersImpl.Holder.USE_PMARKER_IMPLEMENTATION
                               ? new SnapshotInlayStorage(this, editor, document)
                               : null;
     myInlineElementsTree = mySnapshotMarkerStorage == null ? new InlineElementsTree(myDocument) : null;
