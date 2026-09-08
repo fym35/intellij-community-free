@@ -48,6 +48,7 @@ interface RegistryManager {
    * dependency, an optional content module, a frontend and backend split, or free mode. Prefer this overload
    * over the single-argument form whenever the module that reads the key does not itself declare it.
    */
+  @ApiStatus.Experimental
   fun `is`(key: String, defaultValue: Boolean): Boolean
 
   fun intValue(key: String, defaultValue: Int): Int
@@ -57,6 +58,7 @@ interface RegistryManager {
    *
    * Unlike the single-argument form, this overload never returns `null`.
    */
+  @ApiStatus.Experimental
   fun stringValue(key: String, defaultValue: String): String
 
   fun get(key: String): RegistryValue
