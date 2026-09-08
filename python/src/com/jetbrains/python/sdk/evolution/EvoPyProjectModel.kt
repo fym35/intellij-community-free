@@ -118,6 +118,12 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
 
   private val state = MutableStateFlow<Snapshot?>(null)
 
+  // Declared before `init`: the coroutines it starts read these fields. A dispatch can start one before the
+  // constructor ends.
+  private val interpreterState = MutableStateFlow<Sdk?>(null)
+
+  private val selectionChanges = MutableStateFlow(0)
+
   init {
     scope.launch {
       // Compute up front, then on every workspace-model change that can alter the PyProject set. Conflated: a
@@ -190,10 +196,6 @@ internal class EvoPyProjectModel(private val project: Project, scope: CoroutineS
    * widget followed the workspace and kept showing it (PY-90174).
    */
   val interpreter: StateFlow<Sdk?> get() = interpreterState.asStateFlow()
-
-  private val interpreterState = MutableStateFlow<Sdk?>(null)
-
-  private val selectionChanges = MutableStateFlow(0)
 
   private fun selectedFile(): VirtualFile? = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
 
