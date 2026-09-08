@@ -6,6 +6,7 @@ import com.intellij.ide.actions.searcheverywhere.PSIPresentationBgRendererWrappe
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywherePreviewFetcher
 import com.intellij.ide.util.PsiElementListCellRenderer.ItemMatchers
+import com.intellij.ide.util.gotoByName.ChooseByNameMatcherFactory
 import com.intellij.ide.vfs.rpcId
 import com.intellij.idea.AppMode
 import com.intellij.openapi.Disposable
@@ -32,6 +33,7 @@ import com.intellij.platform.searchEverywhere.providers.SeEverywhereFilterImpl
 import com.intellij.platform.searchEverywhere.providers.SeTypeVisibilityStateProviderDelegate
 import com.intellij.platform.searchEverywhere.providers.getExtendedInfo
 import com.intellij.psi.PsiDirectory
+import com.intellij.psi.codeStyle.MatcherWithFallback
 import com.intellij.psi.codeStyle.NameUtil
 import com.intellij.util.text.matching.MatchingMode
 import kotlinx.coroutines.Dispatchers
@@ -153,9 +155,20 @@ class SeTargetsProviderDelegate(private val contributorWrapper: SeAsyncContribut
   }
 
   private fun createDefaultMatchers(rawPattern: String): ItemMatchers {
-    val namePattern = contributor.filterControlSymbols(rawPattern)
-    val matcher = NameUtil.buildMatcherWithFallback("*$rawPattern", "*$namePattern", MatchingMode.IGNORE_CASE)
-    return ItemMatchers(matcher, null)
+    val fullRawPattern = "*$rawPattern"
+    val fullNamePattern = "*${contributor.filterControlSymbols(rawPattern)}"
+
+    val matcherFactory = ChooseByNameMatcherFactory.tryGetInstance()
+    if (matcherFactory != null) {
+      val rawMatcher = matcherFactory.createMatcher(fullRawPattern, false)
+      val nameMatcher = matcherFactory.createMatcher(fullNamePattern, false)
+      if (rawMatcher != null && nameMatcher != null) {
+        val matcher = if (fullRawPattern == fullNamePattern) rawMatcher else MatcherWithFallback(rawMatcher, nameMatcher)
+        return ItemMatchers(matcher, null)
+      }
+    }
+
+    return ItemMatchers(NameUtil.buildMatcherWithFallback(fullRawPattern, fullNamePattern, MatchingMode.IGNORE_CASE), null)
   }
 
   suspend fun getSearchScopesInfo(): SearchScopesInfo? {

@@ -444,6 +444,8 @@ jvm_library(
         "//libraries/junit5-params:junit5-params_test_lib",
         "//plugins/webp/tests",
         "//plugins/webp/tests:tests_test_lib",
+        "//platform/searchEverywhere/backend",
+        "//platform/searchEverywhere/backend:backend_test_lib",
         "//aether-dependency-resolver/plugin",
         "//aether-dependency-resolver/plugin:plugin_test_lib",
         "//java/java-backend:backend",
