@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.ex.DocumentSnapshot
 import com.intellij.openapi.editor.ex.DocumentSputnik
 import com.intellij.openapi.editor.ex.DocumentSputniks
 import com.intellij.openapi.editor.ex.DocumentText
-import com.intellij.openapi.editor.ex.DocumentTextPatch
 import com.intellij.openapi.editor.impl.marker.PMarkerRoot
 import com.intellij.openapi.editor.impl.marker.PMarkerRootImpl
 import com.intellij.openapi.editor.impl.marker.SnapshotMarkerEngineImpl
@@ -75,12 +74,7 @@ internal class DocumentSnapshotImpl private constructor(
       newSnapshot
     }
     if (after !== this) {
-      if (op is DocumentTextPatch) {
-        SnapshotMarkerEngineImpl.applyPatch(this, after, op)
-      }
-      else {
-        SnapshotMarkerEngineImpl.inherit(this, after)
-      }
+      SnapshotMarkerEngineImpl.applyOp(this, after, op)
     }
     return after
   }
