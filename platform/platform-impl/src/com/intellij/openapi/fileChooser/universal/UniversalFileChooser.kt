@@ -66,6 +66,7 @@ import com.intellij.util.containers.toArray
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -505,9 +506,9 @@ object UniversalFileChooser {
     fun preselect(toSelect: Path?) {
       scope.launch {
         withContext(Dispatchers.IO) {
-          val target = pathToSelect(toSelect)
+          val target = pathToSelect(toSelect) ?: return@withContext
           val effective = if (descriptor is FileSaverDescriptor && Files.exists(target) && !Files.isDirectory(target)) {
-            target.parent ?: target
+            target?.parent ?: target
           }
           else {
             target
@@ -522,8 +523,11 @@ object UniversalFileChooser {
       }
     }
 
-    private fun pathToSelect(toSelect: Path?): Path {
-      val last = NioFileChooserUtil.getLastOpenedPath(project)
+    private suspend fun pathToSelect(toSelect: Path?): Path? {
+      // Use the last opened path only when one of the shown contributors owns it. The last path is
+      // stored per project, and for the default project it can come from an unrelated chooser
+      // whose environment is not shown here (see IJPL-254193).
+      val last = NioFileChooserUtil.getLastOpenedPath(project)?.takeIf { effectiveContributors.findOwner(it) != null }
       if (last != null && (toSelect == null || descriptor.getUserData(PathChooserDialog.PREFER_LAST_OVER_EXPLICIT) == true)) {
         return last
       }
@@ -536,7 +540,7 @@ object UniversalFileChooser {
           return projectPath
         }
       }
-      return Path.of(SystemProperties.getUserHome())
+      return getHomeDirectory()
     }
 
 
@@ -642,15 +646,19 @@ object UniversalFileChooser {
       }
     }
 
+    private suspend fun getHomeDirectory(): Path? {
+      val basePath = project.guessedProjectPath()
+                     ?: findNonProjectBasePath()
+                     ?: return null
+      return basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
+    }
+
     private fun navigateToHome() {
       val activeView = getActiveFileView() ?: return
       activeView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
       scope.launch {
         withContext(Dispatchers.IO) {
-          val basePath = project.guessedProjectPath()
-                         ?: findNonProjectBasePath()
-                         ?: return@withContext
-          val homePath = basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
+          val homePath = getHomeDirectory() ?: return@withContext
           runOnEdt {
             activeView.topComponent.cursor = Cursor.getDefaultCursor()
             navigateToFile(homePath)
@@ -659,10 +667,13 @@ object UniversalFileChooser {
       }
     }
 
-    private fun findNonProjectBasePath(): Path? {
+    private suspend fun findNonProjectBasePath(): Path? {
       val localHome = Path.of(SystemProperties.getUserHome())
       if (effectiveContributors.find { c -> c.ownsPath(localHome) } != null) return localHome
       val activeView = getActiveFileView() ?: return null
+      // The roots come from an asynchronous loadRoots() pass. Wait for it, because on a fresh
+      // remote connection the preselection runs before the roots exist (see IJPL-254193).
+      activeView.rootsLoaded.await()
       return activeView.roots.asSequence()
         .mapNotNull { runCatching { Path.of(it) }.getOrNull() }
         .firstOrNull()
@@ -722,6 +733,10 @@ object UniversalFileChooser {
       private val chooseFolders: Boolean = descriptor.isChooseFolders
 
       var fileToSelect: Path? = null
+
+      /** Completed when the first [loadRoots] pass has populated [roots]. */
+      val rootsLoaded: CompletableDeferred<Unit> = CompletableDeferred()
+
       internal val pathTextField: NioPathTextField = NioPathTextField(scope, descriptor.isChooseFiles, descriptor.isChooseJarContents)
 
       /**
@@ -926,6 +941,7 @@ object UniversalFileChooser {
               fileToSelect = null
               okEnabledUpdater()
               startCacheUpdates()
+              rootsLoaded.complete(Unit)
             }
           }
         }
