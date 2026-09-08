@@ -719,6 +719,7 @@ class PyDB(object):
         self.is_files_filter_enabled = self._exclude_filters_enabled or self._is_libraries_filter_enabled
         self.show_return_values = False
         self.remove_return_values_flag = False
+        self.stop_on_failed_tests = False
         self.redirect_output = False
         # Note that besides the `redirect_output` flag, we also need to consider that someone
         # else is already redirecting (i.e.: debugpy).
@@ -1297,6 +1298,14 @@ class PyDB(object):
         if self.plugin is None:
             self.plugin = PluginManager(self)
         return self.plugin
+
+    def set_unit_tests_debugging_mode(self):
+        self.stop_on_failed_tests = True
+
+    def is_test_item_or_set_up_caller(self, trace):
+        from _pydevd_bundle.pydevd_utils import is_test_item_or_set_up_caller
+
+        return is_test_item_or_set_up_caller(self, trace)
 
     def in_project_scope(self, frame, absolute_filename=None):
         """

@@ -1515,6 +1515,10 @@ def build_exception_info_response(dbg, thread_id, thread, request_seq, set_addit
                         if exc_desc is not None:
                             try:
                                 description = str(exc_desc)
+                                if not description:
+                                    # An exception can carry no message, and `str` is then empty.
+                                    # `repr` gives `Exception()`, which the user can read.
+                                    description = repr(exc_desc)
                             except:
                                 pass
 

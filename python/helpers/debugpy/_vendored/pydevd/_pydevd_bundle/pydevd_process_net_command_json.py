@@ -390,6 +390,11 @@ class PyDevJsonCommandProcessor(object):
         self.api.run(py_db)
         self.api.notify_configuration_done(py_db)
 
+        if py_db.stop_on_failed_tests:
+            # JetBrains extension (PY-88218): `PyDevdAPI.run` sets `ready_to_run` here, so this
+            # is the first point where `on_breakpoints_changed` can register the exception events.
+            py_db.on_breakpoints_changed()
+
         configuration_done_response = pydevd_base_schema.build_response(request)
         return NetCommand(CMD_RETURN, 0, configuration_done_response, is_json=True)
 
@@ -533,6 +538,13 @@ class PyDevJsonCommandProcessor(object):
         py_db.is_output_redirected = redirecting
 
         self.api.set_show_return_values(py_db, self._options.show_return_value)
+
+        if self._options.stop_on_failed_tests:
+            # JetBrains extension: "Drop into debugger on failed tests" (PY-88218).
+            # The flag makes the debugger suspend when an exception reaches the test
+            # framework. It also keeps the exception events on when no breakpoint is set.
+            py_db.set_unit_tests_debugging_mode()
+            py_db.on_breakpoints_changed()
 
         parsed = _parse_break_on_system_exit(args)
         if parsed is not None:
