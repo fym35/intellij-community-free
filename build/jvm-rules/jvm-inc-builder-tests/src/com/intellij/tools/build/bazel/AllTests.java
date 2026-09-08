@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
   JvmIncBuilderTest.class,
+  CrashRecoveryTest.class,
   KotlinTests.class,
   JavaTests.class,
   ZipBuilderTest.class,
